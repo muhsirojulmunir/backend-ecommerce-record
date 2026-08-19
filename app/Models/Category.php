@@ -37,10 +37,8 @@ class Category extends Model
     }
 
     /**
-     * Gaya CSS untuk menampilkan gambar sesuai posisi & perbesaran
-     * yang diatur admin. Dipakai sama persis di panel admin maupun
-     * di halaman toko supaya hasilnya identik.
-     */
+ * Gaya CSS untuk menampilkan gambar sesuai posisi & perbesaran yang diatur admin.
+ */
     public function getImageStyleAttribute(): string
     {
         $x    = $this->image_position_x ?? 50;

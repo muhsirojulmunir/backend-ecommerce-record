@@ -94,12 +94,8 @@ class Product extends Model
     }
 
     /**
-     * Hanya ulasan yang boleh dilihat pengunjung.
-     *
-     * Dipisahkan sebagai relasi tersendiri supaya halaman produk bisa
-     * memakai withAvg/withCount terhadapnya tanpa perlu menyalin syarat
-     * "tidak disembunyikan" ke setiap tempat yang memanggilnya.
-     */
+ * Hanya ulasan yang boleh dilihat pengunjung.
+ */
     public function reviewsTampil(): HasMany
     {
         return $this->hasMany(ProductReview::class)->where('is_hidden', false);

@@ -9,11 +9,6 @@ use App\Services\PelacakanService;
 
 /**
  * Pelacakan paket untuk panel admin.
- *
- * Dipanggil lewat AJAX, bukan dirender bersama halaman. Alasannya: menunggu
- * jawaban Biteship bisa memakan beberapa detik, dan halaman pesanan tidak
- * boleh ikut tertahan karena itu — apalagi bila layanan pelacakannya sedang
- * lambat atau mati.
  */
 class AdminWebPelacakanController extends Controller
 {
@@ -33,12 +28,8 @@ class AdminWebPelacakanController extends Controller
     }
 
     /**
-     * Paket kembali: dari pembeli menuju toko.
-     *
-     * Resinya dibeli sendiri oleh pembeli di gerai kurir, jadi tidak ada di
-     * sistem Biteship kita — inilah yang membuat pelacakan lewat alamat
-     * publik diperlukan.
-     */
+ * Paket kembali: dari pembeli menuju toko.
+ */
     public function pengembalian(int $id)
     {
         $retur = OrderReturn::findOrFail($id);

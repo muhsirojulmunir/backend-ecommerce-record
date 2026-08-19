@@ -144,14 +144,7 @@
                 <p class="text-xs text-gray-400 mt-1">Belum ada pesanan yang sesuai dengan filter yang dipilih.</p>
             </div>
         @else
-            {{-- ── Kepala kolom ──
-                 Meniru susunan Shopee: Produk di kiri, lalu Dibayar Pembeli,
-                 Status, Jasa Kirim, dan Aksi di kanan. Admin yang sudah
-                 terbiasa dengan Shopee tidak perlu mencari-cari lagi letak
-                 tiap keterangan.
-
-                 Hanya tampil di layar lebar; di layar sempit kartunya
-                 menumpuk sendiri dan kepala kolom justru membingungkan. --}}
+            {{-- ── Kepala kolom ── --}}
             <div class="hidden lg:flex items-center gap-4 px-4 py-3 bg-gray-50/70 border-b border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                 <div class="w-5 shrink-0">
                     <input type="checkbox" x-model="selectAll" @change="toggleAll()"
@@ -169,14 +162,7 @@
                     @php $isPaid = $order->payment_status === 'paid'; @endphp
 
                     <div class="transition {{ !$isPaid ? 'bg-amber-50/20' : '' }}"
-                         {{-- Dibandingkan sebagai teks lewat String().
-
-                              Sebabnya: centang satuan mengisi "selected" dengan
-                              TEKS (begitulah x-model bekerja pada input), sedangkan
-                              tombol pilih-semua mengisinya dengan ANGKA. Satu larik
-                              bisa memuat keduanya sekaligus, jadi perbandingan
-                              ketat selalu meleset di salah satu jalur — dan
-                              sorotan kartunya tidak pernah menyala. --}}
+                         {{-- Dibandingkan sebagai teks lewat String(). --}}
                          :class="selected.some(id => String(id) === '{{ $order->id }}') && 'bg-orange-50/40'">
 
                         {{-- ── Kepala kartu: pembeli di kiri, nomor pesanan di kanan ── --}}
@@ -213,9 +199,7 @@
                             <div class="hidden lg:block w-5 shrink-0"></div>
 
                             <div class="flex-1 min-w-0 space-y-3">
-                                {{-- Pesanan lama pada data uji ada yang barisnya
-                                     kosong. Tanpa keterangan ini kolomnya melompong
-                                     dan terlihat seperti tampilan yang rusak. --}}
+                                {{-- Pesanan lama pada data uji ada yang barisnya --}}
                                 @if($order->items->isEmpty())
                                     <p class="text-[11px] text-gray-400 italic">
                                         Tidak ada rincian barang pada pesanan ini.
@@ -273,9 +257,7 @@
                                     {{ $order->status_label }}
                                 </span>
 
-                                {{-- Nomor pengembalian ikut tampil bila ada,
-                                     supaya pesanan bermasalah langsung terlihat
-                                     tanpa membuka menu pengembalian. --}}
+                                {{-- Nomor pengembalian ikut tampil bila ada, --}}
                                 @php $retur = $order->returns->firstWhere('type', 'return'); @endphp
                                 @if($retur)
                                     <a href="{{ route('admin.returns.show', $retur->id) }}"
@@ -336,11 +318,7 @@
         @endif
     </div>
 
-    {{-- ══════════ Modal Export ══════════
-         Memakai dua isian tanggal bawaan peramban, bukan kalender ganda
-         buatan sendiri. Isian bawaan sudah memunculkan kalender, sudah
-         mengerti format tanggal setempat, dan bisa diketik langsung — sesuatu
-         yang justru sulit pada kalender buatan sendiri. --}}
+    {{-- ══════════ Modal Export ══════════ --}}
     <div x-show="bukaEkspor" x-cloak
          class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
         <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-gray-100"
@@ -454,9 +432,7 @@
                                     <i class="fa-solid fa-download mr-0.5"></i> Unduh
                                 </a>
                             @else
-                                {{-- Barisnya tetap ditampilkan meski berkasnya
-                                     sudah tidak ada, supaya admin tahu ekspor itu
-                                     pernah dibuat — bukan mengira dirinya lupa. --}}
+                                {{-- Barisnya tetap ditampilkan meski berkasnya --}}
                                 <span class="px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-400 text-[10px] font-bold">
                                     Berkas hilang
                                 </span>
@@ -534,9 +510,7 @@ function orderBulk() {
         eksporDari: '',
         eksporSampai: '',
 
-        /* Pintasan rentang yang paling sering diminta. Dihitung saat dipakai,
-           bukan saat halaman dimuat, supaya tetap benar meski tab dibiarkan
-           terbuka melewati tengah malam. */
+        // Pintasan rentang yang paling sering diminta.
         pintasTanggal: [
             { label: '7 hari terakhir',  hari: 7 },
             { label: '30 hari terakhir', hari: 30 },

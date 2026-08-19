@@ -8,34 +8,12 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Pelacakan paket lewat Biteship.
- *
- * Dipakai untuk DUA arah sekaligus:
- *
- *   1. Paket keluar  — barang dari toko ke pembeli.
- *   2. Paket kembali — barang pengembalian dari pembeli ke toko.
- *
- * Arah kedua itulah alasan layanan ini memakai alamat "public tracking"
- * (/v1/trackings/{resi}/couriers/{kode}), bukan /v1/trackings/{resi} yang
- * dipakai halaman pembeli. Alamat publik bisa melacak resi APA PUN, termasuk
- * yang tidak dipesan lewat Biteship — dan resi pengembalian memang dibeli
- * sendiri oleh pembeli di gerai kurir, bukan lewat sistem kita.
- *
- * Sumber: https://biteship.com/en/docs/api/trackings/retrieve_public
  */
 class PelacakanService
 {
     /**
-     * Menerjemahkan nama kurir yang ditulis bebas menjadi kode yang dikenal
-     * Biteship.
-     *
-     * Diperlukan karena kolom kurir di basis data berisi teks apa adanya —
-     * "JNE Reguler (REG)", "J&T Express", "jne", bahkan kadang pembeli
-     * mengetikkan nomor resinya ke kolom kurir. Tanpa penerjemah ini,
-     * permintaan ke Biteship akan selalu ditolak.
-     *
-     * Urutannya penting: yang lebih khusus diperiksa lebih dulu, sebab
-     * "jnt" mengandung "jn" dan bisa tertukar dengan "jne".
-     */
+ * Menerjemahkan nama kurir yang ditulis bebas menjadi kode yang dikenal Biteship.
+ */
     public const KODE_KURIR = [
         'jnt'       => ['j&t', 'jnt', 'j & t'],
         'jne'       => ['jne'],
@@ -57,13 +35,8 @@ class PelacakanService
     ];
 
     /**
-     * Lima tahap yang ditampilkan sebagai batang bergambar.
-     *
-     * Biteship memakai 14 status, terlalu rinci untuk ditampilkan sebagai
-     * batang — dan sebagiannya (rejected, disposed, cancelled) bukan tahap
-     * melainkan kegagalan. Keempat belasnya diringkas ke lima tahap yang
-     * benar-benar dilalui paket normal, sisanya ditandai terpisah.
-     */
+ * Lima tahap yang ditampilkan sebagai batang bergambar.
+ */
     public const TAHAP = [
         ['kode' => 'confirmed',  'label' => 'Dikonfirmasi', 'ikon' => 'fa-clipboard-check'],
         ['kode' => 'picked',     'label' => 'Dijemput',     'ikon' => 'fa-box'],
@@ -83,12 +56,8 @@ class PelacakanService
     ];
 
     /**
-     * Tahap keberapa paket ini sekarang (0-4), atau -1 bila belum diketahui.
-     *
-     * Status yang tidak persis sama dengan patokan tetap dipetakan ke tahap
-     * terdekat — "allocated" dan "pickingUp" misalnya, keduanya masih dalam
-     * rangkaian penjemputan.
-     */
+ * Tahap keberapa paket ini sekarang (0-4), atau -1 bila belum diketahui.
+ */
     public function tahapDari(?string $status): int
     {
         $peta = [
@@ -106,13 +75,8 @@ class PelacakanService
     }
 
     /**
-     * Menerjemahkan pesan galat Biteship ke bahasa yang bisa ditindaklanjuti.
-     *
-     * Pesan aslinya berbahasa Inggris dan menyebut istilah teknis. Yang paling
-     * sering muncul — saldo habis — bahkan tidak jelas maksudnya bagi yang
-     * belum tahu bahwa Biteship menagih per panggilan, bukan bulanan. Di sini
-     * pesannya diganti dengan yang menyebutkan apa yang harus dilakukan.
-     */
+ * Menerjemahkan pesan galat Biteship ke bahasa yang bisa ditindaklanjuti.
+ */
     private function terjemahkanGalat(?string $asli): string
     {
         if (blank($asli)) {
@@ -163,13 +127,8 @@ class PelacakanService
     }
 
     /**
-     * Mengambil riwayat perjalanan satu paket.
-     *
-     * Selalu mengembalikan larik dengan bentuk yang sama, baik berhasil
-     * maupun gagal — pemanggilnya tidak perlu menebak-nebak. Kegagalan
-     * menghubungi Biteship BUKAN pengecualian yang dilempar: paket yang
-     * belum terlacak adalah keadaan yang wajar, bukan kesalahan program.
-     */
+ * Mengambil riwayat perjalanan satu paket.
+ */
     public function lacak(?string $resi, ?string $kurirTeks): array
     {
         $kosong = [
@@ -206,13 +165,7 @@ class PelacakanService
             return $kosong;
         }
 
-        /*
-         * Hasilnya disinggahkan beberapa menit.
-         *
-         * Kurir memperbarui riwayat paling cepat hitungan jam, jadi menanyakan
-         * ulang tiap kali halaman dibuka hanya membuang kuota dan memperlambat
-         * halaman. Lima menit cukup terasa segar bagi admin.
-         */
+        // Hasilnya disinggahkan beberapa menit.
         $sandi = 'lacak:' . $kode . ':' . $resi;
 
         return Cache::remember($sandi, now()->addMinutes(5), function () use ($resi, $kode, $kunci, $kosong) {

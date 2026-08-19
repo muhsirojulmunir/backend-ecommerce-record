@@ -7,22 +7,12 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 /**
  * Memperkecil foto yang diunggah agar tidak melebihi batas ukuran.
- *
- * Alurnya: bila berkas sudah di bawah batas, dibiarkan apa adanya. Bila
- * melebihi, sisi terpanjangnya diperkecil lalu disimpan ulang sebagai JPEG
- * dengan mutu yang diturunkan bertahap sampai ukurannya cukup.
- *
- * Memakai ekstensi GD yang sudah bawaan PHP, jadi tidak perlu paket tambahan.
  */
 class KompresGambar
 {
     /**
-     * Batas ukuran hasil akhir dalam byte.
-     *
-     * Sengaja 1,9MB — sedikit di bawah batas validasi 2MB, supaya hasil
-     * kompresi tidak pernah menyentuh batas dan ditolak karena selisih
-     * pembulatan beberapa kilobyte.
-     */
+ * Batas ukuran hasil akhir dalam byte.
+ */
     public const BATAS_BYTE = 1945600;   // 1,9MB
 
     /** Sisi terpanjang maksimum setelah diperkecil. */
@@ -32,12 +22,8 @@ class KompresGambar
     private const TINGKAT_MUTU = [82, 72, 62, 52, 42];
 
     /**
-     * Kembalikan berkas yang sudah dijamin di bawah batas.
-     *
-     * Bila gambar tidak bisa diproses (format aneh, GD tidak aktif, dsb),
-     * berkas aslinya dikembalikan tanpa perubahan — biarkan validasi
-     * Laravel yang memutuskan.
-     */
+ * Kembalikan berkas yang sudah dijamin di bawah batas.
+ */
     public static function perkecil(UploadedFile $berkas, int $batas = self::BATAS_BYTE): UploadedFile
     {
         if (! $berkas->isValid()) {
@@ -119,11 +105,11 @@ class KompresGambar
     }
 
     /**
-     * Perkecil banyak berkas sekaligus. Kunci array dipertahankan.
-     *
-     * @param  array<mixed, UploadedFile|null>  $daftar
-     * @return array<mixed, UploadedFile|null>
-     */
+ * Perkecil banyak berkas sekaligus.
+ *
+ * @param  array<mixed, UploadedFile|null>  $daftar
+ * @return array<mixed, UploadedFile|null>
+ */
     public static function perkecilBanyak(array $daftar, int $batas = self::BATAS_BYTE): array
     {
         foreach ($daftar as $kunci => $berkas) {

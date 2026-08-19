@@ -15,10 +15,6 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
  * Pemantauan R_Pay untuk admin dan akun management.
- *
- * Menu ini hanya membaca — saldo tidak pernah diubah dari sini kecuali lewat
- * pemrosesan pencairan, yang tetap melalui RpayService supaya buku besarnya
- * selalu terisi.
  */
 class AdminWebRpayController extends Controller
 {
@@ -91,12 +87,8 @@ class AdminWebRpayController extends Controller
     }
 
     /**
-     * Memproses satu pengajuan pencairan.
-     *
-     * Saldo pembeli sudah dipotong sejak pengajuan dibuat — supaya dana yang
-     * sedang diproses tidak bisa dipakai belanja. Karena itu, menolak
-     * pencairan harus mengembalikan saldonya.
-     */
+ * Memproses satu pengajuan pencairan.
+ */
     public function processWithdrawal(Request $request, int $id)
     {
         $data = $request->validate([

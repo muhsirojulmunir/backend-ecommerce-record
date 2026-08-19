@@ -14,10 +14,7 @@
 
     <div class="space-y-6">
 
-        {{-- ── Panduan Our Collection ──
-             Bagian "Our Collection" di halaman utama mengambil produk yang
-             ditandai bintang di bawah — bukan kategori. Tanpa keterangan ini,
-             hubungan antara tombol bintang dan etalase depan tidak kelihatan. --}}
+        {{-- ── Panduan Our Collection ── --}}
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col sm:flex-row sm:items-center gap-4">
             <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg shrink-0">
                 <i class="fa-solid fa-star"></i>
@@ -101,15 +98,7 @@
                         </tr>
                     </thead>
                         @forelse($products as $product)
-                            {{-- Satu <tbody> per produk. HTML mengizinkan satu tabel
-                                 punya banyak tbody, dan hanya dengan begini baris
-                                 varian di bawah bisa membaca keadaan "terbentang"
-                                 milik baris produknya — dua <tr> bersaudara tidak
-                                 bisa berbagi x-data.
-
-                                 Keadaannya per produk, bukan satu untuk seluruh
-                                 tabel, supaya beberapa produk bisa dibuka sekaligus
-                                 saat membandingkan stok. --}}
+                            {{-- Satu <tbody> per produk. --}}
                     <tbody class="border-b border-gray-100" x-data="{ buka: false }">
                             <tr class="hover:bg-slate-50/50 transition" :class="buka && 'bg-orange-50/40'">
                                 <td class="px-6 py-4">
@@ -184,10 +173,7 @@
                                     @endif
                                 </td>
 
-                                {{-- Sakelar Our Collection.
-                                     Ditaruh langsung di daftar supaya etalase bisa
-                                     disusun sambil membandingkan produk, tanpa harus
-                                     membuka form ubah satu per satu. --}}
+                                {{-- Sakelar Our Collection. --}}
                                 <td class="px-6 py-4 text-center">
                                     <form action="{{ route('admin.products.toggle-featured', $product->id) }}"
                                           method="POST" class="inline">
@@ -225,10 +211,7 @@
                                 </td>
                             </tr>
 
-                            {{-- Rincian varian, muncul saat baris produk dibentangkan.
-                                 Tujuannya satu: mengosongkan stok yang habis tanpa
-                                 membuka borang ubah produk. Karena itu yang bisa
-                                 diubah di sini HANYA stok. --}}
+                            {{-- Rincian varian, muncul saat baris produk dibentangkan. --}}
                             <tr x-show="buka" x-cloak class="bg-slate-50/70">
                                 <td colspan="7" class="px-6 pb-5 pt-1">
                                     <div class="rounded-xl border border-gray-200 bg-white overflow-hidden">
@@ -329,10 +312,7 @@
         </div>
     </div>
 
-{{-- Alpine dimuat dengan "defer" di layout, jadi skrip ini berjalan lebih
-     dulu dan sempat mendaftarkan komponennya lewat alpine:init. Kalau
-     fungsinya didefinisikan begitu saja sebagai fungsi global, urutannya
-     tidak terjamin dan barisnya bisa mati tanpa galat. --}}
+{{-- Alpine dimuat dengan "defer" di layout, jadi skrip ini berjalan lebih --}}
 <script>
     document.addEventListener('alpine:init', () => {
         Alpine.data('barisVarian', (id, stokAwal) => ({
@@ -344,12 +324,7 @@
             galat: false,
             pewaktuPesan: null,
 
-            /*
-             * Pesan selalu lewat sini supaya pewaktu penghapus dari pesan
-             * SEBELUMNYA dibatalkan lebih dulu. Tanpa itu, pesan baru bisa
-             * terhapus oleh pewaktu lama yang kebetulan jatuh tempo sesaat
-             * setelahnya — dan admin mengira tombolnya tidak berfungsi.
-             */
+            // Pesan selalu lewat sini supaya pewaktu penghapus dari pesan SEBELUMNYA dibatalkan lebih dulu.
             tampilkanPesan(teks, adaGalat) {
                 clearTimeout(this.pewaktuPesan);
 
@@ -369,11 +344,7 @@
             async simpan() {
                 if (this.menyimpan) return;
 
-                /*
-                 * Nilai kosong atau minus ditolak sebelum dikirim. Kolom angka
-                 * bisa berisi string kosong kalau isinya dihapus, dan mengirim
-                 * itu ke peladen hanya menghasilkan galat yang membingungkan.
-                 */
+                // Nilai kosong atau minus ditolak sebelum dikirim.
                 const nilai = Number(this.stok);
 
                 if (this.stok === '' || this.stok === null || !Number.isInteger(nilai) || nilai < 0) {
@@ -390,10 +361,7 @@
                         headers: {
                             'Content-Type': 'application/json',
                             'Accept': 'application/json',
-                            {{-- Token diambil langsung dari Blade. Layout admin
-                                 tidak memasang <meta name=csrf-token>, jadi
-                                 membacanya dari DOM menghasilkan null dan setiap
-                                 penyimpanan gagal. --}}
+                            {{-- Token diambil langsung dari Blade. --}}
                             'X-CSRF-TOKEN': '{{ csrf_token() }}',
                         },
                         body: JSON.stringify({ stock: nilai }),
@@ -409,13 +377,7 @@
                     this.awal = data.stock;
                     this.tampilkanPesan(data.pesan, false);
 
-                    /*
-                     * Angka stok di baris produk induk ikut disegarkan supaya
-                     * tidak bertentangan dengan rincian di bawahnya. Diubah
-                     * lewat DOM langsung, bukan memuat ulang halaman — memuat
-                     * ulang akan menutup semua baris yang sedang dibentangkan
-                     * dan justru memperlambat pekerjaan yang mau dipercepat.
-                     */
+                    // Angka stok di baris produk induk ikut disegarkan supaya tidak bertentangan dengan rincian di bawa...
                     const sel = document.querySelector('[data-stok-produk="' + data.produk_id + '"]');
                     if (sel) sel.textContent = new Intl.NumberFormat('id-ID').format(data.stok_produk);
                 } catch (e) {

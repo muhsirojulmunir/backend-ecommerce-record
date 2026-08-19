@@ -26,14 +26,8 @@ class AdminWebBannerController extends Controller
     }
 
     /**
-     * Aturan berkas banner: batasnya berbeda untuk video dan gambar.
-     *
-     * Laravel tidak bisa menyatakan "maksimal 100 MB kalau video, 10 MB kalau
-     * gambar" lewat aturan bawaan, sebab "max" hanya menerima satu angka.
-     * Karena itu ukurannya diperiksa sendiri di sini setelah jenis berkasnya
-     * diketahui. Jenis ditentukan dari MIME hasil pembacaan isi berkas, bukan
-     * dari akhiran namanya — akhiran gampang dipalsukan.
-     */
+ * Aturan berkas banner: batasnya berbeda untuk video dan gambar.
+ */
     private function aturanBerkas(bool $wajib): array
     {
         $maksVideo  = (int) config('banner.maks_video_mb', 100);

@@ -9,11 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Membaca berkas Excel/CSV berisi banyak produk, memvalidasi tiap baris,
- * lalu menyimpannya sekaligus. Kategori yang belum ada dibuat otomatis.
- *
- * Alurnya dua tahap: parse() untuk pratinjau (tidak menyentuh database),
- * lalu import() untuk benar-benar menyimpan.
+ * Membaca berkas Excel/CSV berisi banyak produk, memvalidasi tiap baris, lalu menyimpannya sekaligus.
  */
 class ProductImportService
 {
@@ -73,11 +69,10 @@ class ProductImportService
     ];
 
     /**
-     * Baca berkas dan kembalikan hasil parsing untuk pratinjau.
-     * Tidak menulis apa pun ke database.
-     *
-     * @return array{rows: array, summary: array, newCategories: array, headerError: ?string}
-     */
+ * Baca berkas dan kembalikan hasil parsing untuk pratinjau.
+ *
+ * @return array{rows: array, summary: array, newCategories: array, headerError: ?string}
+ */
     public function parse(string $absolutePath, string $duplicateMode = 'skip'): array
     {
         $sheets = XlsxReader::readAll($absolutePath);
@@ -231,21 +226,20 @@ class ProductImportService
     }
 
     /**
-     * Cocokkan judul kolom di berkas dengan kunci kolom template.
-     * Perbandingan mengabaikan huruf besar/kecil, spasi, dan tanda bintang.
-     *
-     * @return array<string, int> kunci kolom => indeks kolom
-     */
+ * Cocokkan judul kolom di berkas dengan kunci kolom template.
+ *
+ * @return array<string, int> kunci kolom => indeks kolom
+ */
     private function mapHeader(array $headerRow): array
     {
         return $this->mapHeaderFor($headerRow, self::COLUMNS);
     }
 
     /**
-     * Versi umum mapHeader() untuk definisi kolom mana pun.
-     *
-     * @return array<string, int>
-     */
+ * Versi umum mapHeader() untuk definisi kolom mana pun.
+ *
+ * @return array<string, int>
+ */
     private function mapHeaderFor(array $headerRow, array $definition): array
     {
         $map = [];
@@ -484,11 +478,10 @@ class ProductImportService
     }
 
     /**
-     * Baca sheet "Varian" dan kelompokkan per nama produk.
-     * Satu baris = satu kombinasi warna + ukuran + SKU-nya sendiri.
-     *
-     * @return array<string, array{variants: array, errors: array, lines: array}>
-     */
+ * Baca sheet "Varian" dan kelompokkan per nama produk.
+ *
+ * @return array<string, array{variants: array, errors: array, lines: array}>
+ */
     private function parseVariantSheet(array $table): array
     {
         if (count($table) < 2) {

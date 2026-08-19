@@ -10,15 +10,6 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * Peninjauan ulasan pembeli oleh admin.
- *
- * Ulasan tayang seketika begitu pembeli mengirimnya — halaman produk yang
- * lama kosong tidak menolong siapa pun. Peran admin di sini bukan penjaga
- * gerbang melainkan penyapu: menyembunyikan ulasan yang kasar, spam, atau
- * salah alamat.
- *
- * Menyembunyikan didahulukan daripada menghapus. Ulasan yang disembunyikan
- * masih bisa ditampilkan kembali bila keputusannya ternyata keliru, dan
- * jejak siapa yang menyembunyikan beserta alasannya tetap tersimpan.
  */
 class AdminWebReviewController extends Controller
 {
@@ -60,11 +51,8 @@ class AdminWebReviewController extends Controller
     }
 
     /**
-     * Menyembunyikan ulasan, atau menampilkannya kembali.
-     *
-     * Satu jalur untuk dua arah, sebab keduanya adalah keputusan yang sama:
-     * mengubah apakah ulasan ini boleh dilihat pengunjung.
-     */
+ * Menyembunyikan ulasan, atau menampilkannya kembali.
+ */
     public function toggle(Request $request, int $id)
     {
         $ulasan = ProductReview::findOrFail($id);
@@ -102,12 +90,8 @@ class AdminWebReviewController extends Controller
     }
 
     /**
-     * Menghapus ulasan beserta fotonya.
-     *
-     * Disediakan untuk yang benar-benar tidak layak disimpan — sebutan kasar
-     * atau data pribadi orang lain. Untuk selebihnya, sembunyikan saja: yang
-     * terhapus tidak bisa ditinjau ulang kalau ternyata keputusannya keliru.
-     */
+ * Menghapus ulasan beserta fotonya.
+ */
     public function destroy(int $id)
     {
         $ulasan = ProductReview::with('product')->findOrFail($id);

@@ -10,12 +10,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Memperkecil foto yang terlalu besar sebelum permintaan diteruskan.
- *
- * Dijalankan lebih dulu daripada validasi, sehingga admin boleh memilih foto
- * berukuran besar langsung dari kamera tanpa perlu memperkecilnya sendiri —
- * berkasnya sudah menyusut ke bawah 2MB saat sampai di controller.
- *
- * Berkas yang sudah kecil, atau yang bukan gambar, dilewati begitu saja.
  */
 class KompresUnggahanGambar
 {

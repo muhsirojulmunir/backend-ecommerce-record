@@ -214,11 +214,7 @@
                 </label>
             </div>
 
-            {{-- Our Collection.
-                 Checkbox HTML tidak mengirim apa pun saat tidak dicentang,
-                 jadi kolom tersembunyi di depannya memastikan "dilepas" ikut
-                 terkirim — tanpa itu, produk tidak akan pernah bisa
-                 dikeluarkan dari etalase lewat form ini. --}}
+            {{-- Our Collection. --}}
             <div class="mt-6 pt-6 border-t border-gray-100">
                 <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                     Etalase Halaman Utama
@@ -526,18 +522,7 @@
     /** Jumlah slot foto katalog yang tersedia. */
     const JUMLAH_SLOT = 5;
 
-    /* ═════════════════════════════════════════════════════════════
-       Pengelola slot foto katalog
-
-       Isi slot disimpan dalam sebuah larik, bukan dibaca ulang dari DOM.
-       Dengan begitu urutan foto bisa diubah (digeser) dan celah kosong
-       bisa dirapatkan tanpa membuat tampilan dan data saling tidak cocok.
-
-       Tiap entri: { berkas: File|null, path: string, pratinjau: string }
-       - berkas   : foto baru yang belum diunggah
-       - path     : foto lama yang sudah tersimpan di server
-       - pratinjau: URL gambar untuk ditampilkan
-       ═════════════════════════════════════════════════════════════ */
+    // ═════════════════════════════════════════════════════════════ Pengelola slot foto katalog Isi slo...
 
     let daftarSlot = [];
 
@@ -634,10 +619,8 @@
     }
 
     /**
-     * Dipanggil saat admin memilih foto pada sebuah slot.
-     * Boleh memilih beberapa foto sekaligus: foto pertama masuk ke slot yang
-     * diklik, sisanya mengisi slot kosong berikutnya.
-     */
+ * Dipanggil saat admin memilih foto pada sebuah slot.
+ */
     function onSlotFileSelected(input, index) {
         const berkas = Array.from(input.files || []);
         if (berkas.length === 0) return;
@@ -712,11 +695,7 @@
         gambarUlangSlot();
     }
 
-    /* ─────────────────────────────────────────────────────────────
-       Menggeser urutan foto
-       Foto yang dilepas disisipkan pada posisi tujuan, foto lain
-       bergeser mengikuti — bukan bertukar tempat.
-       ───────────────────────────────────────────────────────────── */
+    // ───────────────────────────────────────────────────────────── Menggeser urutan foto Foto yang dil...
 
     let slotAsal = null;
 
@@ -1173,10 +1152,7 @@
         renderColorPhotos();
     }
 
-    /* ─────────────────────────────────────────────────────────────
-       Foto per warna
-       Satu kotak unggah untuk tiap warna unik pada daftar varian.
-       ───────────────────────────────────────────────────────────── */
+    // ───────────────────────────────────────────────────────────── Foto per warna Satu kotak unggah un...
 
     // Foto warna yang sudah tersimpan (diisi saat mode edit)
     const fotoWarnaTersimpan = {!! json_encode($fotoWarna ?? []) !!};

@@ -58,11 +58,8 @@ class AdminWebReturnController extends Controller
     }
 
     /**
-     * Tahap 1 — meninjau pengajuan.
-     *
-     * Saat disetujui, sistem secara otomatis melakukan booking penjemputan retur
-     * via API Biteship dan menerbitkan resi AWB otomatis tanpa perlu pembeli mengetik resi manual.
-     */
+ * Tahap 1 — meninjau pengajuan.
+ */
     public function decide(Request $request, int $id)
     {
         $data = $request->validate([
@@ -142,13 +139,8 @@ class AdminWebReturnController extends Controller
     }
 
     /**
-     * Tahap 3 — hasil pemeriksaan barang, sekaligus penentuan akhir.
-     *
-     * Di sinilah dana benar-benar berpindah. Pengkreditan R_Pay dan perubahan
-     * status dibungkus satu transaksi database: kalau salah satunya gagal,
-     * keduanya batal — tidak ada pengajuan yang tercatat "selesai" padahal
-     * dananya tidak pernah masuk.
-     */
+ * Tahap 3 — hasil pemeriksaan barang, sekaligus penentuan akhir.
+ */
     public function finalize(Request $request, int $id)
     {
         $pengajuan = OrderReturn::with('order')->findOrFail($id);
@@ -175,16 +167,7 @@ class AdminWebReturnController extends Controller
         DB::transaction(function () use ($pengajuan, $data) {
             $lolos = $data['hasil'] === 'completed';
 
-            /*
-             * Nominal bawaan adalah SELURUH yang dibayar pembeli, termasuk
-             * ongkos kirim.
-             *
-             * Ongkir memang sudah terpakai untuk mengantar barangnya, tetapi
-             * kalau pengajuannya disetujui berarti kesalahannya ada di pihak
-             * kami — pembeli tidak semestinya menanggung biaya mengantarkan
-             * barang yang keliru. Admin tetap bisa menimpanya lewat isian
-             * nominal bila keadaannya berbeda.
-             */
+            // Nominal bawaan adalah SELURUH yang dibayar pembeli, termasuk ongkos kirim.
             $nominal = $lolos && $pengajuan->resolution === 'refund'
                 ? (float) ($data['nominal'] ?? $pengajuan->order->grand_total)
                 : null;

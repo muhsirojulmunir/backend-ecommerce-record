@@ -6,17 +6,14 @@ use RuntimeException;
 
 /**
  * Pembaca berkas .xlsx dan .csv tanpa library pihak ketiga.
- *
- * Berkas .xlsx sebenarnya arsip ZIP berisi XML, jadi cukup dibuka dengan
- * ZipArchive lalu di-parse memakai SimpleXML — keduanya ekstensi bawaan PHP.
  */
 class XlsxReader
 {
     /**
-     * Baca sheet pertama menjadi array dua dimensi (baris => kolom => nilai teks).
-     *
-     * @throws RuntimeException kalau berkas tidak bisa dibaca
-     */
+ * Baca sheet pertama menjadi array dua dimensi (baris => kolom => nilai teks).
+ *
+ * @throws RuntimeException kalau berkas tidak bisa dibaca
+ */
     public static function read(string $path): array
     {
         $sheets = self::readAll($path);
@@ -25,11 +22,10 @@ class XlsxReader
     }
 
     /**
-     * Baca semua sheet: [nama sheet => baris].
-     * Berkas .csv selalu menghasilkan satu sheet bernama "Sheet1".
-     *
-     * @throws RuntimeException kalau berkas tidak bisa dibaca
-     */
+ * Baca semua sheet: [nama sheet => baris].
+ *
+ * @throws RuntimeException kalau berkas tidak bisa dibaca
+ */
     public static function readAll(string $path): array
     {
         if (! is_readable($path)) {
@@ -131,10 +127,10 @@ class XlsxReader
     }
 
     /**
-     * Petakan nama sheet ke path XML-nya lewat workbook.xml + rels.
-     *
-     * @return array<string, string>
-     */
+ * Petakan nama sheet ke path XML-nya lewat workbook.xml + rels.
+ *
+ * @return array<string, string>
+ */
     private static function sheetPaths(\ZipArchive $zip): array
     {
         $workbook = self::loadXml($zip->getFromName('xl/workbook.xml'));
@@ -168,10 +164,8 @@ class XlsxReader
     }
 
     /**
-     * Ubah elemen <sheetData> menjadi array baris.
-     * Baris/kolom yang dilewati di XML tetap diisi string kosong supaya
-     * posisi kolom tidak bergeser.
-     */
+ * Ubah elemen <sheetData> menjadi array baris.
+ */
     private static function extractRows(\SimpleXMLElement $xml, array $shared): array
     {
         $rows = [];

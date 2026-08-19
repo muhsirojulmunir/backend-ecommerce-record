@@ -68,20 +68,7 @@ class Order extends Model
                 $order->invoice_issued_at = now();
             }
 
-            /*
-             * Biaya transaksi dicatat begitu pesanan lunas.
-             *
-             * Ditaruh di kait model, bukan di tiap tempat yang menandai
-             * pesanan lunas — sebab tempatnya ada beberapa: notifikasi
-             * Midtrans, pemeriksaan status, pembayaran R_Pay, dan konfirmasi
-             * manual admin. Satu kait menutup semuanya, dan jalur baru yang
-             * ditambahkan nanti ikut tercakup dengan sendirinya.
-             *
-             * Dihitung saat baru menjadi lunas, saat kanal pembayarannya
-             * berubah, atau bila pesanan lama belum pernah dihitung. Di luar
-             * itu angkanya dibiarkan — yang sudah tercatat mewakili biaya
-             * yang benar-benar terjadi saat itu.
-             */
+            // Biaya transaksi dicatat begitu pesanan lunas.
             if ($order->payment_status === 'paid'
                 && ($order->isDirty('payment_status')
                     || $order->isDirty('payment_method')
@@ -90,15 +77,7 @@ class Order extends Model
             }
         });
 
-        /*
-         * Akibat kode referal dijalankan SETELAH baris pesanan tersimpan,
-         * bukan di dalam saving(). Mengkreditkan saldo di tengah proses
-         * penyimpanan berisiko: bila penyimpanannya kemudian gagal, uangnya
-         * terlanjur berpindah.
-         *
-         * Dipasang pada model supaya berlaku untuk semua jalur — pembayaran
-         * lewat Midtrans, R_Pay, maupun konfirmasi manual oleh admin.
-         */
+        // Akibat kode referal dijalankan SETELAH baris pesanan tersimpan, bukan di dalam saving().
         static::saved(function (self $order) {
             $layanan = app(\App\Services\ReferralPayoutService::class);
 
@@ -166,11 +145,8 @@ class Order extends Model
     }
 
     /**
-     * Satu pesanan bisa punya lebih dari satu baris di order_returns —
-     * misalnya pernah diajukan pembatalan, lalu setelah barang sampai
-     * diajukan pengembalian. Karena itu relasi jamak ini yang dipakai untuk
-     * menu Kelola Pengembalian, bukan returnRequest() yang tunggal.
-     */
+ * Satu pesanan bisa punya lebih dari satu baris di order_returns — misalnya pernah diajukan pembata...
+ */
     public function returns(): HasMany
     {
         return $this->hasMany(OrderReturn::class);

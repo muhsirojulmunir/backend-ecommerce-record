@@ -65,12 +65,8 @@ class OrderExport extends Model
     }
 
     /**
-     * Membuang riwayat yang melewati batas, berikut berkasnya.
-     *
-     * Dipanggil setiap kali ekspor baru dibuat. Berkasnya ikut dihapus, bukan
-     * hanya barisnya — catatan yang hilang sementara berkasnya tertinggal
-     * hanya membuat folder ekspor menggemuk tanpa ada yang tahu.
-     */
+ * Membuang riwayat yang melewati batas, berikut berkasnya.
+ */
     public static function pangkasRiwayat(): int
     {
         $lebih = static::orderByDesc('created_at')
@@ -82,12 +78,7 @@ class OrderExport extends Model
         foreach ($lebih as $lama) {
             $lama->delete();
 
-            /*
-             * Berkasnya baru dihapus setelah dipastikan tidak ada baris lain
-             * yang masih menunjuk jalur yang sama. Riwayat lama bisa saja berisi
-             * dua baris dengan jalur kembar; menghapus berkasnya begitu saja
-             * akan melumpuhkan tombol Unduh pada baris yang justru masih hidup.
-             */
+            // Berkasnya baru dihapus setelah dipastikan tidak ada baris lain yang masih menunjuk jalur yang sama.
             if (blank($lama->path)) {
                 continue;
             }

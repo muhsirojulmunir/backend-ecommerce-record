@@ -8,13 +8,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Menangkap unggahan yang melebihi post_max_size PHP.
- *
- * Saat batas itu terlampaui, PHP membuang seluruh isi POST — termasuk token
- * CSRF dan seluruh berkas. Akibatnya permintaan gagal di pemeriksaan CSRF
- * dan pengguna hanya melihat galat 403/419 tanpa penjelasan.
- *
- * Middleware ini dijalankan sebelum pemeriksaan CSRF, mengenali kondisi
- * tersebut, lalu mengembalikan pesan yang bisa dimengerti.
  */
 class CekUkuranUnggahan
 {

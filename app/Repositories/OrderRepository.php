@@ -24,18 +24,7 @@ class OrderRepository implements OrderRepositoryInterface
         if (filled($filters['search'] ?? null)) {
             $kata = trim($filters['search']);
 
-            /*
-             * Dicari pada nomor pesanan, NOMOR RESI, atau nama pembeli.
-             *
-             * Resi ikut dicari karena itulah yang paling sering ada di tangan
-             * admin saat menelusuri keluhan: pembeli mengirim foto resi, bukan
-             * nomor pesanan. Nama pembeli disertakan supaya pencarian tetap
-             * berguna sebelum resi terbit.
-             *
-             * Seluruhnya dibungkus satu where() supaya tidak bertabrakan
-             * dengan saringan status dan status bayar di atas — tanpa
-             * pembungkus itu, "atau" di sini akan membatalkan keduanya.
-             */
+            // Dicari pada nomor pesanan, NOMOR RESI, atau nama pembeli.
             $query->where(function ($q) use ($kata) {
                 $q->where('order_number', 'like', "%{$kata}%")
                   ->orWhere('tracking_number', 'like', "%{$kata}%")
@@ -98,18 +87,7 @@ class OrderRepository implements OrderRepositoryInterface
         if (filled($filters['search'] ?? null)) {
             $kata = trim($filters['search']);
 
-            /*
-             * Dicari pada nomor pesanan, NOMOR RESI, atau nama pembeli.
-             *
-             * Resi ikut dicari karena itulah yang paling sering ada di tangan
-             * admin saat menelusuri keluhan: pembeli mengirim foto resi, bukan
-             * nomor pesanan. Nama pembeli disertakan supaya pencarian tetap
-             * berguna sebelum resi terbit.
-             *
-             * Seluruhnya dibungkus satu where() supaya tidak bertabrakan
-             * dengan saringan status dan status bayar di atas — tanpa
-             * pembungkus itu, "atau" di sini akan membatalkan keduanya.
-             */
+            // Dicari pada nomor pesanan, NOMOR RESI, atau nama pembeli.
             $query->where(function ($q) use ($kata) {
                 $q->where('order_number', 'like', "%{$kata}%")
                   ->orWhere('tracking_number', 'like', "%{$kata}%")

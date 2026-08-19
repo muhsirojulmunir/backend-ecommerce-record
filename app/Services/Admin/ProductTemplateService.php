@@ -7,9 +7,6 @@ use App\Support\Spreadsheet\XlsxWriter;
 
 /**
  * Membuat berkas template .xlsx untuk impor produk massal.
- *
- * Sheet "Produk" berisi data utama, sheet "Varian" berisi satu baris
- * per kombinasi warna + ukuran supaya tiap ukuran bisa diberi SKU sendiri.
  */
 class ProductTemplateService
 {
@@ -34,11 +31,8 @@ class ProductTemplateService
     // ─── Isi tiap sheet ───────────────────────────────────────────────────────
 
     /**
-     * Baris sheet "Produk": judul kolom, baris petunjuk, lalu dua contoh.
-     *
-     * Baris petunjuk & contoh diberi penanda di kolom pertama supaya
-     * pembaca impor melewatinya dan admin tahu baris itu boleh dihapus.
-     */
+ * Baris sheet "Produk": judul kolom, baris petunjuk, lalu dua contoh.
+ */
     private function productRows(): array
     {
         $header = [];
@@ -150,10 +144,10 @@ class ProductTemplateService
     }
 
     /**
-     * Rakit arsip .xlsx berisi beberapa sheet.
-     *
-     * @param array<int, array{name: string, writer: XlsxWriter}> $sheets
-     */
+ * Rakit arsip .xlsx berisi beberapa sheet.
+ *
+ * @param array<int, array{name: string, writer: XlsxWriter}> $sheets
+ */
     private function zipWorkbook(string $path, array $sheets): void
     {
         if (file_exists($path)) {

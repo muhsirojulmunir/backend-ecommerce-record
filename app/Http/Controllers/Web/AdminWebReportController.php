@@ -87,10 +87,10 @@ class AdminWebReportController extends Controller
     // ─── Helper privat ────────────────────────────────────────────────────────
 
     /**
-     * Terjemahkan preset / input tanggal menjadi rentang Carbon yang valid.
-     *
-     * @return array{0: Carbon, 1: Carbon, 2: string}
-     */
+ * Terjemahkan preset / input tanggal menjadi rentang Carbon yang valid.
+ *
+ * @return array{0: Carbon, 1: Carbon, 2: string}
+ */
     private function resolveRange(Request $request): array
     {
         $preset = $request->get('preset', '30d');

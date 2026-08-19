@@ -114,10 +114,7 @@
                             @endfor
                         </span>
 
-                        {{-- Nama lengkap sengaja ditampilkan DI SINI, berbeda
-                             dari halaman toko yang menyamarkannya. Admin perlu
-                             tahu persis siapa yang menulis untuk bisa
-                             menindaklanjuti keluhannya. --}}
+                        {{-- Nama lengkap sengaja ditampilkan DI SINI, berbeda --}}
                         <span class="text-xs font-bold text-gray-700">{{ $u->user?->name ?? 'Pembeli' }}</span>
                         <span class="text-[11px] text-gray-400">{{ $u->created_at->translatedFormat('d M Y, H:i') }}</span>
 

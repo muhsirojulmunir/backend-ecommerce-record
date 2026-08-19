@@ -76,17 +76,7 @@
         {{-- Left: Items + Address --}}
         <div class="lg:col-span-2 space-y-6">
 
-            {{-- ══════════ Ringkasan Pesanan ══════════
-                 Diletakkan paling atas: tiga hal yang paling sering dicari
-                 admin saat membuka satu pesanan — nomornya, ke mana dikirim,
-                 dan paketnya sedang di mana. Rincian uangnya menyusul di
-                 bawah.
-
-                 Berbeda dari acuan Shopee, nama dan nomor telepon di sini
-                 TIDAK disamarkan. Shopee menyamarkannya karena penjual di
-                 sana orang lain bagi pembeli; di panel ini adminnya adalah
-                 toko itu sendiri, dan data lengkap justru yang dibutuhkan
-                 untuk menghubungi pembeli saat paket bermasalah. --}}
+            {{-- ══════════ Ringkasan Pesanan ══════════ --}}
             @php
                 $alamatKirim = (array) $order->shipping_address;
 
@@ -199,9 +189,7 @@
                             </span>
                         </div>
 
-                        {{-- Posisi paket. Komponennya dipindah ke sini supaya
-                             seluruh keterangan pengiriman berada dalam satu
-                             blok, sebagaimana acuan yang kamu berikan. --}}
+                        {{-- Posisi paket. --}}
                         <x-lacak-paket
                             :alamat="route('admin.pelacakan.pesanan', $order->id)"
                             :resi="$order->tracking_number"
@@ -216,15 +204,7 @@
             </div>
 
 
-            {{-- ══════════ Informasi Pembayaran ══════════
-                 Disusun seperti panel penghasilan di Seller Center: daftar
-                 barang dulu, lalu rincian potongan berurut sampai angka yang
-                 benar-benar diterima toko.
-
-                 Bedanya dengan Shopee, potongannya bukan biaya platform —
-                 melainkan yang memang berlaku di sistem ini: biaya Midtrans,
-                 ongkir yang dibayarkan ke kurir lewat Biteship, dan komisi
-                 referal. --}}
+            {{-- ══════════ Informasi Pembayaran ══════════ --}}
             @php
                 $lunas      = $order->payment_status === 'paid';
                 $jasaBiaya  = app(\App\Services\TransactionFeeService::class);
@@ -235,15 +215,7 @@
                 $dibayar    = (int) round((float) $order->grand_total);
                 $komisi     = (int) round((float) ($order->referral_commission ?? 0));
 
-                /*
-                 * Angka dianggap TERCATAT hanya bila biayanya benar-benar
-                 * pernah dihitung. Pesanan lunas dari sebelum pencatatan biaya
-                 * dipasang punya midtrans_fee 0 dan ongkir asli 0 — kalau itu
-                 * dipakai apa adanya, potongannya tampil "-Rp 0" dan hasil
-                 * bersihnya sama dengan seluruh uang pembeli. Angka yang
-                 * terlalu besar seperti itu lebih berbahaya daripada angka
-                 * yang jujur disebut perkiraan.
-                 */
+                // Angka dianggap TERCATAT hanya bila biayanya benar-benar pernah dihitung.
                 $tercatat = $lunas
                     && $order->net_revenue !== null
                     && (float) $order->midtrans_fee > 0;
@@ -253,21 +225,9 @@
                     $ongkirAsli = (int) round((float) ($order->shipping_actual_cost ?: 0));
                     $bersih     = (int) round((float) $order->net_revenue);
                 } else {
-                    /*
-                     * Pesanan yang belum lunas belum punya angka tercatat, jadi
-                     * dihitung sebagai perkiraan. Ditandai jelas supaya tidak
-                     * disangka angka final — kanal pembayaran bisa berubah dan
-                     * biayanya ikut berubah.
-                     */
+                    // Pesanan yang belum lunas belum punya angka tercatat, jadi dihitung sebagai perkiraan.
                     $biayaBayar = $jasaBiaya->hitungBiayaMidtrans((string) $order->payment_method, $dibayar);
-                    /*
-                     * Dibandingkan sebagai ANGKA, bukan lewat "?:".
-                     *
-                     * Kolom desimal dikembalikan sebagai teks "0.00", dan teks
-                     * itu dianggap BENAR oleh PHP — hanya "0" dan "" yang
-                     * dianggap salah. Akibatnya cadangannya tidak pernah
-                     * terpakai dan ongkir ke kurir selalu tampil Rp 0.
-                     */
+                    // Dibandingkan sebagai ANGKA, bukan lewat "?:".
                     $ongkirTercatat = (float) $order->shipping_actual_cost;
                     $ongkirAsli = (int) round($ongkirTercatat > 0
                         ? $ongkirTercatat
@@ -422,10 +382,7 @@
                             </span>
                         </div>
 
-                        {{-- Perlu disebut terang-terangan: modal barang tidak
-                             ikut dipotong, sebab sistem ini tidak menyimpan
-                             harga pokok per produk. Tanpa keterangan ini,
-                             angka di atas mudah disangka laba bersih. --}}
+                        {{-- Perlu disebut terang-terangan: modal barang tidak --}}
                         <p class="text-[10px] text-gray-400 leading-relaxed pt-1">
                             Belum dikurangi modal barang — sistem belum menyimpan harga pokok per produk.
                             Angka ini uang yang tinggal di rekening toko setelah Midtrans dan kurir dibayar.
@@ -517,10 +474,7 @@
                 </form>
             </div>
 
-            {{-- Status pembayaran + konfirmasi lunas.
-
-                 Rincian keuangannya sudah pindah ke panel Informasi Pembayaran
-                 di kolom kiri; di sini tinggal yang perlu ditindaklanjuti. --}}
+            {{-- Status pembayaran + konfirmasi lunas. --}}
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4 text-xs">
                 <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-gray-100 pb-3">
                     Status Pembayaran

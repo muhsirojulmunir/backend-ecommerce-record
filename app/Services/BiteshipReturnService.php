@@ -9,13 +9,11 @@ use Illuminate\Support\Facades\Log;
 class BiteshipReturnService
 {
     /**
-     * Otomatis booking pengiriman balik (Retur) via API Biteship.
-     * Alamat Pengirim (Origin) = Alamat Pembeli
-     * Alamat Penerima (Destination) = Gudang Toko (Surabaya)
-     *
-     * @param OrderReturn $pengajuan
-     * @return array|null Array [tracking_number, courier, biteship_order_id] atau null jika gagal.
-     */
+ * Otomatis booking pengiriman balik (Retur) via API Biteship.
+ *
+ * @param OrderReturn $pengajuan
+ * @return array|null Array [tracking_number, courier, biteship_order_id] atau null jika gagal.
+ */
     public function createReturnShipment(OrderReturn $pengajuan): ?array
     {
         $apiKey = env('BITESHIP_API_KEY');

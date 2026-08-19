@@ -18,18 +18,7 @@
     $adaKoordinat = filled($lintang) && filled($bujur);
 @endphp
 
-{{--
-    Riwayat perjalanan paket.
-
-    Diambil lewat AJAX, bukan ikut dirender bersama halaman: menunggu jawaban
-    Biteship bisa beberapa detik, dan halaman rincian tidak boleh tertahan
-    karenanya.
-
-    Baru diminta saat admin menekan tombol, bukan otomatis saat halaman
-    dibuka. Biteship menagih per panggilan (Rp 10 per permintaan), jadi
-    memanggilnya di setiap kunjungan berarti membayar untuk data yang sering
-    tidak dilihat siapa pun. Hasilnya juga disinggahkan 5 menit di peladen.
---}}
+{{-- Riwayat perjalanan paket. --}}
 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-4"
      x-data="{
         muat: false,
@@ -92,11 +81,7 @@
         <p class="text-[11px] text-gray-400 italic">Belum ada nomor resi, jadi belum bisa dilacak.</p>
     @endif
 
-    {{-- ══════════ 1. Batang tahapan bergambar ══════════
-         Baru berwarna setelah pelacakan dijalankan. Sebelum itu semua bulatan
-         kelabu — menebak tahapan dari status pesanan di basis data bisa
-         berbeda dari kenyataan di tangan kurir, dan tebakan yang keliru justru
-         menyesatkan. --}}
+    {{-- ══════════ 1. --}}
     <div class="pt-1">
         <div class="flex items-start">
             @foreach($tahapan as $i => $t)
@@ -148,9 +133,7 @@
                       x-text="data.status"></span>
                 <span class="text-[10px] text-gray-400" x-text="data.riwayat.length + ' catatan'"></span>
 
-                {{-- ══════════ 3. Tautan lacak resmi ══════════
-                     Membuka halaman milik Biteship tidak memotong saldo lagi,
-                     jadi bisa diperiksa sepuasnya di sana. --}}
+                {{-- ══════════ 3. --}}
                 <template x-if="data.tautan">
                     <a :href="data.tautan" target="_blank" rel="noopener"
                        class="ml-auto text-[10px] font-bold text-{{ $nada }}-600 hover:text-{{ $nada }}-800 underline">
@@ -160,9 +143,7 @@
                 </template>
             </div>
 
-            {{-- Identitas kurir. Inilah yang bisa dipegang bila paket hilang
-                 di tangan kurir — nama, nomor, dan pelat kendaraannya
-                 tercatat, bukan sekadar "hilang di jalan". --}}
+            {{-- Identitas kurir. --}}
             <template x-if="data.kurir_nama || data.kurir_plat">
                 <div class="rounded-xl bg-gray-50 border border-gray-200 px-3 py-2 text-[11px] text-gray-700">
                     <span class="font-bold">Kurir:</span>
@@ -194,13 +175,7 @@
         </div>
     </template>
 
-    {{-- ══════════ 2. Peta tujuan statis ══════════
-         Menunjukkan KE MANA paket menuju, bukan di mana paket sekarang —
-         Biteship tidak menyediakan koordinat kurir, jadi posisi berjalan
-         memang tidak bisa digambar untuk pengiriman reguler.
-
-         Petanya baru dimuat saat dibuka, supaya halaman tidak menarik peta
-         untuk pesanan yang tidak sedang diperiksa. --}}
+    {{-- ══════════ 2. --}}
     @if($adaKoordinat)
         <div class="border-t border-gray-100 pt-3" x-data="{ petaBuka: false }">
             <button type="button" @click="petaBuka = ! petaBuka"

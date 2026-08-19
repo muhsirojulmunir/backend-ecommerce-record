@@ -26,20 +26,7 @@ class ProductRepository implements ProductRepositoryInterface
         if (filled($filters['search'] ?? null)) {
             $kata = trim($filters['search']);
 
-            /*
-             * Dicari pada nama produk ATAU kode SKU variannya, supaya admin
-             * bisa langsung mengetik SKU yang tertera di gudang tanpa perlu
-             * mengingat nama produknya.
-             *
-             * SKU melekat pada varian, bukan pada produk — satu produk punya
-             * banyak SKU, satu per ukuran dan warna. Karena itu lewat
-             * whereHas, dan yang dikembalikan tetap produknya beserta seluruh
-             * variannya.
-             *
-             * Seluruhnya dibungkus satu where() supaya tidak bertabrakan
-             * dengan saringan status dan kategori di atas — tanpa pembungkus
-             * itu, "atau" di sini akan membatalkan keduanya.
-             */
+            // Dicari pada nama produk ATAU kode SKU variannya, supaya admin bisa langsung mengetik SKU yang ter...
             $query->where(function ($q) use ($kata) {
                 $q->where('name', 'like', "%{$kata}%")
                   ->orWhereHas('variants', fn ($v) => $v->where('sku', 'like', "%{$kata}%"));
@@ -153,20 +140,7 @@ class ProductRepository implements ProductRepositoryInterface
         if (filled($filters['search'] ?? null)) {
             $kata = trim($filters['search']);
 
-            /*
-             * Dicari pada nama produk ATAU kode SKU variannya, supaya admin
-             * bisa langsung mengetik SKU yang tertera di gudang tanpa perlu
-             * mengingat nama produknya.
-             *
-             * SKU melekat pada varian, bukan pada produk — satu produk punya
-             * banyak SKU, satu per ukuran dan warna. Karena itu lewat
-             * whereHas, dan yang dikembalikan tetap produknya beserta seluruh
-             * variannya.
-             *
-             * Seluruhnya dibungkus satu where() supaya tidak bertabrakan
-             * dengan saringan status dan kategori di atas — tanpa pembungkus
-             * itu, "atau" di sini akan membatalkan keduanya.
-             */
+            // Dicari pada nama produk ATAU kode SKU variannya, supaya admin bisa langsung mengetik SKU yang ter...
             $query->where(function ($q) use ($kata) {
                 $q->where('name', 'like', "%{$kata}%")
                   ->orWhereHas('variants', fn ($v) => $v->where('sku', 'like', "%{$kata}%"));

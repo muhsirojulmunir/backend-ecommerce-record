@@ -6,14 +6,7 @@ use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
- * Pembungkus trait LogsActivity milik Spatie dengan konfigurasi seragam
- * untuk seluruh model, supaya menu "Log Aktivitas" menampilkan catatan
- * yang konsisten dan mudah dibaca dalam Bahasa Indonesia.
- *
- * Model yang memakai trait ini boleh menimpa:
- *   - $activityLogAttributes : kolom yang dicatat perubahannya
- *   - $activityLogName       : nama grup log (default: nama model huruf kecil)
- *   - activityTitle()        : label subjek yang tampil di daftar log
+ * Pembungkus trait LogsActivity milik Spatie dengan konfigurasi seragam untuk seluruh model, supaya...
  */
 trait RecordsActivity
 {

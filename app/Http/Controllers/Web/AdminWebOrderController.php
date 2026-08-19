@@ -268,17 +268,7 @@ class AdminWebOrderController extends Controller
 
             // Daftar kurir yang akan dicoba berurutan (jika satu gagal, lanjut berikutnya)
             // JNE paling stabil di sandbox BiteShip
-            /*
-             * Kurir diambil dari KODE resmi Biteship yang disimpan saat
-             * checkout (mis. "jne:reg", "gojek:instant"), bukan ditebak dari
-             * nama tampilannya.
-             *
-             * Sebelumnya nama tampilan dibersihkan lalu dicocokkan ke daftar
-             * pendek — dan hampir semuanya meleset: "J&T Express" menjadi
-             * "jtexpress" yang tidak ada di daftar, lalu jatuh ke JNE. Pembeli
-             * memilih J&T, paketnya berangkat JNE. Pesanan instan lebih parah
-             * lagi: dibayar sebagai instan, dikirim sebagai reguler.
-             */
+            // Kurir diambil dari KODE resmi Biteship yang disimpan saat checkout (mis.
             $kodeTersimpan = $order->courier_code;
 
             // Pesanan lama yang kodenya belum terisi masih ditebak dari nama,
@@ -294,23 +284,10 @@ class AdminWebOrderController extends Controller
 
             $primaryCourier = $primaryCourier ?: 'jne';
 
-            /*
-             * Jenis layanan diteruskan apa adanya ke Biteship. Kurir instan
-             * memakai kode layanannya sendiri (instant, same_day), dan
-             * memaksanya menjadi "reg" persis itulah yang membuat pesanan
-             * instan berangkat sebagai reguler.
-             */
+            // Jenis layanan diteruskan apa adanya ke Biteship.
             $jenisLayanan = $jenisLayanan ?: 'reg';
 
-            /*
-             * Kurir cadangan HANYA untuk pengiriman reguler.
-             *
-             * Pesanan instan tidak boleh diam-diam dialihkan ke JNE: pembeli
-             * membayar untuk sampai hari itu juga, dan mengirimnya reguler
-             * berarti mengingkari janji tanpa memberitahunya. Kalau instan
-             * gagal, biar gagal — supaya admin tahu dan bisa menghubungi
-             * pembelinya.
-             */
+            // Kurir cadangan HANYA untuk pengiriman reguler.
             $instan = in_array($primaryCourier, ['gojek', 'grab', 'lalamove', 'borzo'], true);
 
             $courierFallbacks = $instan

@@ -6,9 +6,7 @@ use Illuminate\Support\Collection;
 use Spatie\Permission\Models\Permission;
 
 /**
- * Menerjemahkan nama permission mentah (mis. "manage products") menjadi
- * label Bahasa Indonesia, ikon, dan pengelompokan yang sama dengan sidebar —
- * dipakai bersama oleh menu Kelola Role dan Kelola Permission.
+ * Menerjemahkan nama permission mentah (mis.
  */
 class PermissionCatalog
 {
@@ -35,10 +33,10 @@ class PermissionCatalog
     private const GROUP_ORDER = ['Dashboard', 'Produk', 'Keuangan', 'Settings', 'Lainnya'];
 
     /**
-     * Semua permission dari database, dikelompokkan dan sudah diberi label.
-     *
-     * @return Collection<string, Collection<int, array>>
-     */
+ * Semua permission dari database, dikelompokkan dan sudah diberi label.
+ *
+ * @return Collection<string, Collection<int, array>>
+ */
     public static function grouped(): Collection
     {
         return Permission::orderBy('id')->get()

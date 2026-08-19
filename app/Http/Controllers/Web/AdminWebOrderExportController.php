@@ -13,20 +13,6 @@ use Illuminate\Support\Facades\Storage;
 
 /**
  * Ekspor pesanan ke XLSX.
- *
- * Susunan kolomnya mengikuti berkas ekspor Seller Center sebagai acuan, tetapi
- * hanya kolom yang benar-benar ada isinya di sistem ini. Kolom khas Shopee
- * seperti "Diskon Dari Shopee", "Cashback Koin", atau "Booking SN" sengaja
- * tidak disertakan: kolom yang selalu kosong hanya memperlebar berkas dan
- * membuat pembacanya mengira ada data yang hilang.
- *
- * Sebagai gantinya, ditambahkan kolom yang justru penting di sini dan tidak
- * ada di Shopee: biaya Midtrans, ongkir yang dibayarkan ke kurir, komisi
- * referal, dan penghasilan bersih per pesanan.
- *
- * Satu baris mewakili satu BARANG, bukan satu pesanan — sama seperti acuannya.
- * Pesanan berisi tiga barang menghasilkan tiga baris dengan nomor pesanan yang
- * sama, sehingga penjualan per produk bisa dijumlahkan langsung.
  */
 class AdminWebOrderExportController extends Controller
 {
@@ -102,12 +88,7 @@ class AdminWebOrderExportController extends Controller
             $dibayar = (int) round((float) $o->grand_total);
             $komisi  = (int) round((float) ($o->referral_commission ?? 0));
 
-            /*
-             * Angka biaya dipakai apa adanya bila sudah tercatat. Pesanan lama
-             * belum punya catatan itu, jadi dihitung ulang di sini supaya
-             * kolomnya tidak nol dan penghasilan bersihnya tidak tampak lebih
-             * besar daripada kenyataannya.
-             */
+            // Angka biaya dipakai apa adanya bila sudah tercatat.
             $biayaTercatat = (float) $o->midtrans_fee;
             $biayaBayar = (int) round($biayaTercatat > 0
                 ? $biayaTercatat
@@ -184,16 +165,7 @@ class AdminWebOrderExportController extends Controller
             }
         }
 
-        /*
-         * Nama berkas memuat rentangnya, supaya isi folder unduhan tetap bisa
-         * dibedakan tanpa perlu membukanya satu per satu.
-         *
-         * Butir waktunya sampai detik saja tidak cukup: dua ekspor rentang sama
-         * pada detik yang sama — misalnya tombol Export terklik dua kali —
-         * menghasilkan nama identik, sehingga dua baris riwayat menunjuk satu
-         * berkas. Saat baris terlama dipangkas, berkas milik baris yang masih
-         * hidup ikut terhapus. Karena itu ditambahkan penanda acak singkat.
-         */
+        // Nama berkas memuat rentangnya, supaya isi folder unduhan tetap bisa dibedakan tanpa perlu membuka...
         $nama = 'Pesanan_'
             . ($dari   ? str_replace('-', '', $dari)   : 'awal') . '_'
             . ($sampai ? str_replace('-', '', $sampai) : 'akhir') . '_'

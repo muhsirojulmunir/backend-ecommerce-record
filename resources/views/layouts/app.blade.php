@@ -105,14 +105,7 @@
 
                 @can('manage reviews')
                 @php
-                    /*
-                     * Lencana menghitung ulasan bintang 1-2 yang masih tampil.
-                     *
-                     * Sengaja bukan jumlah ulasan baru: ulasan tidak menunggu
-                     * persetujuan siapa pun, jadi tidak ada antrean yang harus
-                     * dikejar. Yang perlu segera dilihat admin adalah keluhan —
-                     * dan keluhan hampir selalu berbintang rendah.
-                     */
+                    // Lencana menghitung ulasan bintang 1-2 yang masih tampil.
                     $ulasanRendah = \App\Models\ProductReview::where('is_hidden', false)
                         ->where('rating', '<=', 2)->count();
                 @endphp

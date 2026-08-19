@@ -59,10 +59,7 @@
                     @endif
                 </div>
 
-                {{-- ── Bukti dari pembeli ──
-                     Ditempatkan tepat setelah alasannya, sebelum keputusan
-                     diambil: inilah yang seharusnya dilihat admin lebih dulu
-                     sebelum menyetujui atau menolak. --}}
+                {{-- ── Bukti dari pembeli ── --}}
                 <div>
                     <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">Bukti yang dilampirkan</p>
 
@@ -75,9 +72,7 @@
                                 <div>
                                     <p class="text-xs font-bold text-gray-600 mb-1.5">{{ $foto['judul'] }}</p>
                                     @if($foto['jalur'])
-                                        {{-- Gambarnya dibungkus tautan supaya admin bisa
-                                             membuka versi penuhnya; detail resi kerap tidak
-                                             terbaca pada ukuran pratinjau. --}}
+                                        {{-- Gambarnya dibungkus tautan supaya admin bisa --}}
                                         <a href="{{ Storage::url($foto['jalur']) }}" target="_blank" rel="noopener"
                                            class="block rounded-xl overflow-hidden border border-gray-200 hover:border-gray-400 transition">
                                             <img src="{{ Storage::url($foto['jalur']) }}" alt="{{ $foto['judul'] }}"
@@ -255,18 +250,9 @@
                     </p>
                 </div>
 
-                {{-- Posisi paket kembali.
-
-                     Inilah bagian yang paling menentukan rasa aman: barang
-                     yang sudah dikirim balik pembeli belum tentu sampai, dan
-                     tanpa pelacakan tidak ada cara membedakan paket yang masih
-                     di jalan dari paket yang benar-benar hilang. --}}
+                {{-- Posisi paket kembali. --}}
                 @php
-                    /*
-                     * Tujuan paket kembali adalah TOKO, bukan alamat pembeli —
-                     * arahnya terbalik dari pengiriman biasa. Koordinatnya
-                     * diambil dari pengaturan toko.
-                     */
+                    // Tujuan paket kembali adalah TOKO, bukan alamat pembeli — arahnya terbalik dari pengiriman biasa.
                     $lintangToko = config('pengiriman.toko.lintang');
                     $bujurToko   = config('pengiriman.toko.bujur');
                 @endphp
@@ -306,13 +292,7 @@
                     <input type="hidden" name="hasil" :value="hasil">
 
                     @if($pengajuan->resolution === 'refund')
-                    {{-- Kolom rupiah.
-                         Sebelumnya memakai <input type="number" step="1000">, dan itu
-                         menjebak: mengetik "150.000" seperti kebiasaan menulis rupiah
-                         membuat browser membacanya sebagai 150 (titik dianggap koma
-                         desimal), lalu menolak dengan "valid values are 0 and 1000".
-                         Sekarang isiannya teks berpemisah ribuan, sementara yang
-                         terkirim ke server tetap angka bulat lewat kolom tersembunyi. --}}
+                    {{-- Kolom rupiah. --}}
                     <div x-show="hasil !== 'rejected'"
                          x-data="{
                             nominal: {{ (int) $nominalUsulan }},

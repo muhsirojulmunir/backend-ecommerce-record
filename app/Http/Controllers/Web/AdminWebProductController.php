@@ -118,23 +118,11 @@ class AdminWebProductController extends Controller
     }
 
     /**
-     * Menandai atau melepas produk dari "Our Collection" di halaman utama.
-     *
-     * Disediakan sebagai sakelar satu klik di daftar produk, bukan hanya
-     * lewat form ubah produk — mengatur etalase berarti membanding-bandingkan
-     * banyak produk sekaligus, dan membuka satu per satu terlalu memakan waktu.
-     */
+ * Menandai atau melepas produk dari "Our Collection" di halaman utama.
+ */
     /**
-     * Mengubah stok satu varian langsung dari daftar produk.
-     *
-     * Ada supaya stok yang habis bisa dikosongkan tanpa membuka halaman ubah
-     * produk satu per satu — pekerjaan yang paling sering dilakukan dan paling
-     * membosankan kalau harus lewat borang penuh.
-     *
-     * Sengaja HANYA menyentuh kolom stok. Harga, ukuran, warna, dan SKU tidak
-     * bisa diubah dari sini; jalur cepat yang bisa mengubah segalanya justru
-     * mengundang kekeliruan yang tidak disadari.
-     */
+ * Mengubah stok satu varian langsung dari daftar produk.
+ */
     public function updateVariantStock(Request $request, $id)
     {
         $varian = \App\Models\ProductVariant::findOrFail($id);
@@ -248,12 +236,8 @@ class AdminWebProductController extends Controller
     }
 
     /**
-     * Simpan foto khusus tiap warna varian.
-     *
-     * Satu warna hanya menyimpan satu foto; mengunggah foto baru akan
-     * menggantikan yang lama, termasuk menghapus berkas lamanya.
-     * Warna yang tidak diberi foto akan memakai foto utama produk.
-     */
+ * Simpan foto khusus tiap warna varian.
+ */
     private function simpanFotoWarna(Request $request, $product): void
     {
         $warna  = $request->input('color_image_colors', []);

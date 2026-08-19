@@ -6,30 +6,36 @@ use RuntimeException;
 
 /**
  * Penulis berkas .xlsx sederhana tanpa library pihak ketiga.
- *
- * Menghasilkan arsip ZIP berisi XML sesuai format OOXML: satu sheet,
- * baris judul tebal berwarna, lebar kolom yang bisa diatur, dan
- * dropdown pilihan untuk kolom tertentu.
  */
 class XlsxWriter
 {
-    /** @var array<int, array<int, string>> */
+    /**
+ * @var array<int, array<int, string>>
+ */
     private array $rows = [];
 
-    /** @var array<int, float> lebar kolom, indeks berbasis nol */
+    /**
+ * @var array<int, float> lebar kolom, indeks berbasis nol
+ */
     private array $widths = [];
 
-    /** @var array<int, array{formula: string, lastRow: int}> dropdown per kolom */
+    /**
+ * @var array<int, array{formula: string, lastRow: int}> dropdown per kolom
+ */
     private array $dropdowns = [];
 
     private string $sheetName = 'Sheet1';
 
     private int $headerRows = 1;
 
-    /** @var array<int, true> indeks baris yang diberi gaya "petunjuk" */
+    /**
+ * @var array<int, true> indeks baris yang diberi gaya "petunjuk"
+ */
     private array $hintRows = [];
 
-    /** @var array<int, true> indeks baris yang diberi gaya "contoh" */
+    /**
+ * @var array<int, true> indeks baris yang diberi gaya "contoh"
+ */
     private array $exampleRows = [];
 
     public function setSheetName(string $name): static
@@ -40,7 +46,9 @@ class XlsxWriter
         return $this;
     }
 
-    /** @param array<int, string> $row */
+    /**
+ * @param array<int, string> $row
+ */
     public function addRow(array $row): static
     {
         $this->rows[] = array_values($row);
@@ -48,7 +56,9 @@ class XlsxWriter
         return $this;
     }
 
-    /** @param array<int, array<int, string>> $rows */
+    /**
+ * @param array<int, array<int, string>> $rows
+ */
     public function addRows(array $rows): static
     {
         foreach ($rows as $row) {
@@ -58,7 +68,9 @@ class XlsxWriter
         return $this;
     }
 
-    /** @param array<int, float> $widths */
+    /**
+ * @param array<int, float> $widths
+ */
     public function setWidths(array $widths): static
     {
         $this->widths = array_values($widths);
@@ -91,11 +103,11 @@ class XlsxWriter
     }
 
     /**
-     * Pasang dropdown pilihan pada satu kolom.
-     *
-     * @param int $column indeks kolom berbasis nol
-     * @param array<int, string> $options
-     */
+ * Pasang dropdown pilihan pada satu kolom.
+ *
+ * @param int $column indeks kolom berbasis nol
+ * @param array<int, string> $options
+ */
     public function addDropdown(int $column, array $options, int $lastRow = 500): static
     {
         $clean = array_map(fn ($o) => str_replace([',', '"'], ' ', (string) $o), $options);
@@ -112,10 +124,8 @@ class XlsxWriter
     }
 
     /**
-     * Dropdown yang isinya mengacu ke rentang sel lain, misalnya
-     * "Produk!$A$5:$A$504" — daftarnya ikut terisi sendiri saat
-     * pengguna mengetik di sheet sumber.
-     */
+ * Dropdown yang isinya mengacu ke rentang sel lain, misalnya "Produk!$A$5:$A$504" — daftarnya ikut ...
+ */
     public function addDropdownFromRange(int $column, string $range, int $lastRow = 500): static
     {
         $this->dropdowns[$column] = ['formula' => $range, 'lastRow' => $lastRow];
@@ -249,12 +259,8 @@ class XlsxWriter
     }
 
     /**
-     * XML satu worksheet. Publik supaya bisa dirakit ke workbook multi-sheet.
-     *
-     * PENTING: skema OOXML mewajibkan urutan elemen
-     * sheetViews → cols → sheetData → dataValidations.
-     * Kalau urutannya tertukar, Excel menolak sheet dan mengosongkan isinya.
-     */
+ * XML satu worksheet.
+ */
     public function sheetXml(): string
     {
         $xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
