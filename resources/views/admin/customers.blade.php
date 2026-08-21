@@ -34,7 +34,7 @@
                 <i class="fa-solid fa-bag-shopping"></i>
             </div>
             <div class="min-w-0">
-                <p class="text-xs font-semibold text-gray-400">Pernah Belanja</p>
+                <p class="text-xs font-semibold text-gray-400">Pernah Belanjaa</p>
                 <h3 class="text-xl font-black text-gray-800 mt-0.5">{{ number_format($stats['buyers']) }}</h3>
                 <p class="text-[10px] text-gray-400 font-semibold">
                     {{ $stats['total'] > 0 ? round($stats['buyers'] / $stats['total'] * 100) : 0 }}% dari total customer
