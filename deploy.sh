@@ -6,6 +6,23 @@
 
 echo "🚀 Memulai proses deploy backend..."
 
+# --- 0. Deteksi Binary PHP >= 8.2 di cPanel ---
+PHP_BIN="php"
+if command -v /usr/local/bin/ea-php84 &> /dev/null; then
+    PHP_BIN="/usr/local/bin/ea-php84"
+elif command -v /usr/local/bin/ea-php82 &> /dev/null; then
+    PHP_BIN="/usr/local/bin/ea-php82"
+elif command -v /opt/cpanel/ea-php84/root/usr/bin/php &> /dev/null; then
+    PHP_BIN="/opt/cpanel/ea-php84/root/usr/bin/php"
+elif command -v /opt/cpanel/ea-php82/root/usr/bin/php &> /dev/null; then
+    PHP_BIN="/opt/cpanel/ea-php82/root/usr/bin/php"
+elif command -v /opt/alt/php82/usr/bin/php &> /dev/null; then
+    PHP_BIN="/opt/alt/php82/usr/bin/php"
+elif command -v /opt/alt/php84/usr/bin/php &> /dev/null; then
+    PHP_BIN="/opt/alt/php84/usr/bin/php"
+fi
+echo "🐘 Menggunakan PHP: $(${PHP_BIN} -v | head -n 1)"
+
 # --- 1. Konfigurasi Wajib (Isi sesuai data cPanel Anda) ---
 APP_URL="https://admin.recordshoes.com"
 DB_DATABASE="recordsh_ecommerce"
@@ -62,7 +79,7 @@ echo "✅ File .env berhasil ditulis!"
 
 # --- 2. Generate App Key ---
 echo "🔑 Membuat App Key..."
-php artisan key:generate --force
+${PHP_BIN} artisan key:generate --force
 
 # --- 3. Buat Folder yang Dibutuhkan & Atur Izin ---
 echo "📁 Menyiapkan folder storage..."
@@ -77,7 +94,7 @@ chmod -R 775 bootstrap/cache
 
 # --- 4. Hubungkan Storage (Untuk Gambar Produk) ---
 echo "🔗 Menghubungkan storage..."
-php artisan storage:link --force 2>/dev/null || true
+${PHP_BIN} artisan storage:link --force 2>/dev/null || true
 
 # --- 5. Bersihkan Semua Cache ---
 echo "🧹 Membersihkan cache..."
@@ -86,17 +103,17 @@ rm -f bootstrap/cache/routes-v7.php
 rm -f bootstrap/cache/services.php
 rm -f bootstrap/cache/packages.php
 
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
-php artisan cache:clear
-php artisan event:clear
+${PHP_BIN} artisan config:clear
+${PHP_BIN} artisan route:clear
+${PHP_BIN} artisan view:clear
+${PHP_BIN} artisan cache:clear
+${PHP_BIN} artisan event:clear
 
 # --- 6. Optimasi untuk Production ---
 echo "⚡ Mengoptimasi untuk production..."
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+${PHP_BIN} artisan config:cache
+${PHP_BIN} artisan route:cache
+${PHP_BIN} artisan view:cache
 
 echo ""
 echo "=============================================="
