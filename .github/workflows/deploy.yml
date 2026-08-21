@@ -41,6 +41,12 @@ jobs:
             done
             echo "PHP: $(${PHP_BIN} -v | head -n 1)"
 
+            echo "▶ Menjalankan migrasi database..."
+            ${PHP_BIN} artisan migrate --force
+
+            echo "▶ Menghubungkan storage link..."
+            ${PHP_BIN} artisan storage:link --force 2>/dev/null || true
+
             echo "▶ Membersihkan cache lama..."
             rm -f bootstrap/cache/config.php
             rm -f bootstrap/cache/routes-v7.php
