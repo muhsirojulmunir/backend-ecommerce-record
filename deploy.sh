@@ -6,11 +6,11 @@
 
 echo "🚀 Memulai proses deploy backend..."
 
-# --- 1. Konfigurasi Wajib ---
+# --- 1. Konfigurasi Wajib (Isi sesuai data cPanel Anda) ---
 APP_URL="https://admin.recordshoes.com"
 DB_DATABASE="recordsh_ecommerce"
-DB_USERNAME="recordsh_dbuser"
-DB_PASSWORD="ISI_PASSWORD_DATABASE_CPANEL_ANDA"
+DB_USERNAME="recordsh_dbecommerce"
+DB_PASSWORD="GANTI_DENGAN_PASSWORD_DATABASE_ANDA"
 
 echo "⚙️  Menulis konfigurasi .env..."
 cat > .env << EOF
