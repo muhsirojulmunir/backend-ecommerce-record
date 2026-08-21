@@ -61,7 +61,7 @@ class OrderExport extends Model
     /** Berkasnya masih ada di cakram? */
     public function getBerkasAdaAttribute(): bool
     {
-        return filled($this->path) && Storage::disk('local')->exists($this->path);
+        return filled($this->path) && file_exists(storage_path('app/' . $this->path));
     }
 
     /**
