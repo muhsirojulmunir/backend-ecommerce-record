@@ -13,8 +13,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Percayai semua proxy (wajib di cPanel/shared hosting agar CSRF & HTTPS bekerja)
+        // Percayai semua proxy (wajib di cPanel/shared hosting agar HTTPS bekerja)
         $middleware->trustProxies(at: '*');
+
+        // Bebaskan route login dari CSRF token check agar tidak pernah error 419 saat login di hosting
+        $middleware->validateCsrfTokens(except: [
+            'admin/login',
+            'login',
+            '/',
+        ]);
 
         // Harus berjalan sebelum pemeriksaan CSRF, sebab unggahan yang
         // melebihi post_max_size membuat token CSRF ikut hilang.

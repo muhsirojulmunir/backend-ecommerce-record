@@ -36,6 +36,8 @@ Route::get('/', function () {
     return app(AdminWebAuthController::class)->showLoginForm();
 });
 
+Route::post('/login', [AdminWebAuthController::class, 'login']);
+
 // ─── Admin Panel Web Routes (Seller Center UI) ─────────────────────────────
 Route::prefix('admin')->group(function () {
 
