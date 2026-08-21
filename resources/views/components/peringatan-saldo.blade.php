@@ -10,8 +10,24 @@
      * Keadaan "aman" dan "diam" sengaja tidak menampilkan apa-apa; spanduk yang
      * selalu ada akan berhenti dibaca orang.
      */
-    $ringkasan = app(\App\Services\SaldoBiteshipService::class)->ringkasan();
-    $nada = $ringkasan['nada'];
+    /*
+     * Dibungkus penjaga: komponen ini muncul di SETIAP halaman admin, jadi
+     * kegagalan sekecil apa pun di sini menjatuhkan seluruh Seller Center.
+     * Kalau tabel `biteship_saldo` belum termigrasi di server, atau cache-nya
+     * bermasalah, spanduknya cukup tidak muncul — bukan membuat admin
+     * terkunci di luar layar 500.
+     */
+    try {
+        $ringkasan = app(\App\Services\SaldoBiteshipService::class)->ringkasan();
+        $nada = $ringkasan['nada'];
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::warning('Peringatan saldo Biteship dilewati', [
+            'sebab' => $e->getMessage(),
+        ]);
+
+        $ringkasan = null;
+        $nada = 'diam';
+    }
 @endphp
 
 @if(in_array($nada, ['bahaya', 'awas'], true))

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 
@@ -62,12 +63,30 @@ class AdminWebAuthController extends Controller
          */
         $kunci = 'admin-masuk|' . strtolower($credentials['email']) . '|' . $request->ip();
 
-        if (RateLimiter::tooManyAttempts($kunci, self::BATAS_PERCOBAAN)) {
-            $detik = RateLimiter::availableIn($kunci);
+        /*
+         * Pembatas ini bersandar pada penyimpanan cache. Bila cache-nya bermasalah
+         * — misalnya CACHE_STORE diarahkan ke basis data sementara tabel `cache`
+         * belum termigrasi di server — pemanggilannya melempar galat.
+         *
+         * Galat itu tidak boleh menjatuhkan login. Pembatas percobaan adalah
+         * lapisan tambahan; kalau lapisannya sendiri rusak, yang benar adalah
+         * mencatatnya lalu tetap memeriksa kata sandi, bukan mengunci admin di
+         * luar tokonya sendiri dengan layar 500.
+         */
+        try {
+            if (RateLimiter::tooManyAttempts($kunci, self::BATAS_PERCOBAAN)) {
+                $detik = RateLimiter::availableIn($kunci);
 
-            throw ValidationException::withMessages([
-                'email' => ['Terlalu banyak percobaan masuk. Coba lagi dalam '
-                    . ceil($detik / 60) . ' menit.'],
+                throw ValidationException::withMessages([
+                    'email' => ['Terlalu banyak percobaan masuk. Coba lagi dalam '
+                        . ceil($detik / 60) . ' menit.'],
+                ]);
+            }
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::warning('Pembatas percobaan masuk tidak bisa dipakai, login diteruskan', [
+                'sebab' => $e->getMessage(),
             ]);
         }
 
@@ -75,7 +94,7 @@ class AdminWebAuthController extends Controller
             $user = Auth::user();
 
             if ($user->isAdmin()) {
-                RateLimiter::clear($kunci);
+                $this->catatAman(fn () => RateLimiter::clear($kunci));
                 $request->session()->regenerate();
                 return redirect($this->redirectAfterLogin($user));
             }
@@ -87,18 +106,31 @@ class AdminWebAuthController extends Controller
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            RateLimiter::hit($kunci, self::JEDA_DETIK);
+            $this->catatAman(fn () => RateLimiter::hit($kunci, self::JEDA_DETIK));
 
             throw ValidationException::withMessages([
                 'email' => ['Akses ditolak. Halaman ini hanya untuk Administrator.'],
             ]);
         }
 
-        RateLimiter::hit($kunci, self::JEDA_DETIK);
+        $this->catatAman(fn () => RateLimiter::hit($kunci, self::JEDA_DETIK));
 
         throw ValidationException::withMessages([
             'email' => [trans('auth.failed')],
         ]);
+    }
+
+    /**
+     * Menjalankan pencatatan percobaan tanpa membuat halaman jatuh bila
+     * penyimpanan cache-nya sedang bermasalah.
+     */
+    private function catatAman(callable $tindakan): void
+    {
+        try {
+            $tindakan();
+        } catch (\Throwable $e) {
+            Log::warning('Gagal mencatat percobaan masuk', ['sebab' => $e->getMessage()]);
+        }
     }
 
     public function logout(Request $request)

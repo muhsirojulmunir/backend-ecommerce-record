@@ -6,6 +6,7 @@ use App\Models\BiteshipSaldo;
 use App\Models\Order;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Memantau saldo Biteship.
@@ -96,24 +97,44 @@ class SaldoBiteshipService
         return max(0, $catatan->saldo_tercatat - $this->terpakaiSejakDicatat());
     }
 
+    /*
+     * Penanda saldo habis disimpan di cache, dan cache bisa saja bermasalah —
+     * misalnya CACHE_STORE diarahkan ke basis data sementara tabel `cache`
+     * belum termigrasi di server. Penanda ini hanya alat bantu tampilan, jadi
+     * kegagalannya tidak boleh menghentikan pengiriman maupun menjatuhkan
+     * halaman. Ketiganya dibungkus penjaga.
+     */
+
     /** Menandai bahwa Biteship benar-benar menolak karena saldo kurang. */
     public function tandaiHabis(?string $pesan = null): void
     {
-        Cache::put(self::KUNCI_HABIS, [
-            'pada'  => now()->toDateTimeString(),
-            'pesan' => $pesan,
-        ], now()->addMinutes((int) config('biteship.menit_tanda_habis', 180)));
+        try {
+            Cache::put(self::KUNCI_HABIS, [
+                'pada'  => now()->toDateTimeString(),
+                'pesan' => $pesan,
+            ], now()->addMinutes((int) config('biteship.menit_tanda_habis', 180)));
+        } catch (\Throwable $e) {
+            Log::warning('Penanda saldo Biteship gagal disimpan', ['sebab' => $e->getMessage()]);
+        }
     }
 
     /** Menghapus penanda — dipanggil begitu ada pengiriman yang berhasil. */
     public function tandaiPulih(): void
     {
-        Cache::forget(self::KUNCI_HABIS);
+        try {
+            Cache::forget(self::KUNCI_HABIS);
+        } catch (\Throwable $e) {
+            Log::warning('Penanda saldo Biteship gagal dihapus', ['sebab' => $e->getMessage()]);
+        }
     }
 
     public function sedangHabis(): bool
     {
-        return Cache::has(self::KUNCI_HABIS);
+        try {
+            return Cache::has(self::KUNCI_HABIS);
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**
