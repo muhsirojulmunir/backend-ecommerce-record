@@ -191,14 +191,43 @@ class AdminWebOrderController extends Controller
             $order->courier = $request->courier;
         }
 
-        // Jika tracking number tidak diisi, coba panggil API BiteShip untuk terbitkan resi AWB resmi
-        $biteshipAwb = $this->createBiteshipShipment($order);
+        /*
+         * Resi yang diketik admin sendiri dihormati apa adanya.
+         *
+         * Kalau admin sudah memegang resi — misalnya paket diantar sendiri atau
+         * dibuat manual di dasbor Biteship — tidak ada gunanya memanggil API
+         * lagi. Panggilan itu justru menciptakan order kedua di Biteship dan
+         * memotong saldo untuk pengiriman yang sama.
+         */
+        if ($request->filled('tracking_number')) {
+            $order->tracking_number = trim($request->tracking_number);
 
-        if ($biteshipAwb) {
-            $order->tracking_number = $biteshipAwb;
-        } else {
-            $order->tracking_number = $request->tracking_number ?: ('REC' . str_pad($order->id, 8, '0', STR_PAD_LEFT));
+            if (in_array($order->status, ['pending', 'processing'])) {
+                $order->status = 'shipped';
+            }
+
+            $order->save();
+
+            return redirect()->back()->with('success',
+                "Nomor resi {$order->tracking_number} tersimpan. Status diubah menjadi Dikirim.");
         }
+
+        // Resi kosong: minta Biteship menerbitkannya sekaligus menjemput paket.
+        $hasil = $this->createBiteshipShipment($order);
+
+        /*
+         * Gagal tidak lagi ditambal dengan resi buatan sendiri. Resi palsu
+         * membuat pesanan tampak terkirim padahal tidak ada kurir yang dipanggil,
+         * dan pembeli menunggu paket yang tidak pernah dijemput.
+         */
+        if (! $hasil['berhasil']) {
+            return redirect()->back()->with('error',
+                'Resi gagal diterbitkan, jadi status pesanan tidak diubah. '
+                . $hasil['alasan']
+                . ($hasil['soal_saldo'] ? ' Isi saldo Biteship lalu ulangi.' : ''));
+        }
+
+        $order->tracking_number = $hasil['resi'];
 
         // Otomatis ubah status menjadi shipped jika masih pending/processing
         if (in_array($order->status, ['pending', 'processing'])) {
@@ -207,7 +236,7 @@ class AdminWebOrderController extends Controller
 
         $order->save();
 
-        return redirect()->back()->with('success', "Nomor resi {$order->tracking_number} berhasil disimpan & terposting ke Dashboard BiteShip. Status diubah menjadi Dikirim.");
+        return redirect()->back()->with('success', "Nomor resi {$order->tracking_number} berhasil diterbitkan Biteship dan kurir sudah diminta menjemput. Status diubah menjadi Dikirim.");
     }
 
     /**
@@ -256,12 +285,32 @@ class AdminWebOrderController extends Controller
     }
 
     /**
-     * Helper privat: Kirim booking pengiriman ke API BiteShip untuk menerbitkan resi AWB otomatis & memposting pesanan ke Dashboard BiteShip.
+     * Memesan pengiriman ke Biteship: menerbitkan resi resmi sekaligus meminta
+     * penjemputan kurir.
+     *
+     * Mengembalikan hasil yang MENYEBUTKAN ALASAN saat gagal, bukan sekadar
+     * null. Sebelumnya kegagalan apa pun dijawab null, lalu pemanggilnya
+     * menambal dengan nomor resi buatan sendiri dan tetap menandai pesanan
+     * sebagai terkirim. Akibatnya pesanan terlihat berjalan padahal tidak ada
+     * order di Biteship dan tidak ada kurir yang dipanggil — pembeli menunggu
+     * paket yang tidak pernah dijemput, dan admin tidak diberi tahu apa pun.
+     *
+     * @return array{berhasil: bool, resi: ?string, alasan: ?string, soal_saldo: bool}
      */
-    private function createBiteshipShipment(Order $order): ?string
+    private function createBiteshipShipment(Order $order): array
     {
+        $gagal = fn (string $alasan, bool $soalSaldo = false) => [
+            'berhasil'   => false,
+            'resi'       => null,
+            'alasan'     => $alasan,
+            'soal_saldo' => $soalSaldo,
+        ];
+
         $apiKey = env('BITESHIP_API_KEY');
-        if (!$apiKey) return null;
+
+        if (! $apiKey) {
+            return $gagal('Kunci API Biteship belum diisi di berkas .env.');
+        }
 
         try {
             $address = $order->shipping_address;
@@ -338,6 +387,33 @@ class AdminWebOrderController extends Controller
                 $basePayload['destination_postal_code'] = (int) $postalCode;
             }
 
+            /*
+             * Asuransi pengiriman.
+             *
+             * Diaktifkan cukup dengan mengirim `courier_insurance` berisi nilai
+             * barang — tidak ada tombol yang perlu dinyalakan di dasbor
+             * Biteship. Langkah "centang opsi asuransi" di Pusat Bantuan mereka
+             * berlaku untuk pesanan yang dibuat manual di dasbor, bukan lewat API.
+             *
+             * Preminya dipotong dari saldo bersamaan dengan ongkir, dan besarnya
+             * dikembalikan Biteship di `courier.insurance.fee`.
+             */
+            $jasaAsuransi = app(\App\Services\AsuransiPengirimanService::class);
+            $putusan = $jasaAsuransi->putuskan($order);
+
+            if ($putusan['nilai'] > 0) {
+                $basePayload['courier_insurance'] = $putusan['nilai'];
+            }
+
+            \Illuminate\Support\Facades\Log::info('Keputusan asuransi pengiriman', [
+                'pesanan' => $order->order_number,
+                'nilai'   => $putusan['nilai'],
+                'alasan'  => $putusan['alasan'],
+            ]);
+
+            $saldo = app(\App\Services\SaldoBiteshipService::class);
+            $galatTerakhir = 'Semua kurir yang dicoba menolak permintaan ini.';
+
             // Coba setiap kurir fallback sampai berhasil
             foreach ($courierFallbacks as $courier) {
                 $payload = array_merge($basePayload, ['courier_company' => $courier]);
@@ -353,13 +429,51 @@ class AdminWebOrderController extends Controller
 
                 if ($response->successful()) {
                     $data = $response->json();
+                    $resi = $data['courier']['waybill_id'] ?? $data['id'] ?? null;
+
+                    if (blank($resi)) {
+                        return $gagal('Biteship menerima pesanan tetapi tidak mengembalikan nomor resi.');
+                    }
+
                     // Simpan courier yang berhasil ke order
                     $order->courier = $courier;
-                    return $data['courier']['waybill_id'] ?? $data['id'] ?? null;
+
+                    /*
+                     * Premi asuransi diambil dari jawaban Biteship, bukan
+                     * dihitung sendiri dari persentase: tiap kurir punya tarif
+                     * dan premi minimumnya masing-masing, jadi hanya angka dari
+                     * merekalah yang benar.
+                     */
+                    $premi = (int) round((float) ($data['courier']['insurance']['fee'] ?? 0));
+                    $nilaiDiasuransikan = (int) round((float) ($data['courier']['insurance']['amount'] ?? 0));
+
+                    $order->shipping_insurance_fee   = $premi;
+                    $order->shipping_insurance_value = $nilaiDiasuransikan;
+
+                    $jasaAsuransi->periksaPremi($order, $premi, $nilaiDiasuransikan);
+
+                    // Berhasil berarti saldonya memang ada. Peringatan lama
+                    // dicabut supaya tidak terus menakut-nakuti tanpa sebab.
+                    $saldo->tandaiPulih();
+
+                    return ['berhasil' => true, 'resi' => $resi, 'alasan' => null, 'soal_saldo' => false];
                 }
 
                 $errorBody = $response->json();
                 $errorCode = $errorBody['code'] ?? 0;
+                $errorPesan = $errorBody['error'] ?? $errorBody['message'] ?? $response->body();
+                $galatTerakhir = (string) $errorPesan;
+
+                // Saldo kurang tidak akan membaik dengan berganti kurir.
+                if ($saldo->galatSoalSaldo($galatTerakhir, $errorCode)) {
+                    $saldo->tandaiHabis($galatTerakhir);
+
+                    \Illuminate\Support\Facades\Log::warning('Biteship menolak: saldo tidak cukup', [
+                        'pesanan' => $order->order_number,
+                    ]);
+
+                    return $gagal('Saldo Biteship tidak cukup untuk membayar ongkir pengiriman ini.', true);
+                }
 
                 // Jika error bukan soal kurir (misal postal code salah), hentikan retry
                 if (!in_array($errorCode, [40002031, 40002030, 40002032])) {
@@ -370,11 +484,34 @@ class AdminWebOrderController extends Controller
                 \Illuminate\Support\Facades\Log::warning('Biteship Courier ' . $courier . ' not available, trying next...');
             }
 
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Biteship Exception: ' . $e->getMessage());
-        }
+            return $gagal($this->rapikanGalatBiteship($galatTerakhir));
 
-        return null;
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Biteship Exception: ' . $e->getMessage());
+
+            return $gagal('Tidak bisa menghubungi Biteship: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Menerjemahkan pesan galat Biteship menjadi kalimat yang bisa ditindak
+     * admin. Pesan aslinya berbahasa Inggris dan berbentuk teknis; yang perlu
+     * diketahui admin adalah apa yang harus dia perbaiki.
+     */
+    private function rapikanGalatBiteship(string $pesan): string
+    {
+        $p = strtolower($pesan);
+
+        return match (true) {
+            str_contains($p, 'postal')     => 'Kode pos alamat pembeli tidak dikenali Biteship. Perbaiki alamatnya lalu coba lagi.',
+            str_contains($p, 'phone')      => 'Nomor telepon pengirim atau penerima tidak diterima Biteship.',
+            str_contains($p, 'courier')    => 'Kurir yang dipilih tidak melayani rute ini. Ubah jasa kirimnya di detail pesanan.',
+            str_contains($p, 'weight')     => 'Berat barang di luar batas yang dilayani kurir.',
+            str_contains($p, 'address')    => 'Alamat pengiriman belum lengkap untuk diproses Biteship.',
+            str_contains($p, 'unauthorized') || str_contains($p, 'api key')
+                                           => 'Kunci API Biteship ditolak. Periksa BITESHIP_API_KEY.',
+            default                        => 'Biteship menolak permintaan: ' . mb_substr($pesan, 0, 160),
+        };
     }
 
     /**
@@ -405,6 +542,9 @@ class AdminWebOrderController extends Controller
         $count   = 0;
         $skipped = 0;
 
+        $galat      = [];
+        $soalSaldo  = false;
+
         foreach ($paidOrders as $order) {
             // Skip jika sudah shipped
             if ($order->status === 'shipped') {
@@ -413,33 +553,69 @@ class AdminWebOrderController extends Controller
             }
 
             // Panggil API BiteShip untuk terbitkan Nomor Resi Resmi (AWB) & Request Pickup
-            $biteshipAwb = $this->createBiteshipShipment($order);
+            $hasil = $this->createBiteshipShipment($order);
 
-            if ($biteshipAwb) {
-                $order->tracking_number = $biteshipAwb;
-            } else {
-                // Fallback AWB otomatis jika API gagal
-                $courierTag = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $order->courier ?: 'JNT'), 0, 4));
-                $order->tracking_number = "REC-{$courierTag}-" . str_pad($order->id, 6, '0', STR_PAD_LEFT);
+            /*
+             * Gagal berarti GAGAL.
+             *
+             * Dulu di sini diterbitkan nomor resi buatan sendiri dan pesanannya
+             * tetap ditandai terkirim. Pesanan lalu terlihat berjalan di sistem
+             * padahal tidak ada order apa pun di Biteship dan tidak ada kurir
+             * yang dipanggil — pembeli menunggu paket yang tidak pernah
+             * dijemput, dan admin tidak pernah tahu.
+             *
+             * Sekarang pesanannya dibiarkan apa adanya, siap dicoba lagi
+             * setelah penyebabnya diperbaiki.
+             */
+            if (! $hasil['berhasil']) {
+                $galat[$order->order_number] = $hasil['alasan'];
+                $soalSaldo = $soalSaldo || $hasil['soal_saldo'];
+
+                // Saldo kurang berlaku untuk semua pesanan; mencoba sisanya
+                // hanya membuang waktu dan menumpuk pesan yang sama.
+                if ($hasil['soal_saldo']) {
+                    break;
+                }
+
+                continue;
             }
 
+            $order->tracking_number = $hasil['resi'];
             $order->status = 'shipped';
             $order->save();
             $count++;
         }
 
-        $message = "⚡ {$count} pesanan berhasil diproses! Nomor resi terbit dan kurir siap Pick-Up.";
+        $pesan = [];
 
-        if ($unpaidOrders->isNotEmpty()) {
-            $unpaidNums = $unpaidOrders->pluck('order_number')->join(', ');
-            $message .= " ⚠️ {$unpaidOrders->count()} pesanan dilewati karena belum lunas: {$unpaidNums}.";
+        if ($count > 0) {
+            $pesan[] = "{$count} pesanan berhasil diproses. Nomor resi terbit dan kurir sudah diminta menjemput.";
         }
 
         if ($skipped > 0) {
-            $message .= " ({$skipped} pesanan sudah dalam status dikirim sebelumnya.)";
+            $pesan[] = "{$skipped} pesanan dilewati karena sudah berstatus dikirim.";
         }
 
-        return redirect()->route('admin.orders')->with('success', $message);
+        if ($unpaidOrders->isNotEmpty()) {
+            $pesan[] = $unpaidOrders->count() . ' pesanan dilewati karena belum lunas: '
+                . $unpaidOrders->pluck('order_number')->join(', ') . '.';
+        }
+
+        if ($galat !== []) {
+            $rincian = collect($galat)
+                ->map(fn ($alasan, $nomor) => $nomor . ' — ' . $alasan)
+                ->join(' | ');
+
+            $awalan = $soalSaldo
+                ? 'Pengiriman dihentikan karena saldo Biteship tidak cukup. Isi saldo lalu ulangi. '
+                : count($galat) . ' pesanan GAGAL dikirim dan statusnya tidak diubah. ';
+
+            return redirect()->route('admin.orders')
+                ->with('error', $awalan . $rincian)
+                ->with('info', $pesan === [] ? null : implode(' ', $pesan));
+        }
+
+        return redirect()->route('admin.orders')->with('success', implode(' ', $pesan));
     }
 
 

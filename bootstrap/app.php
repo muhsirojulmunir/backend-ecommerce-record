@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Middleware\TrustProxies;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -12,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Percayai semua proxy (wajib di cPanel/shared hosting agar CSRF & HTTPS bekerja)
+        $middleware->trustProxies(at: '*');
+
         // Harus berjalan sebelum pemeriksaan CSRF, sebab unggahan yang
         // melebihi post_max_size membuat token CSRF ikut hilang.
         $middleware->prependToGroup('web', \App\Http\Middleware\CekUkuranUnggahan::class);

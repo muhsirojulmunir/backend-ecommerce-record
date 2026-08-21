@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Log;
 
 class BiteshipReturnService
 {
+    /** Alasan kegagalan terakhir, dibaca pemanggil untuk diteruskan ke admin. */
+    private ?string $alasanGagal = null;
+
     /**
  * Otomatis booking pengiriman balik (Retur) via API Biteship.
  *
@@ -127,17 +130,49 @@ class BiteshipReturnService
                         'biteship_id'  => $biteshipOrderId,
                     ]);
 
+                    /*
+                     * Tanpa nomor resi, penjemputan ini tidak bisa dilacak
+                     * siapa pun. Dulu di sini dikarang nomor "RTR-BITESHIP-…"
+                     * dari waktu sistem — nomor yang tidak berarti apa-apa bagi
+                     * kurir maupun pembeli, tetapi membuat semua pihak mengira
+                     * paketnya sedang berjalan.
+                     */
+                    if (blank($waybillId)) {
+                        $this->alasanGagal = 'Biteship menerima permintaan retur tetapi tidak '
+                            . 'mengembalikan nomor resi.';
+
+                        Log::warning('Retur Biteship tanpa nomor resi', [
+                            'order_number' => $order->order_number,
+                            'biteship_id'  => $biteshipOrderId,
+                        ]);
+
+                        return null;
+                    }
+
                     return [
-                        'tracking_number'   => $waybillId ?: ('RTR-BITESHIP-' . time()),
+                        'tracking_number'   => $waybillId,
                         'courier'           => $courierName,
                         'biteship_order_id' => $biteshipOrderId,
                     ];
                 }
 
+                $pesanGalat = $json['error'] ?? $json['message'] ?? 'Unknown error';
+                $this->alasanGagal = (string) $pesanGalat;
+
                 Log::warning("Coba kurir retur $courierCode gagal:", [
                     'status' => $response->status(),
-                    'error'  => $json['error'] ?? $json['message'] ?? 'Unknown error',
+                    'error'  => $pesanGalat,
                 ]);
+
+                // Saldo kurang tidak akan membaik dengan berganti kurir.
+                $saldo = app(\App\Services\SaldoBiteshipService::class);
+
+                if ($saldo->galatSoalSaldo($pesanGalat, $json['code'] ?? null)) {
+                    $saldo->tandaiHabis((string) $pesanGalat);
+                    $this->alasanGagal = 'Saldo Biteship tidak cukup untuk memesan penjemputan retur.';
+
+                    return null;
+                }
             }
 
             return null;
@@ -145,7 +180,22 @@ class BiteshipReturnService
             Log::error('Exception saat booking retur Biteship:', [
                 'error' => $e->getMessage(),
             ]);
+
+            $this->alasanGagal = 'Tidak bisa menghubungi Biteship: ' . $e->getMessage();
+
             return null;
         }
+    }
+
+    /**
+     * Alasan kegagalan pemesanan retur terakhir.
+     *
+     * Disediakan supaya admin diberi tahu APA yang salah, bukan hanya bahwa
+     * sesuatu gagal. Tanpa ini, pengajuan retur berakhir di status "approved"
+     * tanpa penjelasan, dan admin harus menebak-nebak sendiri.
+     */
+    public function alasanGagalTerakhir(): ?string
+    {
+        return $this->alasanGagal;
     }
 }

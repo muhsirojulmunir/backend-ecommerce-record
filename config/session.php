@@ -127,10 +127,25 @@ return [
     |
     */
 
-    'cookie' => env(
-        'SESSION_COOKIE',
-        Str::slug((string) env('APP_NAME', 'laravel')).'-session'
-    ),
+    /*
+     * Nama cookie sesi Seller Center.
+     *
+     * Bawaan Laravel menurunkannya dari APP_NAME. Toko dan Seller Center adalah
+     * dua aplikasi Laravel terpisah, jadi kalau APP_NAME keduanya sama, nama
+     * cookienya pun sama.
+     *
+     * Di komputer lokal itu tidak terasa karena kedua alamat ujinya berbeda
+     * domain. Di hosting keduanya berbagi satu induk domain
+     * (recordshoes.com dan admin.recordshoes.com), sehingga begitu
+     * SESSION_DOMAIN diarahkan ke induknya, kedua aplikasi menulis cookie
+     * bernama sama dan saling menimpa. Aplikasi yang menerima cookie milik
+     * tetangganya tidak bisa mendekripsinya — APP_KEY keduanya berbeda —
+     * sesinya dianggap batal, dan setiap kiriman borang berakhir 419.
+     *
+     * Karena itu namanya dipatok berbeda di sini, bukan diturunkan dari
+     * APP_NAME. Tetap bisa ditimpa lewat SESSION_COOKIE bila diperlukan.
+     */
+    'cookie' => env('SESSION_COOKIE', 'record-admin-session'),
 
     /*
     |--------------------------------------------------------------------------

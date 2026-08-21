@@ -95,25 +95,44 @@ class AdminWebReturnController extends Controller
             $updateData['return_courier']         = $returBiteship['courier'];
             $updateData['return_tracking_number'] = $returBiteship['tracking_number'];
             $updateData['shipped_back_at']        = now();
-        } elseif ($disetujui) {
-            // Fallback resi otomatis jika API Biteship sandbox tidak mengembalikan waybill
-            $updateData['return_courier']         = 'JNE Express (Retur Otomatis)';
-            $updateData['return_tracking_number'] = 'RTR-BITESHIP-' . str_pad($pengajuan->id, 8, '0', STR_PAD_LEFT);
-            $updateData['shipped_back_at']        = now();
-            $updateData['status']                 = 'shipped_back';
         }
 
+        /*
+         * Kalau Biteship gagal, pengajuannya berhenti di status "approved" —
+         * disetujui, tetapi penjemputannya belum dipesan.
+         *
+         * Dulu di sini dikarang resi "RTR-BITESHIP-00000001", statusnya
+         * dinaikkan ke "shipped_back", dan admin diberi tahu bahwa resinya
+         * "berhasil terbit via Biteship". Tiga-tiganya tidak benar: tidak ada
+         * kurir yang dipesan, dan pembeli menunggu penjemputan yang tidak akan
+         * pernah datang sambil memegang nomor resi yang tidak berarti apa-apa.
+         */
         $pengajuan->update($updateData);
 
-        $pesanSukses = $disetujui
-            ? 'Pengajuan retur disetujui! Resi retur otomatis berhasil terbit via Biteship (' 
-              . $pengajuan->return_courier . ' - ' . $pengajuan->return_tracking_number . '). '
-              . 'Pembeli dapat langsung melihat resi penjemputan di halaman detail pesanan mereka.'
-            : 'Pengajuan ditolak dan alasannya sudah tercatat untuk pembeli.';
+        if (! $disetujui) {
+            return redirect()
+                ->route('admin.returns.show', $pengajuan->id)
+                ->with('success', 'Pengajuan ditolak dan alasannya sudah tercatat untuk pembeli.');
+        }
+
+        if (! $returBiteship) {
+            $alasan = $this->biteshipReturn->alasanGagalTerakhir()
+                ?: 'Biteship tidak mengembalikan jawaban yang bisa dipakai.';
+
+            return redirect()
+                ->route('admin.returns.show', $pengajuan->id)
+                ->with('error',
+                    'Retur DISETUJUI, tetapi penjemputan kurir BELUM terpesan. ' . $alasan
+                    . ' Perbaiki penyebabnya lalu pesan ulang penjemputan, atau isi nomor resi '
+                    . 'secara manual bila kamu mengaturnya sendiri. Pembeli belum bisa melihat resi apa pun.');
+        }
 
         return redirect()
             ->route('admin.returns.show', $pengajuan->id)
-            ->with('success', $pesanSukses);
+            ->with('success',
+                'Pengajuan retur disetujui dan penjemputan sudah dipesan ke Biteship ('
+                . $pengajuan->return_courier . ' — ' . $pengajuan->return_tracking_number . '). '
+                . 'Pembeli sudah bisa melihat resi penjemputannya di detail pesanan.');
     }
 
     /**
@@ -165,6 +184,18 @@ class AdminWebReturnController extends Controller
         }
 
         DB::transaction(function () use ($pengajuan, $data) {
+            /*
+             * Diperiksa ulang sambil dikunci. Dua admin yang memutuskan
+             * bersamaan — atau satu tombol yang terklik dua kali — sama-sama
+             * lolos pemeriksaan status di atas dan sama-sama mengeluarkan
+             * pengembalian dana. Yang kedua berhenti di sini.
+             */
+            $terkunci = OrderReturn::whereKey($pengajuan->getKey())->lockForUpdate()->first();
+
+            if (! $terkunci || $terkunci->status !== 'received') {
+                return;
+            }
+
             $lolos = $data['hasil'] === 'completed';
 
             // Nominal bawaan adalah SELURUH yang dibayar pembeli, termasuk ongkos kirim.

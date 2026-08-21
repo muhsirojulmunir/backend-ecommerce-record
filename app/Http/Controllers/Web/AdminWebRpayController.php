@@ -105,6 +105,22 @@ class AdminWebRpayController extends Controller
         }
 
         DB::transaction(function () use ($pencairan, $data) {
+            /*
+             * Barisnya dikunci lalu diperiksa ulang di dalam transaksi.
+             *
+             * Dua admin yang menekan "Tolak" pada saat yang sama sama-sama
+             * lolos pemeriksaan status di atas, lalu sama-sama mengembalikan
+             * saldo — pembeli menerima uangnya dua kali. Indeks unik pada buku
+             * besar sebenarnya sudah menahan yang kedua, tetapi berhentinya
+             * berupa galat basis data; lebih baik berhenti dengan tenang di
+             * sini.
+             */
+            $terkunci = RpayWithdrawal::whereKey($pencairan->getKey())->lockForUpdate()->first();
+
+            if (! $terkunci || in_array($terkunci->status, ['completed', 'rejected'], true)) {
+                return;
+            }
+
             $pencairan->update([
                 'status'       => $data['keputusan'],
                 'admin_notes'  => $data['admin_notes'] ?? $pencairan->admin_notes,

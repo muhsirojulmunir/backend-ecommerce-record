@@ -53,7 +53,7 @@ class AdminWebOrderExportController extends Controller
                 14, 10, 16,                   // harga & jumlah
                 12, 14,                       // berat
                 14, 14, 14, 16,               // uang pesanan
-                14, 16, 14, 16,               // biaya & bersih
+                14, 16, 14, 14, 16,           // biaya & bersih
                 20, 24, 16, 40, 20, 18, 12,   // pembeli & alamat
                 30,                           // catatan
             ])
@@ -67,7 +67,7 @@ class AdminWebOrderExportController extends Controller
                 'Harga Satuan', 'Jumlah', 'Subtotal Produk',
                 'Berat Satuan (g)', 'Total Berat (g)',
                 'Subtotal Pesanan', 'Ongkir Dibayar Pembeli', 'Diskon Referal', 'Total Pembayaran',
-                'Biaya Midtrans', 'Ongkir ke Kurir', 'Komisi Referal', 'Penghasilan Bersih',
+                'Biaya Midtrans', 'Ongkir ke Kurir', 'Asuransi Kirim', 'Komisi Referal', 'Penghasilan Bersih',
                 'Akun Pembeli', 'Email Pembeli', 'Nama Penerima', 'Alamat Pengiriman',
                 'Kota/Kabupaten', 'Provinsi', 'Kode Pos',
                 'Catatan Pembeli',
@@ -99,10 +99,13 @@ class AdminWebOrderExportController extends Controller
                 ? $ongkirTercatat
                 : (float) $o->shipping_cost);
 
+            // Premi asuransi pengiriman yang dibayarkan ke Biteship.
+            $premiAsuransi = (int) round((float) ($o->shipping_insurance_fee ?? 0));
+
             $bersihTercatat = $o->net_revenue;
             $bersih = $bersihTercatat !== null && $biayaTercatat > 0
                 ? (int) round((float) $bersihTercatat)
-                : $dibayar - $biayaBayar - $ongkirAsli - $komisi;
+                : $dibayar - $biayaBayar - $ongkirAsli - $komisi - $premiAsuransi;
 
             // Pesanan tanpa rincian barang tetap muncul satu baris, supaya
             // tidak hilang diam-diam dari laporan.
@@ -147,6 +150,7 @@ class AdminWebOrderExportController extends Controller
 
                     $biayaBayar,
                     $ongkirAsli,
+                    $premiAsuransi,
                     $komisi,
                     $bersih,
 

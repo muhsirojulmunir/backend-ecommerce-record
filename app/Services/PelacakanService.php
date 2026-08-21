@@ -150,6 +150,24 @@ class PelacakanService
             return $kosong + [];
         }
 
+        /*
+         * Resi yang pernah dikarang sistem sendiri.
+         *
+         * Versi lama menambal kegagalan Biteship dengan nomor buatan berawalan
+         * "REC-", "REC0", atau "RTR-BITESHIP-". Nomor itu tidak pernah terdaftar
+         * di kurir mana pun, jadi melacaknya hanya menghasilkan galat yang
+         * membingungkan — dan tetap memotong saldo Biteship Rp 10 tiap kali
+         * dicoba. Lebih baik dikenali di sini dan dijelaskan apa adanya.
+         */
+        if (preg_match('/^(REC-|REC0|RTR-BITESHIP-)/i', trim($resi))) {
+            $kosong['pesan'] = 'Nomor ini bukan resi dari kurir — dulu diterbitkan sistem '
+                . 'sendiri saat pemesanan ke Biteship gagal. Artinya pengiriman ini belum '
+                . 'pernah dipesan ke kurir. Pesan ulang pengirimannya, atau isi nomor resi '
+                . 'yang sebenarnya bila paketnya diantar dengan cara lain.';
+
+            return $kosong;
+        }
+
         $kode = $this->kodeKurir($kurirTeks);
 
         if (! $kode) {

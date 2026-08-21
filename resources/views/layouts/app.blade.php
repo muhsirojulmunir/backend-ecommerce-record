@@ -251,6 +251,8 @@
 
         <!-- Page Content -->
         <main class="flex-1 p-6 md:p-8 bg-slate-50">
+            <x-peringatan-saldo />
+
             @if(session('success'))
                 <div class="flash-alert mb-6 p-4 rounded-xl bg-green-50 border border-green-200 text-green-800 text-sm flex items-center justify-between shadow-sm transition-all duration-500 overflow-hidden">
                     <div class="flex items-center gap-3">
@@ -263,16 +265,28 @@
                 </div>
             @endif
             @if(session('error'))
-                <div class="flash-alert mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center justify-between shadow-sm transition-all duration-500 overflow-hidden">
+                {{-- Tanpa kelas "flash-alert": pesan galat TIDAK ikut hilang
+                     sendiri setelah 5 detik. Laporan kegagalan pengiriman
+                     menyebut nomor pesanan dan alasannya satu per satu — kalau
+                     lenyap sebelum sempat dibaca, admin tidak tahu pesanan mana
+                     yang perlu diulang. Ditutup sendiri oleh admin. --}}
+                <div class="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center justify-between shadow-sm transition-all duration-500 overflow-hidden">
                     <div class="flex items-center gap-3">
                         <i class="fa-solid fa-circle-exclamation text-red-500 text-base"></i>
                         <span>{{ session('error') }}</span>
                     </div>
-                    <button type="button" onclick="this.closest('.flash-alert').remove()" class="text-red-500 hover:text-red-700 transition p-1">
+                    <button type="button" onclick="this.closest('div').parentElement.remove()" class="text-red-500 hover:text-red-700 transition p-1">
                         <i class="fa-solid fa-xmark text-sm"></i>
                     </button>
                 </div>
             @endif
+            @if(session('info'))
+                <div class="mb-6 p-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-sm flex items-start gap-3 shadow-sm">
+                    <i class="fa-solid fa-circle-info text-sky-500 text-base mt-0.5"></i>
+                    <span>{{ session('info') }}</span>
+                </div>
+            @endif
+
             @yield('content')
         </main>
 

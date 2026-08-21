@@ -220,6 +220,12 @@
                     && $order->net_revenue !== null
                     && (float) $order->midtrans_fee > 0;
 
+                // Premi asuransi pengiriman. Nol berarti pengiriman ini memang
+                // tidak diasuransikan — barisnya disembunyikan, bukan
+                // ditampilkan sebagai "-Rp 0" yang membingungkan.
+                $premiAsuransi   = (int) round((float) ($order->shipping_insurance_fee ?? 0));
+                $nilaiDiasuransi = (int) round((float) ($order->shipping_insurance_value ?? 0));
+
                 if ($tercatat) {
                     $biayaBayar = (int) round((float) $order->midtrans_fee);
                     $ongkirAsli = (int) round((float) ($order->shipping_actual_cost ?: 0));
@@ -232,7 +238,7 @@
                     $ongkirAsli = (int) round($ongkirTercatat > 0
                         ? $ongkirTercatat
                         : (float) $order->shipping_cost);
-                    $bersih     = $dibayar - $biayaBayar - $ongkirAsli - $komisi;
+                    $bersih     = $dibayar - $biayaBayar - $ongkirAsli - $komisi - $premiAsuransi;
                 }
 
                 $markup = max(0, $ongkirBeli - $ongkirAsli);
@@ -364,6 +370,18 @@
                                 </span>
                                 <span class="shrink-0">−Rp {{ number_format($ongkirAsli, 0, ',', '.') }}</span>
                             </div>
+
+                            @if($premiAsuransi > 0)
+                                <div class="flex justify-between text-rose-600">
+                                    <span>
+                                        Asuransi Pengiriman
+                                        <span class="block text-[10px] text-gray-400 font-normal">
+                                            barang dijamin sampai Rp {{ number_format($nilaiDiasuransi, 0, ',', '.') }}
+                                        </span>
+                                    </span>
+                                    <span class="shrink-0">−Rp {{ number_format($premiAsuransi, 0, ',', '.') }}</span>
+                                </div>
+                            @endif
 
                             @if($komisi > 0)
                                 <div class="flex justify-between text-rose-600">

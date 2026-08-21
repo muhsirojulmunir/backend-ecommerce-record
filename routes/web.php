@@ -16,18 +16,24 @@ use App\Http\Controllers\Web\AdminWebReportController;
 use App\Http\Controllers\Web\AdminWebReturnController;
 use App\Http\Controllers\Web\AdminWebReviewController;
 use App\Http\Controllers\Web\AdminWebRpayController;
+use App\Http\Controllers\Web\AdminWebSaldoBiteshipController;
 use App\Http\Controllers\Web\AdminWebRoleController;
 use App\Http\Controllers\Web\AdminWebPermissionController;
 use App\Http\Controllers\Web\AdminWebSettingController;
 use App\Http\Controllers\Web\AdminWebActivityLogController;
 
-// API Status for root
+// Halaman Utama Langsung Tampilkan Form Login (Instant, Tanpa Delay Redirect)
 Route::get('/', function () {
-    return response()->json([
-        'status'  => 'online',
-        'message' => 'E-Commerce Backend API is running successfully.',
-        'version' => '1.0.0',
-    ]);
+    if (auth()->check()) {
+        $user = auth()->user();
+        if ($user->can('view dashboard')) {
+            return redirect()->route('admin.dashboard');
+        }
+        if ($user->can('manage products')) {
+            return redirect()->route('admin.products');
+        }
+    }
+    return app(AdminWebAuthController::class)->showLoginForm();
 });
 
 // ─── Admin Panel Web Routes (Seller Center UI) ─────────────────────────────
@@ -152,6 +158,13 @@ Route::prefix('admin')->group(function () {
 
         // Pelacakan paket, dua arah: keluar ke pembeli dan kembali ke toko.
         // Dipanggil lewat AJAX dari halaman rincian pesanan dan pengembalian.
+        // Saldo Biteship — dicatat manual karena Biteship tidak menyediakan
+        // endpoint untuk membacanya.
+        Route::prefix('saldo-biteship')->middleware('can:manage orders')->group(function () {
+            Route::get('/', [AdminWebSaldoBiteshipController::class, 'index'])->name('admin.saldo-biteship');
+            Route::post('/', [AdminWebSaldoBiteshipController::class, 'store'])->name('admin.saldo-biteship.simpan');
+        });
+
         Route::prefix('pelacakan')->group(function () {
             Route::get('/pesanan/{id}', [AdminWebPelacakanController::class, 'pesanan'])
                 ->whereNumber('id')->middleware('can:manage orders')->name('admin.pelacakan.pesanan');
@@ -233,3 +246,6 @@ Route::prefix('admin')->group(function () {
         });
     });
 });
+
+
+
