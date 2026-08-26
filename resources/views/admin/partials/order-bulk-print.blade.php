@@ -116,20 +116,30 @@
             border-bottom: 2px dashed #000;
             text-align: center;
         }
-        .barcode-lines {
-            height: 42px;
-            background: repeating-linear-gradient(
-                90deg,
-                #000 0px, #000 2px,
-                #fff 2px, #fff 4px,
-                #000 4px, #000 7px,
-                #fff 7px, #fff 9px,
-                #000 9px, #000 12px,
-                #fff 12px, #fff 14px
-            );
+        /* Barcode sungguhan digambar sebagai SVG oleh App\Support\Barcode\Code128.
+           Garis hias yang dulu ada di sini tidak menyimpan informasi apa pun,
+           jadi pemindai kurir tidak pernah bisa membacanya. */
+        .barcode-section svg {
             width: 95%;
+            height: 56px;
+            display: block;
             margin: 0 auto;
         }
+        .barcode-teks {
+            font-family: monospace;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            margin-top: 2px;
+        }
+        .barcode-kosong {
+            border: 2px dashed #b91c1c;
+            color: #b91c1c;
+            padding: 8px 6px;
+            font-size: 9px;
+            line-height: 1.35;
+        }
+        .barcode-kosong strong { display: block; font-size: 11px; margin-bottom: 2px; }
 
         /* 4. Pengirim & Penerima */
         .address-box {
@@ -270,10 +280,41 @@
 
     @foreach($orders as $order)
         @php
-            $city = strtoupper($order->shipping_address['city'] ?? 'KOTA SURABAYA');
-            $district = strtoupper($order->shipping_address['province'] ?? 'JAWA TIMUR');
-            $trackingNo = $order->tracking_number ?: ('0046' . str_pad($order->id, 8, '0', STR_PAD_LEFT));
-            $courierName = strtoupper($order->courier ?: 'SICEPAT EKSPRES');
+            /*
+             * Semua nilai di label ini berasal dari data pesanan yang
+             * sesungguhnya. Versi sebelumnya mengarang beberapa di antaranya —
+             * nomor resi cadangan "0046...", kode sortir "SUB-KMY-A" yang
+             * dipatok mati, kurir bawaan "SICEPAT EKSPRES", dan tanggal batas
+             * kirim yang dihitung dari hari ini. Label yang isinya karangan
+             * membuat paket salah sortir atau ditolak petugas.
+             */
+            $alamat   = (array) $order->shipping_address;
+            $city     = strtoupper($alamat['city'] ?? '-');
+            $district = strtoupper($alamat['province'] ?? '-');
+
+            // Kosong berarti pengirimannya BELUM dipesan ke kurir. Label tidak
+            // boleh menutupi keadaan itu dengan nomor buatan sendiri.
+            $trackingNo  = trim((string) $order->tracking_number);
+            $adaResi     = $trackingNo !== '' && ! preg_match('/^(REC-|REC0|RTR-)/i', $trackingNo);
+
+            $courierName = strtoupper($order->courier ?: '-');
+
+            // Jenis layanan dari kode resmi Biteship, misalnya "jne:reg".
+            [$kodeKurir, $jenisLayanan] = array_pad(explode(':', (string) $order->courier_code, 2), 2, null);
+            $layanan = strtoupper($jenisLayanan ?: 'REG');
+
+            // Kode sortir dari Biteship. Tidak semua kurir memakainya.
+            $kodeSortir = trim((string) $order->shipping_routing_code);
+
+            // Berat dibaca dari sumber yang sama dengan yang dilaporkan ke
+            // Biteship, sehingga label dan tagihan kurir tidak pernah berbeda.
+            $beratSatuan = (int) config('pengiriman.berat_kirim_gram', 500);
+            $beratTotal  = $order->items->sum('quantity') * $beratSatuan;
+
+            $barcode = app(\App\Support\Barcode\Code128::class);
+            $bisaBarcode = $adaResi && $barcode->bisa($trackingNo);
+
+            $diasuransikan = (float) ($order->shipping_insurance_fee ?? 0) > 0;
         @endphp
 
         {{-- Layout Resi Presisi Sesuai Gambar Referensi Shopee Per Pesanan --}}
@@ -285,7 +326,7 @@
                     <span>S</span> RECORD <span class="store-tag">OFFICIAL</span>
                 </div>
                 <div class="service-type">
-                    REG
+                    {{ $layanan }}
                 </div>
                 <div class="courier-badge">
                     {{ $courierName }}
@@ -295,16 +336,27 @@
             {{-- 2. Routing Code & No. Resi --}}
             <div class="resi-box-row">
                 <div class="routing-code">
-                    SUB-KMY-A
+                    {{-- Kode sortir dari Biteship. Tidak semua kurir memakainya;
+                         kalau kosong, ditulis apa adanya, bukan dikarang. --}}
+                    {{ $kodeSortir !== '' ? $kodeSortir : '—' }}
                 </div>
                 <div class="resi-code">
-                    No. Resi: {{ $trackingNo }}
+                    No. Resi: {{ $adaResi ? $trackingNo : 'BELUM ADA' }}
                 </div>
             </div>
 
-            {{-- 3. Barcode --}}
+            {{-- 3. Barcode — Code 128 sungguhan, memuat nomor resi asli --}}
             <div class="barcode-section">
-                <div class="barcode-lines"></div>
+                @if($bisaBarcode)
+                    {!! $barcode->svg($trackingNo, 56, 2.0) !!}
+                    <div class="barcode-teks">{{ $trackingNo }}</div>
+                @else
+                    <div class="barcode-kosong">
+                        <strong>PENGIRIMAN BELUM DIPESAN</strong>
+                        <span>Tekan "Atur Pengiriman" dulu agar nomor resi resmi terbit.
+                              Jangan tempelkan label ini ke paket.</span>
+                    </div>
+                @endif
             </div>
 
             {{-- 4. Pengirim & Penerima --}}
@@ -316,13 +368,26 @@
                         </div>
                         <div class="home-badge">HOME</div>
                         <div class="full-address">
-                            {{ $order->shipping_address['address_line'] ?? '-' }}, {{ $city }}, {{ $district }} {{ $order->shipping_address['postal_code'] ?? '' }}
+                            {{ $alamat['address_line'] ?? '-' }}, {{ $city }}, {{ $district }} {{ $alamat['postal_code'] ?? '' }}
+                        </div>
+                        <div style="font-weight: 700; margin-top: 2px; font-size: 10px;">
+                            {{ $alamat['phone'] ?? ($order->user->phone ?? '-') }}
                         </div>
                     </div>
+                    {{-- Blok pengirim memakai identitas TOKO.
+                         Sebelumnya nomor telepon penerima yang ditampilkan di
+                         sini — kurir yang perlu menghubungi pengirim justru
+                         menelepon pembeli. --}}
                     <div style="width: 40%; text-align: right;" class="sender-info">
-                        <div style="font-weight: 900; font-size: 10px;">Pengirim: RECORD Shoes Official...</div>
-                        <div style="font-weight: 700; margin-top: 2px;">{{ $order->shipping_address['phone'] ?? ($order->user->phone ?? '081323065554') }}</div>
-                        <div style="font-weight: 700; margin-top: 2px;">KOTA SURABAYA</div>
+                        <div style="font-weight: 900; font-size: 10px;">
+                            Pengirim: {{ env('STORE_LABEL', 'RECORD Official Store') }}
+                        </div>
+                        <div style="font-weight: 700; margin-top: 2px;">
+                            {{ env('STORE_PHONE', '081323065554') }}
+                        </div>
+                        <div style="font-weight: 700; margin-top: 2px;">
+                            {{ strtoupper(config('pengiriman.toko.kota', 'Surabaya')) }}
+                        </div>
                     </div>
                 </div>
 
@@ -335,18 +400,24 @@
 
             {{-- 6. Cashless Box --}}
             <div class="cashless-row">
+                {{-- Keadaan pembayaran yang sebenarnya. "CASHLESS" sebelumnya
+                     dicetak untuk semua pesanan tanpa memeriksa apa pun. --}}
                 <div class="cashless-tag">
-                    CASHLESS
+                    {{ $order->payment_status === 'paid' ? 'NON-COD / LUNAS' : 'BELUM LUNAS' }}
                 </div>
                 <div class="cashless-note">
-                    Penjual tidak perlu bayar ongkir ke Kurir
+                    @if($diasuransikan)
+                        Paket diasuransikan &middot; jangan diserahkan tanpa tanda terima
+                    @else
+                        Ongkir sudah dibayar di muka, kurir tidak menagih ke penerima
+                    @endif
                 </div>
             </div>
 
             {{-- 7. Detail Berat & No. Pesanan --}}
             <div class="ship-meta">
-                <div>Berat: <strong>{{ ($order->items->sum('quantity') * 400) }} gr</strong></div>
-                <div>Batas Kirim: <strong>{{ now()->addDays(2)->format('d-m-Y') }}</strong></div>
+                <div>Berat: <strong>{{ number_format($beratTotal, 0, ',', '.') }} gr</strong></div>
+                <div>Kurir: <strong>{{ $courierName }}</strong></div>
                 <div>No. Pesanan: <strong>{{ $order->order_number }}</strong></div>
             </div>
 
@@ -367,7 +438,10 @@
                             <tr>
                                 <td>{{ $idx + 1 }}</td>
                                 <td><strong>{{ $item->product_name }}</strong></td>
-                                <td class="item-sku">REC-{{ str_pad($item->product_id, 4, '0', STR_PAD_LEFT) }}</td>
+                                {{-- SKU varian yang sesungguhnya, bukan nomor
+                                     karangan dari id produk. Inilah yang dipakai
+                                     mencari barang di rak. --}}
+                                <td class="item-sku">{{ $item->productVariant?->sku ?: '—' }}</td>
                                 <td>{{ $item->variant_info ?: '-' }}</td>
                                 <td style="text-align: right; font-weight: 900;">{{ $item->quantity }}</td>
                             </tr>

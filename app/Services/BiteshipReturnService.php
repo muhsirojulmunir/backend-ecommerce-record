@@ -77,8 +77,8 @@ class BiteshipReturnService
                 'destination_contact_phone' => env('STORE_PHONE', '081323065554'),
                 'destination_name'          => env('STORE_LABEL', 'RECORD Official Store - Retur Center'),
                 'destination_phone'         => env('STORE_PHONE', '081323065554'),
-                'destination_address'       => env('STORE_ADDRESS', 'Jl. Toko Record No.1, Surabaya, Jawa Timur'),
-                'destination_postal_code'   => (int) env('STORE_POSTAL_CODE', '60117'),
+                'destination_address'       => env('STORE_ADDRESS', 'Jln Kyai tambak deres 32, Kedungcowek, Bulak, Surabaya, Jawa Timur'),
+                'destination_postal_code'   => (int) env('STORE_POSTAL_CODE', '60123'),
 
                 'courier_type'        => 'reg',
                 'delivery_type'       => 'now',
@@ -97,8 +97,8 @@ class BiteshipReturnService
 
             // Tambahkan koordinat gudang toko penerima jika ada
             if (env('STORE_LATITUDE') && env('STORE_LONGITUDE')) {
-                $basePayload['destination_latitude']  = (float) env('STORE_LATITUDE', -7.2575);
-                $basePayload['destination_longitude'] = (float) env('STORE_LONGITUDE', 112.7521);
+                $basePayload['destination_latitude']  = (float) env('STORE_LATITUDE', -7.2275);
+                $basePayload['destination_longitude'] = (float) env('STORE_LONGITUDE', 112.7865);
             }
 
             $endpoint = rtrim(env('BITESHIP_API_URL', 'https://api.biteship.com/v1'), '/') . '/orders';

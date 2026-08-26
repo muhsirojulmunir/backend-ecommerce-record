@@ -343,17 +343,21 @@ class AdminWebOrderController extends Controller
                 ? [$primaryCourier]
                 : array_values(array_unique([$primaryCourier, 'jne', 'sicepat', 'anteraja']));
 
-            $items = $order->items->map(function ($item) {
+            // Berat dibaca dari satu tempat saja, supaya angka yang dilaporkan
+            // ke Biteship selalu sama dengan yang tercetak di label.
+            $beratSatuan = (int) config('pengiriman.berat_kirim_gram', 500);
+
+            $items = $order->items->map(function ($item) use ($beratSatuan) {
                 return [
                     'name'     => mb_substr($item->product_name ?? 'Produk', 0, 100),
                     'value'    => (int) $item->price,
                     'quantity' => (int) $item->quantity,
-                    'weight'   => 500,
+                    'weight'   => $beratSatuan,
                 ];
             })->toArray();
 
             if (empty($items)) {
-                $items = [['name' => 'Produk RECORD', 'value' => (int) $order->grand_total, 'quantity' => 1, 'weight' => 500]];
+                $items = [['name' => 'Produk RECORD', 'value' => (int) $order->grand_total, 'quantity' => 1, 'weight' => $beratSatuan]];
             }
 
             $postalCode  = $address['postal_code'] ?? null;
@@ -369,8 +373,8 @@ class AdminWebOrderController extends Controller
                 'shipper_phone'        => env('STORE_PHONE', '081323065554'),
                 'origin_contact_name'  => env('STORE_LABEL', 'RECORD Official Store'),
                 'origin_contact_phone' => env('STORE_PHONE', '081323065554'),
-                'origin_address'       => env('STORE_ADDRESS', 'Jl. Toko Record No.1, Surabaya, Jawa Timur'),
-                'origin_postal_code'   => (int) env('STORE_POSTAL_CODE', '60117'),
+                'origin_address'       => env('STORE_ADDRESS', 'Jln Kyai tambak deres 32, Kedungcowek, Bulak, Surabaya, Jawa Timur'),
+                'origin_postal_code'   => (int) env('STORE_POSTAL_CODE', '60123'),
 
                 'destination_contact_name'  => $address['recipient_name'] ?? ($order->user->name ?? 'Customer'),
                 'destination_contact_phone' => $address['phone'] ?? ($order->user->phone ?? '08123456789'),
@@ -382,6 +386,12 @@ class AdminWebOrderController extends Controller
                 'delivery_type'       => 'now',
                 'items'               => $items,
             ];
+
+            // Tambahkan titik koordinat penjemputan gudang agar akurat bagi kurir (khususnya instan & same-day)
+            if (env('STORE_LATITUDE') && env('STORE_LONGITUDE')) {
+                $basePayload['origin_latitude']  = (float) env('STORE_LATITUDE', -7.2275);
+                $basePayload['origin_longitude'] = (float) env('STORE_LONGITUDE', 112.7865);
+            }
 
             if ($postalCode) {
                 $basePayload['destination_postal_code'] = (int) $postalCode;
@@ -449,6 +459,18 @@ class AdminWebOrderController extends Controller
 
                     $order->shipping_insurance_fee   = $premi;
                     $order->shipping_insurance_value = $nilaiDiasuransikan;
+
+                    /*
+                     * Kode sortir dan id pesanan Biteship.
+                     *
+                     * Kode sortir dipakai gudang kurir untuk mengarahkan paket
+                     * ke kota tujuan. Inilah yang membedakan label sah dari
+                     * label karangan — tanpanya paket bisa salah sortir meski
+                     * nomor resinya benar. Selama ini dikembalikan Biteship
+                     * tetapi dibuang begitu saja.
+                     */
+                    $order->shipping_routing_code = $data['courier']['routing_code'] ?? null;
+                    $order->biteship_order_id     = $data['id'] ?? null;
 
                     $jasaAsuransi->periksaPremi($order, $premi, $nilaiDiasuransikan);
 
