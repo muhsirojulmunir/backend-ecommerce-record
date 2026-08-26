@@ -323,7 +323,7 @@
             {{-- 1. Top Header --}}
             <div class="top-header">
                 <div class="brand-logo">
-                    <span>S</span> RECORD <span class="store-tag">OFFICIAL</span>
+                    RECORD <span class="store-tag">OFFICIAL</span>
                 </div>
                 <div class="service-type">
                     {{ $layanan }}
