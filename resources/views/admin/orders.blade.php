@@ -104,32 +104,8 @@
             @endforeach
         </div>
 
-        {{-- Sub-Filters (Tipe Pesanan & Sub-Status) --}}
+        {{-- Sub-Filters (Sub-Status) --}}
         <div class="p-4 bg-gray-50/50 border-b border-gray-100 space-y-3">
-            {{-- 1. Tipe Pesanan (Reguler / Instant / Kargo) --}}
-            <div class="flex flex-wrap items-center gap-2 text-xs">
-                <span class="text-gray-500 font-medium w-24 shrink-0">Tipe Pesanan</span>
-                @php
-                    $shipType = request('shipping_type', 'all');
-                    $shipTypes = [
-                        'all'     => 'Semua',
-                        'reguler' => 'Pesanan Reguler (' . ($subCounts['reguler'] ?? 0) . ')',
-                        'instant' => 'Instant (' . ($subCounts['instant'] ?? 0) . ')',
-                        'cargo'   => 'Pengiriman Kilat / Kargo (' . ($subCounts['cargo'] ?? 0) . ')',
-                    ];
-                @endphp
-                @foreach($shipTypes as $stKey => $stLabel)
-                    @php
-                        $isStActive = ($shipType === $stKey);
-                        $stUrl = route('admin.orders', array_merge(request()->except(['page']), ['shipping_type' => $stKey]));
-                    @endphp
-                    <a href="{{ $stUrl }}"
-                       class="px-3.5 py-1 rounded-full text-xs font-semibold transition
-                       {{ $isStActive ? 'border border-[#EE4D2D] text-[#EE4D2D] bg-[#FFF5F2]' : 'border border-gray-200 text-gray-600 bg-white hover:bg-gray-100' }}">
-                        {{ $stLabel }}
-                    </a>
-                @endforeach
-            </div>
 
             {{-- 2. Status Pesanan (Sub-status Perlu Diproses vs Telah Diproses) --}}
             @if(in_array($tabNow, ['all', 'ready']))
@@ -485,7 +461,7 @@
                                 @endif
 
                                 @if(auth()->user() && (auth()->user()->isSuperAdmin() || auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('Super Admin')))
-                                    <button type="button" @click="konfirmasiHapusSingle({{ $order->id }}, '{{ $order->order_number }}')"
+                                    <button type="button" @click.stop="$nextTick(() => konfirmasiHapusSingle({{ $order->id }}, '{{ $order->order_number }}'))"
                                             class="mt-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:underline flex items-center gap-1">
                                         <i class="fa-regular fa-trash-can text-[10px]"></i> Hapus Pesanan
                                     </button>
