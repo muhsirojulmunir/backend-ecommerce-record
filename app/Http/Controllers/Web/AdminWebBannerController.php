@@ -12,22 +12,21 @@ class AdminWebBannerController extends Controller
     /**
      * Tampilkan daftar banner.
      */
+    /**
+     * Tampilkan daftar banner.
+     */
     public function index(Request $request)
     {
-        $query = Banner::orderBy('sort_order')->orderByDesc('created_at');
+        $banners = Banner::orderBy('sort_order')->orderByDesc('created_at')->get();
+        $categories = \App\Models\Category::orderBy('name')->get();
+        $products = \App\Models\Product::where('is_active', true)->orderBy('name')->get(['id', 'name', 'slug']);
 
-        if ($request->filled('position')) {
-            $query->where('position', $request->position);
-        }
-
-        $banners = $query->get();
-
-        return view('admin.banners', compact('banners'));
+        return view('admin.banners', compact('banners', 'categories', 'products'));
     }
 
     /**
- * Aturan berkas banner: batasnya berbeda untuk video dan gambar.
- */
+     * Aturan berkas banner: batasnya berbeda untuk video dan gambar.
+     */
     private function aturanBerkas(bool $wajib): array
     {
         $maksVideo  = (int) config('banner.maks_video_mb', 100);
@@ -66,17 +65,19 @@ class AdminWebBannerController extends Controller
             'subtitle'   => 'nullable|string|max:500',
             'image'      => $this->aturanBerkas(true),
             'link'       => 'nullable|string|max:500',
-            'position'   => 'required|in:hero,promo,sidebar',
+            'position'   => 'nullable|string',
             'sort_order' => 'nullable|integer|min:0',
             'starts_at'  => 'nullable|date',
             'ends_at'    => 'nullable|date|after_or_equal:starts_at',
         ]);
 
-        // Validasi maksimal 3 banner hero
-        if ($request->position === 'hero') {
+        $position = $request->position ?: 'hero';
+
+        // Validasi maksimal 3 banner hero aktif
+        if ($position === 'hero') {
             $count = Banner::where('position', 'hero')->count();
             if ($count >= 3) {
-                return redirect()->back()->withErrors(['position' => 'Batas maksimal banner Hero adalah 3 banner. Harap hapus atau ubah posisi banner hero yang sudah ada terlebih dahulu.'])->withInput();
+                return redirect()->back()->withErrors(['position' => 'Batas maksimal Banner Utama (Hero) adalah 3 banner. Harap hapus salah satu banner yang sudah ada terlebih dahulu.'])->withInput();
             }
         }
 
@@ -87,7 +88,7 @@ class AdminWebBannerController extends Controller
             'subtitle'   => $request->subtitle,
             'image'      => $imagePath,
             'link'       => $request->link,
-            'position'   => $request->position,
+            'position'   => $position,
             'is_active'  => $request->has('is_active'),
             'sort_order' => $request->sort_order ?? 0,
             'starts_at'  => $request->starts_at ?: null,
@@ -107,17 +108,19 @@ class AdminWebBannerController extends Controller
             'subtitle'   => 'nullable|string|max:500',
             'image'      => $this->aturanBerkas(false),
             'link'       => 'nullable|string|max:500',
-            'position'   => 'required|in:hero,promo,sidebar',
+            'position'   => 'nullable|string',
             'sort_order' => 'nullable|integer|min:0',
             'starts_at'  => 'nullable|date',
             'ends_at'    => 'nullable|date|after_or_equal:starts_at',
         ]);
 
+        $position = $request->position ?: 'hero';
+
         // Validasi maksimal 3 banner hero
-        if ($request->position === 'hero') {
+        if ($position === 'hero') {
             $count = Banner::where('position', 'hero')->where('id', '!=', $banner->id)->count();
             if ($count >= 3) {
-                return redirect()->back()->withErrors(['position' => 'Batas maksimal banner Hero adalah 3 banner. Harap hapus atau ubah posisi banner hero yang sudah ada terlebih dahulu.'])->withInput();
+                return redirect()->back()->withErrors(['position' => 'Batas maksimal Banner Utama (Hero) adalah 3 banner. Harap hapus salah satu banner terlebih dahulu.'])->withInput();
             }
         }
 
@@ -125,7 +128,7 @@ class AdminWebBannerController extends Controller
             'title'      => $request->title,
             'subtitle'   => $request->subtitle,
             'link'       => $request->link,
-            'position'   => $request->position,
+            'position'   => $position,
             'is_active'  => $request->has('is_active'),
             'sort_order' => $request->sort_order ?? 0,
             'starts_at'  => $request->starts_at ?: null,

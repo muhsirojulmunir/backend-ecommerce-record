@@ -104,7 +104,7 @@
                             @else
                                 <span class="bg-gray-400 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">Nonaktif</span>
                             @endif
-                            <span class="bg-orange-600/80 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">{{ $banner->position }}</span>
+                            <span class="bg-slate-800/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">Hero Slider</span>
                             @if(Str::endsWith($banner->image, ['.mp4', '.webm', '.ogg', '.mov']))
                                 <span class="bg-purple-600/80 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">
                                     <i class="fa-solid fa-video mr-0.5"></i>Video
@@ -126,9 +126,13 @@
                                 <span class="shrink-0 text-xs text-gray-400 font-semibold bg-gray-50 px-2 py-0.5 rounded-lg">Urutan: {{ $banner->sort_order }}</span>
                             </div>
                             @if($banner->link)
-                                <p class="text-[11px] text-gray-400 mt-2 flex items-center gap-1">
-                                    <i class="fa-solid fa-link text-[9px]"></i>
-                                    {{ $banner->link }}
+                                <p class="text-[11px] text-gray-500 mt-2 flex items-center gap-1.5 font-medium">
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-orange-500"></i>
+                                    <span>Tautan: <strong class="text-slate-800">{{ $banner->link }}</strong></span>
+                                </p>
+                            @else
+                                <p class="text-[11px] text-gray-400 mt-2 italic">
+                                    <i class="fa-solid fa-link-slash text-[10px] mr-1"></i>Hanya banner (tanpa tautan)
                                 </p>
                             @endif
                         </div>
@@ -155,8 +159,8 @@
                                 onsubmit="return confirm('Yakin ingin menghapus banner ini?')">
                                 @csrf @method('DELETE')
                                 <button type="submit"
-                                    class="text-xs font-bold px-3.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition">
-                                    <i class="fa-solid fa-trash mr-1"></i>Hapus
+                                    class="text-xs font-bold px-3.5 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition">
+                                    <i class="fa-solid fa-trash-can mr-1"></i>Hapus
                                 </button>
                             </form>
                         </div>
@@ -168,35 +172,39 @@
 
 
     {{-- ════════════════════════════════ --}}
-    {{-- MODAL: Tambah Banner --}}
+    {{-- MODAL: Tambah Banner Baru        --}}
     {{-- ════════════════════════════════ --}}
     <div x-show="showAddModal"
-        class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+        class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
         x-transition style="display:none;">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col" style="max-height:90vh;" @click.away="showAddModal = false">
-
-            {{-- Header --}}
-            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center shrink-0">
-                <h2 class="font-black text-gray-800 text-sm uppercase tracking-wide">Tambah Banner Baru</h2>
-                <button @click="showAddModal = false" class="text-gray-400 hover:text-gray-600 transition">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full flex flex-col" style="max-height:90vh;" @click.away="showAddModal = false">
+            {{-- Header Modal --}}
+            <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0 bg-white rounded-t-3xl">
+                <div>
+                    <h3 class="font-extrabold text-gray-900 text-base">Tambah Banner Baru</h3>
+                    <p class="text-xs text-gray-400 mt-0.5">Slider utama (Hero) yang akan tampil di halaman depan toko.</p>
+                </div>
+                <button type="button" @click="showAddModal = false" class="text-gray-400 hover:text-gray-600 p-1">
                     <i class="fa-solid fa-xmark text-base"></i>
                 </button>
             </div>
 
-            {{-- Body (scrollable) --}}
-            <form id="formAdd" action="{{ route('admin.banners.store') }}" method="POST" enctype="multipart/form-data">
+            {{-- Body Modal (scrollable) --}}
+            <form id="formAdd" action="{{ route('admin.banners.store') }}" method="POST" enctype="multipart/form-data" class="flex flex-col flex-1 overflow-hidden">
                 @csrf
-                <div class="px-6 py-5 space-y-4 overflow-y-auto" style="max-height:calc(90vh - 130px);">
+                <input type="hidden" name="position" value="hero">
 
-                    {{-- Upload Gambar / Video --}}
+                <div class="p-6 space-y-4 overflow-y-auto flex-1">
+                    {{-- Upload Media --}}
                     <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-2">Upload Foto atau Video <span class="text-red-500">*</span></label>
-                        <div class="border-2 border-dashed border-gray-200 hover:border-orange-500/60 rounded-2xl p-4 text-center cursor-pointer transition"
+                        <label class="block text-xs font-bold text-gray-600 mb-1">
+                            Foto / Video Banner <span class="text-red-500">*</span>
+                        </label>
+                        <div class="border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center hover:border-orange-400 transition cursor-pointer bg-gray-50"
                             onclick="document.getElementById('addImageInput').click()">
-                            
-                            {{-- Preview Area --}}
+
                             <template x-if="!previewAdd">
-                                <div class="py-5">
+                                <div class="py-4">
                                     <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-300 mb-2 block"></i>
                                     <p class="text-xs text-gray-400 font-semibold">Klik untuk upload foto / video</p>
                                     <p class="text-[10px] text-gray-300 mt-1">Format: JPG, PNG, WEBP, MP4, MOV, WEBM — maks. {{ config('banner.maks_gambar_mb') }}MB untuk gambar, {{ config('banner.maks_video_mb') }}MB untuk video</p>
@@ -204,8 +212,6 @@
                                 </div>
                             </template>
 
-                            {{-- Preview dibingkai rasio 16:9 + object-cover, jadi hasilnya persis
-                                 seperti yang akan tampil di halaman utama toko --}}
                             <template x-if="previewAdd">
                                 <div>
                                     <div class="relative w-full rounded-xl overflow-hidden bg-gray-900" style="aspect-ratio: 16/9;">
@@ -234,7 +240,7 @@
                         <label class="block text-xs font-bold text-gray-600 mb-1">Judul Banner <span class="text-red-500">*</span></label>
                         <input type="text" name="title" required
                             class="w-full border border-gray-200 rounded-xl py-2.5 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
-                            placeholder="Contoh: BANNER UTAMA">
+                            placeholder="Contoh: NEW COLLECTION 2026">
                     </div>
 
                     {{-- Subjudul --}}
@@ -245,52 +251,70 @@
                             placeholder="Keterangan singkat tentang banner ini..."></textarea>
                     </div>
 
-                    {{-- Link Tujuan (Pilih Halaman) --}}
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Tautan Navigasi (Saat Banner Diklik)</label>
-                        <select name="link"
-                            class="w-full border border-gray-200 rounded-xl py-2.5 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white">
-                            <option value="">— Tidak mengarah ke halaman mana pun —</option>
-                            <option value="/products">📦 Semua Produk</option>
-                            <option value="/category/sepatu-sekolah">🎒 Kategori: Sepatu Sekolah</option>
-                            <option value="/category/sepatu-sport">👟 Kategori: Sepatu Sport</option>
-                            <option value="/category/sepatu-formal">👞 Kategori: Sepatu Formal</option>
-                            <option value="/category/sandal">🩴 Kategori: Sandal</option>
-                            <option value="/">🏠 Beranda</option>
-                        </select>
-                        <p class="text-[10px] text-gray-400 mt-1">Customer akan diarahkan ke halaman ini jika banner diklik di frontend.</p>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        {{-- Posisi --}}
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Posisi</label>
-                            <select name="position" required
-                                class="w-full border border-gray-200 rounded-xl py-2.5 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white">
-                                <option value="hero" @disabled($heroFull) @selected(!$heroFull)>
-                                    Hero (Halaman Utama){{ $heroFull ? ' — kuota penuh (3/3)' : ' — ' . $heroCount . '/' . $heroLimit }}
-                                </option>
-                                <option value="promo" @selected($heroFull)>Promo</option>
-                                <option value="sidebar">Sidebar</option>
-                            </select>
-                            @if($heroFull)
-                                <p class="text-[10px] text-amber-600 mt-1 font-semibold">Kuota banner hero sudah penuh (3). Hapus salah satu untuk menambah yang baru.</p>
-                            @endif
+                    {{-- Link Tujuan (Navigasi Frontend Dinamis) --}}
+                    <div x-data="{ modeAdd: 'select' }">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold text-gray-600">Tautan Navigasi (Saat Banner Diklik)</label>
+                            <button type="button" @click="modeAdd = (modeAdd === 'select' ? 'custom' : 'select')"
+                                    class="text-[10px] font-bold text-orange-600 hover:underline">
+                                <span x-text="modeAdd === 'select' ? '+ Tulis URL Kustom' : 'Pilih dari Menu Halaman'"></span>
+                            </button>
                         </div>
 
+                        <div x-show="modeAdd === 'select'">
+                            <select name="link"
+                                class="w-full border border-gray-200 rounded-xl py-2.5 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white">
+                                <option value="">— Tidak Mengarah ke Mana Pun (Hanya Banner) —</option>
+                                <optgroup label="🏠 Halaman Utama & Info">
+                                    <option value="/">🏠 Beranda Depan Toko (/)</option>
+                                    <option value="/products" selected>📦 Semua Produk (Katalog)</option>
+                                    <option value="/affiliate">🤝 Program Referral & Saldo Komisi</option>
+                                    <option value="/about">ℹ️ Tentang Kami</option>
+                                    <option value="/kontak">📞 Hubungi Kami</option>
+                                    <option value="/faq">❓ FAQ & Bantuan</option>
+                                    <option value="/pengiriman-retur">🔄 Info Pengiriman & Retur</option>
+                                </optgroup>
+                                @if(isset($categories) && $categories->isNotEmpty())
+                                    <optgroup label="🏷️ Kategori Produk Toko">
+                                        @foreach($categories as $cat)
+                                            <option value="/category/{{ $cat->slug }}">🏷️ Kategori: {{ $cat->name }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
+                                @if(isset($products) && $products->isNotEmpty())
+                                    <optgroup label="👟 Produk Spesifik">
+                                        @foreach($products as $prod)
+                                            <option value="/products/{{ $prod->slug }}">👟 Produk: {{ $prod->name }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
+                            </select>
+                        </div>
+
+                        <div x-show="modeAdd === 'custom'" x-cloak>
+                            <input type="text" name="link_custom" placeholder="Contoh: /products?search=sneaker atau https://..."
+                                   class="w-full border border-orange-300 bg-orange-50/30 rounded-xl py-2.5 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
+                                   @input="$el.form.querySelector('select[name=link]').value = $event.target.value">
+                        </div>
+                        <p class="text-[10px] text-gray-400 mt-1">Pengunjung toko akan langsung diarahkan ke halaman tersebut saat mengeklik banner.</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 items-center">
                         {{-- Urutan --}}
                         <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Urutan Tampil</label>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Urutan Tampil (0, 1, 2...)</label>
                             <input type="number" name="sort_order" value="0" min="0"
                                 class="w-full border border-gray-200 rounded-xl py-2.5 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500">
                         </div>
-                    </div>
 
-                    {{-- Status Aktif --}}
-                    <div class="flex items-center gap-3">
-                        <input type="checkbox" name="is_active" id="addIsActive" checked
-                            class="w-4 h-4 accent-orange-600 rounded">
-                        <label for="addIsActive" class="text-xs font-bold text-gray-600 cursor-pointer">Langsung aktifkan banner ini</label>
+                        {{-- Status Aktif --}}
+                        <div class="pt-4">
+                            <label class="flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer">
+                                <input type="checkbox" name="is_active" id="addIsActive" checked
+                                    class="w-4 h-4 accent-orange-600 rounded">
+                                <span>Aktifkan banner ini</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
@@ -302,55 +326,64 @@
                     </button>
                     <button type="submit"
                         class="text-xs font-bold px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white shadow transition">
-                        <i class="fa-solid fa-floppy-disk mr-1.5"></i>Simpan Banner
+                        <i class="fa-solid fa-plus mr-1.5"></i>Simpan Banner
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-
     {{-- ════════════════════════════════ --}}
-    {{-- MODAL: Edit Banner --}}
+    {{-- MODAL: Edit Banner               --}}
     {{-- ════════════════════════════════ --}}
     <div x-show="showEditModal"
-        class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+        class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
         x-transition style="display:none;">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg flex flex-col" style="max-height:90vh;" @click.away="showEditModal = false">
-
-            {{-- Header --}}
-            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center shrink-0">
-                <h2 class="font-black text-gray-800 text-sm uppercase tracking-wide">Edit Banner</h2>
-                <button @click="showEditModal = false" class="text-gray-400 hover:text-gray-600 transition">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full flex flex-col" style="max-height:90vh;" @click.away="showEditModal = false">
+            {{-- Header Modal --}}
+            <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0 bg-white rounded-t-3xl">
+                <div>
+                    <h3 class="font-extrabold text-gray-900 text-base">Edit Banner</h3>
+                    <p class="text-xs text-gray-400 mt-0.5">Perbarui gambar/video atau tujuan navigasi banner.</p>
+                </div>
+                <button type="button" @click="showEditModal = false" class="text-gray-400 hover:text-gray-600 p-1">
                     <i class="fa-solid fa-xmark text-base"></i>
                 </button>
             </div>
 
-            {{-- Body (scrollable) --}}
-            <form :action="'{{ url('admin/banners') }}/' + editBanner.id" method="POST" enctype="multipart/form-data">
-                @csrf @method('PUT')
-                <div class="px-6 py-5 space-y-4 overflow-y-auto" style="max-height:calc(90vh - 130px);">
+            {{-- Body Modal (scrollable) --}}
+            <form :action="'{{ url('admin/banners') }}/' + editBanner.id" method="POST" enctype="multipart/form-data" class="flex flex-col flex-1 overflow-hidden">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="position" value="hero">
 
-                    {{-- Upload Gambar / Video --}}
+                <div class="p-6 space-y-4 overflow-y-auto flex-1">
+                    {{-- Upload Media --}}
                     <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-2">Ganti Gambar / Video Banner</label>
-                        <div class="border-2 border-dashed border-gray-200 hover:border-orange-500/50 rounded-2xl p-4 text-center cursor-pointer transition"
+                        <label class="block text-xs font-bold text-gray-600 mb-1">
+                            Foto / Video Banner <span class="text-gray-400 font-normal">(kosongkan jika tidak diganti)</span>
+                        </label>
+                        <div class="border-2 border-dashed border-gray-200 rounded-2xl p-4 text-center hover:border-orange-400 transition cursor-pointer bg-gray-50"
                             onclick="document.getElementById('editImageInput').click()">
-                            
-                            {{-- Preview Area — dibingkai rasio 16:9 (1920 × 1080 px) sama seperti frontend --}}
-                            <div class="relative w-full rounded-xl overflow-hidden bg-gray-900" style="aspect-ratio: 16/9;">
-                                <template x-if="isVideoEdit">
-                                    <video :src="previewEdit" autoplay loop muted playsinline
-                                        style="width:100%; height:100%; object-fit:cover; display:block;"></video>
-                                </template>
-                                <template x-if="!isVideoEdit">
-                                    <img :src="previewEdit"
-                                        style="width:100%; height:100%; object-fit:cover; display:block;"
-                                        onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80';">
-                                </template>
-                            </div>
 
-                            <p class="text-[10px] text-gray-400 mt-2">Klik untuk ganti file — JPG, PNG, WEBP, MP4, MOV, WEBM — ideal 1920 × 1080 px (rasio 16:9), maks. {{ config('banner.maks_gambar_mb') }}MB untuk gambar, {{ config('banner.maks_video_mb') }}MB untuk video</p>
+                            <template x-if="previewEdit">
+                                <div>
+                                    <div class="relative w-full rounded-xl overflow-hidden bg-gray-900" style="aspect-ratio: 16/9;">
+                                        <template x-if="isVideoEdit">
+                                            <video :src="previewEdit" autoplay loop muted playsinline
+                                                style="width:100%; height:100%; object-fit:cover; display:block;"></video>
+                                        </template>
+                                        <template x-if="!isVideoEdit">
+                                            <img :src="previewEdit"
+                                                style="width:100%; height:100%; object-fit:cover; display:block;">
+                                        </template>
+                                    </div>
+                                    <p class="text-[10px] text-gray-400 mt-2 font-semibold">
+                                        <i class="fa-solid fa-crop-simple mr-1"></i>Tampilan sesuai frame 1920 × 1080 px — klik untuk ganti file
+                                    </p>
+                                </div>
+                            </template>
+
                             <input id="editImageInput" type="file" name="image" accept="image/*,video/*" class="hidden"
                                 @change="previewEdit = URL.createObjectURL($event.target.files[0]); isVideoEdit = $event.target.files[0].type.startsWith('video/')">
                         </div>
@@ -359,9 +392,8 @@
                     {{-- Judul --}}
                     <div>
                         <label class="block text-xs font-bold text-gray-600 mb-1">Judul Banner <span class="text-red-500">*</span></label>
-                        <input type="text" name="title" :value="editBanner.title" required
-                            class="w-full border border-gray-200 rounded-xl py-2.5 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
-                            placeholder="Contoh: NEW COLLECTION">
+                        <input type="text" name="title" required :value="editBanner.title"
+                            class="w-full border border-gray-200 rounded-xl py-2.5 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500">
                     </div>
 
                     {{-- Subjudul --}}
@@ -372,47 +404,70 @@
                             x-text="editBanner.subtitle"></textarea>
                     </div>
 
-                    {{-- Link Tujuan (Pilih Halaman) --}}
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1">Tautan Navigasi (Saat Banner Diklik)</label>
-                        <select name="link"
-                            class="w-full border border-gray-200 rounded-xl py-2.5 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white">
-                            <option value="" :selected="!editBanner.link">— Tidak mengarah ke halaman mana pun —</option>
-                            <option value="/products" :selected="editBanner.link === '/products'">📦 Semua Produk</option>
-                            <option value="/category/sepatu-sekolah" :selected="editBanner.link === '/category/sepatu-sekolah'">🎒 Kategori: Sepatu Sekolah</option>
-                            <option value="/category/sepatu-sport" :selected="editBanner.link === '/category/sepatu-sport'">👟 Kategori: Sepatu Sport</option>
-                            <option value="/category/sepatu-formal" :selected="editBanner.link === '/category/sepatu-formal'">👞 Kategori: Sepatu Formal</option>
-                            <option value="/category/sandal" :selected="editBanner.link === '/category/sandal'">🩴 Kategori: Sandal</option>
-                            <option value="/" :selected="editBanner.link === '/'">🏠 Beranda</option>
-                        </select>
-                    </div>
+                    {{-- Link Tujuan (Navigasi Frontend Dinamis) --}}
+                    <div x-data="{ modeEdit: 'select' }">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold text-gray-600">Tautan Navigasi (Saat Banner Diklik)</label>
+                            <button type="button" @click="modeEdit = (modeEdit === 'select' ? 'custom' : 'select')"
+                                    class="text-[10px] font-bold text-orange-600 hover:underline">
+                                <span x-text="modeEdit === 'select' ? '+ Tulis URL Kustom' : 'Pilih dari Menu Halaman'"></span>
+                            </button>
+                        </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        {{-- Posisi --}}
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Posisi</label>
-                            <select name="position" required
+                        <div x-show="modeEdit === 'select'">
+                            <select name="link" x-model="editBanner.link"
                                 class="w-full border border-gray-200 rounded-xl py-2.5 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white">
-                                <option value="hero" :selected="editBanner.position === 'hero'">Hero (Halaman Utama)</option>
-                                <option value="promo" :selected="editBanner.position === 'promo'">Promo</option>
-                                <option value="sidebar" :selected="editBanner.position === 'sidebar'">Sidebar</option>
+                                <option value="">— Tidak Mengarah ke Mana Pun (Hanya Banner) —</option>
+                                <optgroup label="🏠 Halaman Utama & Info">
+                                    <option value="/">🏠 Beranda Depan Toko (/)</option>
+                                    <option value="/products">📦 Semua Produk (Katalog)</option>
+                                    <option value="/affiliate">🤝 Program Referral & Saldo Komisi</option>
+                                    <option value="/about">ℹ️ Tentang Kami</option>
+                                    <option value="/kontak">📞 Hubungi Kami</option>
+                                    <option value="/faq">❓ FAQ & Bantuan</option>
+                                    <option value="/pengiriman-retur">🔄 Info Pengiriman & Retur</option>
+                                </optgroup>
+                                @if(isset($categories) && $categories->isNotEmpty())
+                                    <optgroup label="🏷️ Kategori Produk Toko">
+                                        @foreach($categories as $cat)
+                                            <option value="/category/{{ $cat->slug }}">🏷️ Kategori: {{ $cat->name }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
+                                @if(isset($products) && $products->isNotEmpty())
+                                    <optgroup label="👟 Produk Spesifik">
+                                        @foreach($products as $prod)
+                                            <option value="/products/{{ $prod->slug }}">👟 Produk: {{ $prod->name }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                @endif
                             </select>
                         </div>
 
+                        <div x-show="modeEdit === 'custom'" x-cloak>
+                            <input type="text" name="link" x-model="editBanner.link" placeholder="Contoh: /products?search=sneaker atau https://..."
+                                   class="w-full border border-orange-300 bg-orange-50/30 rounded-xl py-2.5 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500">
+                        </div>
+                        <p class="text-[10px] text-gray-400 mt-1">Pengunjung toko akan langsung diarahkan ke halaman tersebut saat mengeklik banner.</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 items-center">
                         {{-- Urutan --}}
                         <div>
-                            <label class="block text-xs font-bold text-gray-600 mb-1">Urutan Tampil</label>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Urutan Tampil (0, 1, 2...)</label>
                             <input type="number" name="sort_order" :value="editBanner.sort_order" min="0"
                                 class="w-full border border-gray-200 rounded-xl py-2.5 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500">
                         </div>
-                    </div>
 
-                    {{-- Status Aktif --}}
-                    <div class="flex items-center gap-3">
-                        <input type="checkbox" name="is_active" id="editIsActive"
-                            :checked="editBanner.is_active"
-                            class="w-4 h-4 accent-orange-600 rounded">
-                        <label for="editIsActive" class="text-xs font-bold text-gray-600 cursor-pointer">Aktifkan banner ini</label>
+                        {{-- Status Aktif --}}
+                        <div class="pt-4">
+                            <label class="flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer">
+                                <input type="checkbox" name="is_active" id="editIsActive"
+                                    :checked="editBanner.is_active"
+                                    class="w-4 h-4 accent-orange-600 rounded">
+                                <span>Aktifkan banner ini</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
