@@ -4,88 +4,248 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderExport;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class AdminWebOrderController extends Controller
 {
     /**
-     * Tampilkan daftar semua pesanan masuk dengan filter status & pencarian.
+     * Tampilkan daftar semua pesanan masuk dengan filter status, tanggal, tipe kurir & pencarian komprehensif ala Shopee.
      */
     public function index(Request $request)
     {
-        $query = Order::with(['user', 'items.product', 'returns'])->latest();
+        $query = Order::with(['user', 'items.product', 'returns']);
 
-        // Filter berdasarkan tab / status pesanan
-        if ($request->filled('tab')) {
-            switch ($request->tab) {
-                case 'ready':
-                    // Siap diproses: Lunas tapi belum dikirim
-                    $query->where('payment_status', 'paid')->whereIn('status', ['pending', 'processing']);
+        // 1. Filter Tab Status Utama
+        $currentTab = $request->query('tab', 'all');
+        switch ($currentTab) {
+            case 'ready':
+                // Perlu Dikirim: Lunas & status pending/processing
+                $query->where('payment_status', 'paid')->whereIn('status', ['pending', 'processing']);
+                break;
+            case 'unpaid':
+                // Belum bayar
+                $query->whereIn('payment_status', ['unpaid', 'pending_verification']);
+                break;
+            case 'shipped':
+                // Sedang dikirim
+                $query->where('status', 'shipped');
+                break;
+            case 'completed':
+                // Selesai
+                $query->where('status', 'completed');
+                break;
+            case 'cancelled':
+                // Pengembalian / Pembatalan
+                $query->where(function ($q) {
+                    $q->where('status', 'cancelled')
+                      ->orWhereHas('returns');
+                });
+                break;
+        }
+
+        // 2. Filter Sub-Status (Perlu diproses vs Telah diproses)
+        if ($request->filled('sub_status') && $request->sub_status !== 'all') {
+            if ($request->sub_status === 'unprocessed') {
+                $query->where(function ($q) {
+                    $q->whereNull('tracking_number')
+                      ->orWhere('tracking_number', '')
+                      ->orWhere('tracking_number', 'like', 'REC-%');
+                });
+            } elseif ($request->sub_status === 'processed') {
+                $query->whereNotNull('tracking_number')
+                      ->where('tracking_number', '!=', '')
+                      ->where('tracking_number', 'not like', 'REC-%');
+            }
+        }
+
+        // 3. Filter Tipe Pesanan / Pengiriman (Reguler, Instant, Kilat/Kargo)
+        if ($request->filled('shipping_type') && $request->shipping_type !== 'all') {
+            switch ($request->shipping_type) {
+                case 'instant':
+                    $query->where(function ($q) {
+                        $q->where('courier', 'like', '%instant%')
+                          ->orWhere('courier', 'like', '%gojek%')
+                          ->orWhere('courier', 'like', '%grab%')
+                          ->orWhere('courier_code', 'like', '%instant%');
+                    });
                     break;
-                case 'unpaid':
-                    // Belum dibayar
-                    $query->whereIn('payment_status', ['unpaid', 'pending_verification']);
+                case 'cargo':
+                    $query->where(function ($q) {
+                        $q->where('courier', 'like', '%cargo%')
+                          ->orWhere('courier', 'like', '%kargo%')
+                          ->orWhere('courier_code', 'like', '%cargo%');
+                    });
                     break;
-                case 'shipped':
-                    $query->where('status', 'shipped');
-                    break;
-                case 'completed':
-                    $query->where('status', 'completed');
-                    break;
-                case 'cancelled':
-                    $query->where('status', 'cancelled');
+                case 'reguler':
+                    $query->where(function ($q) {
+                        $q->where('courier', 'not like', '%instant%')
+                          ->where('courier', 'not like', '%gojek%')
+                          ->where('courier', 'not like', '%grab%')
+                          ->where('courier', 'not like', '%cargo%')
+                          ->where('courier', 'not like', '%kargo%');
+                    });
                     break;
             }
-        } elseif ($request->filled('status') && $request->status !== 'all') {
-            $query->where('status', $request->status);
         }
 
-        // Filter eksplisit payment_status (jika ada)
-        if ($request->filled('payment_status')) {
-            $query->where('payment_status', $request->payment_status);
-        }
-
-        // Pencarian nomor pesanan / NOMOR RESI / nama / email pembeli
-        if ($request->filled('search')) {
-            $search = trim($request->search);
-            $query->where(function ($q) use ($search) {
-                $q->where('order_number', 'like', "%{$search}%")
-                  // Resi ikut dicari karena itulah yang paling sering ada di
-                  // tangan admin saat menelusuri keluhan: pembeli mengirim
-                  // foto resi, bukan nomor pesanan.
-                  ->orWhere('tracking_number', 'like', "%{$search}%")
-                  ->orWhereHas('user', function ($u) use ($search) {
-                      $u->where('name', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%");
-                  });
+        // 4. Filter Jasa Kirim (Ekspedisi Kurir)
+        if ($request->filled('courier') && $request->courier !== 'all') {
+            $courier = strtolower(trim($request->courier));
+            $query->where(function ($q) use ($courier) {
+                $q->where('courier', 'like', "%{$courier}%")
+                  ->orWhere('courier_code', 'like', "%{$courier}%");
             });
         }
 
-        // Auto-sync status pembayaran pesanan unpaid dengan Midtrans API (Sandbox/Production)
+        // 5. Filter Berdasarkan Hari / Tanggal
+        if ($request->filled('date_filter') && $request->date_filter !== 'all') {
+            switch ($request->date_filter) {
+                case 'today':
+                    $query->whereDate('created_at', Carbon::today());
+                    break;
+                case 'yesterday':
+                    $query->whereDate('created_at', Carbon::yesterday());
+                    break;
+                case 'last_7_days':
+                    $query->where('created_at', '>=', Carbon::now()->subDays(7)->startOfDay());
+                    break;
+                case 'last_30_days':
+                    $query->where('created_at', '>=', Carbon::now()->subDays(30)->startOfDay());
+                    break;
+                case 'this_month':
+                    $query->whereMonth('created_at', Carbon::now()->month)
+                          ->whereYear('created_at', Carbon::now()->year);
+                    break;
+                case 'custom':
+                    if ($request->filled('start_date')) {
+                        $query->where('created_at', '>=', Carbon::parse($request->start_date)->startOfDay());
+                    }
+                    if ($request->filled('end_date')) {
+                        $query->where('created_at', '<=', Carbon::parse($request->end_date)->endOfDay());
+                    }
+                    break;
+            }
+        }
+
+        // 6. Pencarian Komprehensif Berdasarkan Tipe
+        if ($request->filled('search')) {
+            $search = trim($request->search);
+            $searchType = $request->query('search_type', 'all');
+
+            $query->where(function ($q) use ($search, $searchType) {
+                if ($searchType === 'order_number') {
+                    $q->where('order_number', 'like', "%{$search}%");
+                } elseif ($searchType === 'tracking_number') {
+                    $q->where('tracking_number', 'like', "%{$search}%");
+                } elseif ($searchType === 'buyer') {
+                    $q->whereHas('user', function ($u) use ($search) {
+                        $u->where('name', 'like', "%{$search}%")
+                          ->orWhere('email', 'like', "%{$search}%")
+                          ->orWhere('phone', 'like', "%{$search}%");
+                    })->orWhere('shipping_address', 'like', "%{$search}%");
+                } elseif ($searchType === 'product') {
+                    $q->whereHas('items', function ($i) use ($search) {
+                        $i->where('product_name', 'like', "%{$search}%")
+                          ->orWhereHas('product', fn ($p) => $p->where('name', 'like', "%{$search}%"));
+                    });
+                } elseif ($searchType === 'sku') {
+                    $q->whereHas('items', function ($i) use ($search) {
+                        $i->whereHas('product.variants', fn ($v) => $v->where('sku', 'like', "%{$search}%"));
+                    });
+                } else {
+                    // All / Default
+                    $q->where('order_number', 'like', "%{$search}%")
+                      ->orWhere('tracking_number', 'like', "%{$search}%")
+                      ->orWhereHas('user', function ($u) use ($search) {
+                          $u->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%");
+                      })
+                      ->orWhereHas('items', function ($i) use ($search) {
+                          $i->where('product_name', 'like', "%{$search}%");
+                      });
+                }
+            });
+        }
+
+        // 7. Pengurutan Data (Sorting)
+        $sort = $request->query('sort', 'latest');
+        switch ($sort) {
+            case 'oldest':
+                $query->orderBy('created_at', 'asc');
+                break;
+            case 'amount_high':
+                $query->orderByDesc('grand_total');
+                break;
+            case 'amount_low':
+                $query->orderBy('grand_total', 'asc');
+                break;
+            case 'latest':
+            default:
+                $query->orderByDesc('created_at');
+                break;
+        }
+
+        // Auto-sync status pembayaran pesanan unpaid dengan Midtrans API
         $this->syncMidtransPaymentStatus(Order::whereIn('payment_status', ['unpaid', 'pending_verification'])->where('payment_method', '!=', 'COD')->limit(10)->get());
 
-        $orders = $query->paginate(20)->withQueryString();
+        $orders = $query->paginate(15)->withQueryString();
 
-        // Riwayat unduhan untuk modal Riwayat Download.
-        $riwayatEkspor = \App\Models\OrderExport::with('user')
+        // Riwayat unduhan untuk modal Riwayat Download
+        $riwayatEkspor = OrderExport::with('user')
             ->latest()
-            ->take(\App\Models\OrderExport::BATAS_RIWAYAT)
+            ->take(OrderExport::BATAS_RIWAYAT)
             ->get();
 
+        // Hitungan Tab Utama
         $counts = [
             'all'       => Order::count(),
             'ready'     => Order::where('payment_status', 'paid')->whereIn('status', ['pending', 'processing'])->count(),
             'unpaid'    => Order::whereIn('payment_status', ['unpaid', 'pending_verification'])->count(),
             'shipped'   => Order::where('status', 'shipped')->count(),
             'completed' => Order::where('status', 'completed')->count(),
-            'cancelled' => Order::where('status', 'cancelled')->count(),
+            'cancelled' => Order::where('status', 'cancelled')->orWhereHas('returns')->count(),
+        ];
+
+        // Hitungan Sub-Filter
+        $subCounts = [
+            'ready_unprocessed' => Order::where('payment_status', 'paid')
+                ->whereIn('status', ['pending', 'processing'])
+                ->where(function ($q) {
+                    $q->whereNull('tracking_number')
+                      ->orWhere('tracking_number', '')
+                      ->orWhere('tracking_number', 'like', 'REC-%');
+                })->count(),
+            'ready_processed' => Order::where('payment_status', 'paid')
+                ->whereIn('status', ['pending', 'processing'])
+                ->whereNotNull('tracking_number')
+                ->where('tracking_number', '!=', '')
+                ->where('tracking_number', 'not like', 'REC-%')
+                ->count(),
+            'reguler' => Order::where(function ($q) {
+                $q->where('courier', 'not like', '%instant%')
+                  ->where('courier', 'not like', '%gojek%')
+                  ->where('courier', 'not like', '%grab%')
+                  ->where('courier', 'not like', '%cargo%')
+                  ->where('courier', 'not like', '%kargo%');
+            })->count(),
+            'instant' => Order::where(function ($q) {
+                $q->where('courier', 'like', '%instant%')
+                  ->orWhere('courier', 'like', '%gojek%')
+                  ->orWhere('courier', 'like', '%grab%');
+            })->count(),
+            'cargo' => Order::where(function ($q) {
+                $q->where('courier', 'like', '%cargo%')
+                  ->orWhere('courier', 'like', '%kargo%');
+            })->count(),
         ];
 
         return view('admin.orders', [
-            'orders'     => $orders,
-            'counts'     => $counts,
-            'stats'      => $counts,
-            'currentTab' => $request->query('tab', 'all'),
+            'orders'        => $orders,
+            'counts'        => $counts,
+            'subCounts'     => $subCounts,
+            'currentTab'    => $currentTab,
             'riwayatEkspor' => $riwayatEkspor,
         ]);
     }

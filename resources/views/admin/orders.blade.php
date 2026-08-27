@@ -1,10 +1,10 @@
 @extends('layouts.app')
 
-@section('title', 'Kelola Pesanan')
-@section('page_title', 'Kelola Pesanan')
+@section('title', 'Pesanan Saya')
+@section('page_title', 'Pesanan Saya')
 
 @section('content')
-<div class="space-y-5" x-data="orderBulk()">
+<div class="space-y-4" x-data="orderBulk()">
 
     {{-- Flash Alert Success --}}
     @if(session('success'))
@@ -21,111 +21,256 @@
 
     {{-- Flash Alert Error --}}
     @if(session('error'))
-        <div class="flash-alert p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center justify-between shadow-sm">
+        <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center justify-between shadow-sm">
             <div class="flex items-center gap-3">
                 <i class="fa-solid fa-triangle-exclamation text-red-600 text-base"></i>
                 <span>{{ session('error') }}</span>
             </div>
-            <button type="button" onclick="this.closest('.flash-alert').remove()" class="text-red-500 hover:text-red-700 transition p-1">
+            <button type="button" onclick="this.closest('div').remove()" class="text-red-500 hover:text-red-700 transition p-1">
                 <i class="fa-solid fa-xmark text-sm"></i>
             </button>
         </div>
     @endif
 
-    {{-- Header Aksi Pengiriman & Cetak Resi --}}
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    {{-- ═══════════════ HEADER UTAMA PESANAN SAYA ═══════════════ --}}
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
         <div>
-            <h2 class="text-base font-bold text-slate-800">Kelola Pengiriman Pesanan</h2>
-            <p class="text-xs text-gray-400">Proses pengiriman otomatis via BiteShip & cetak label resi untuk pesanan yang sudah lunas.</p>
+            <h1 class="text-xl font-extrabold text-slate-900 tracking-tight">Pesanan Saya</h1>
+            <p class="text-xs text-gray-500 mt-0.5">Kelola transaksi masuk, atur penjemputan ekspedisi Biteship, dan cetak label pengiriman.</p>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-            {{-- Ekspor & riwayat unduhan. Ditaruh bersama aksi lain di kepala
-                 halaman supaya admin tidak perlu mencarinya di tempat lain. --}}
+        <div class="flex flex-wrap items-center gap-2">
             <button type="button" @click="bukaEkspor = true"
-                    class="bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs px-3.5 py-2 rounded-xl transition border border-gray-200 flex items-center gap-2">
-                <i class="fa-solid fa-file-excel text-emerald-600 text-xs"></i>
+                    class="bg-white hover:bg-gray-50 text-gray-700 font-semibold text-xs px-3.5 py-2 rounded-xl transition border border-gray-200 flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-file-excel text-emerald-600"></i>
                 <span>Export</span>
             </button>
 
             <button type="button" @click="bukaRiwayat = true"
-                    class="relative bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs px-3.5 py-2 rounded-xl transition border border-gray-200 flex items-center gap-2">
-                <i class="fa-solid fa-clock-rotate-left text-xs"></i>
+                    class="relative bg-white hover:bg-gray-50 text-gray-700 font-semibold text-xs px-3.5 py-2 rounded-xl transition border border-gray-200 flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-clock-rotate-left text-gray-500"></i>
                 <span>Riwayat Download</span>
                 @if($riwayatEkspor->count() > 0)
-                    <span class="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+                    <span class="bg-[#EE4D2D] text-white text-[9px] font-black rounded-full px-1.5 py-0.2">
                         {{ $riwayatEkspor->count() }}
                     </span>
                 @endif
             </button>
 
             <button type="button" @click="openBulkShipWithSelected()"
-                    class="bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow-sm flex items-center gap-2">
-                <i class="fa-solid fa-truck-fast text-xs"></i>
+                    class="bg-[#EE4D2D] hover:bg-[#D73211] text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-2">
+                <i class="fa-solid fa-truck-fast"></i>
                 <span>Atur Pengiriman</span>
-                <span x-show="selected.length > 0" class="bg-white text-orange-600 text-[10px] px-1.5 py-0.5 rounded-full font-black" x-text="selected.length"></span>
+                <span x-show="selected.length > 0" class="bg-white text-[#EE4D2D] text-[10px] px-1.5 py-0.5 rounded-full font-black" x-text="selected.length"></span>
             </button>
+
             <button type="button" @click="submitBulkPrint()"
-                    class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow-sm flex items-center gap-2">
-                <i class="fa-solid fa-print text-xs"></i>
+                    class="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-2">
+                <i class="fa-solid fa-print"></i>
                 <span>Cetak Resi</span>
                 <span x-show="selected.length > 0" class="bg-white text-slate-900 text-[10px] px-1.5 py-0.5 rounded-full font-black" x-text="selected.length"></span>
             </button>
         </div>
     </div>
 
-    {{-- Filter Tabs + Search --}}
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        {{-- Status Tabs Rapi & Tanpa Icon Berlebihan --}}
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-2 md:pb-0 flex-wrap">
+    {{-- ═══════════════ SHOPEE STYLE STATUS TABS ═══════════════ --}}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {{-- Top Level Tabs --}}
+        <div class="flex items-center border-b border-gray-200 overflow-x-auto scrollbar-none px-4">
             @php
-                $currentTab = request('tab', 'all');
-                $tabs = [
-                    'all'       => ['label' => 'Semua Pesanan',        'count' => $counts['all'],       'active' => 'bg-slate-900 text-white'],
-                    'ready'     => ['label' => 'Siap Diproses (Lunas)', 'count' => $counts['ready'],     'active' => 'bg-emerald-600 text-white'],
-                    'unpaid'    => ['label' => 'Belum Bayar',           'count' => $counts['unpaid'],    'active' => 'bg-amber-600 text-white'],
-                    'shipped'   => ['label' => 'Dikirim',               'count' => $counts['shipped'],   'active' => 'bg-blue-600 text-white'],
-                    'completed' => ['label' => 'Selesai',               'count' => $counts['completed'], 'active' => 'bg-teal-600 text-white'],
-                    'cancelled' => ['label' => 'Batal',                 'count' => $counts['cancelled'], 'active' => 'bg-gray-600 text-white'],
+                $tabNow = request('tab', 'all');
+                $shopeeTabs = [
+                    'all'       => ['label' => 'Semua',                    'count' => $counts['all']],
+                    'unpaid'    => ['label' => 'Belum Bayar',              'count' => $counts['unpaid']],
+                    'ready'     => ['label' => 'Perlu Dikirim',            'count' => $counts['ready']],
+                    'shipped'   => ['label' => 'Dikirim',                  'count' => $counts['shipped']],
+                    'completed' => ['label' => 'Selesai',                  'count' => $counts['completed']],
+                    'cancelled' => ['label' => 'Pengembalian/Pembatalan',   'count' => $counts['cancelled']],
                 ];
             @endphp
 
-            @foreach($tabs as $key => $tab)
-                <a href="{{ route('admin.orders', array_merge(request()->except(['page','payment_status','status']), ['tab' => $key])) }}"
-                   class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0
-                   {{ $currentTab === $key ? $tab['active'] . ' shadow-sm' : 'text-gray-600 hover:bg-gray-100 bg-gray-50' }}">
-                    <span>{{ $tab['label'] }}</span>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] {{ $currentTab === $key ? 'bg-white/20' : 'bg-gray-200 text-gray-700' }}">{{ $tab['count'] }}</span>
+            @foreach($shopeeTabs as $k => $t)
+                @php
+                    $isActive = ($tabNow === $k);
+                    $url = route('admin.orders', array_merge(request()->except(['page']), ['tab' => $k]));
+                @endphp
+                <a href="{{ $url }}"
+                   class="px-5 py-3.5 text-sm font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5 border-b-2
+                   {{ $isActive ? 'border-[#EE4D2D] text-[#EE4D2D] font-bold' : 'border-transparent text-gray-600 hover:text-slate-900' }}">
+                    <span>{{ $t['label'] }}</span>
+                    @if($t['count'] > 0 || $k !== 'all')
+                        <span class="text-xs {{ $isActive ? 'text-[#EE4D2D]' : 'text-gray-400' }}">({{ $t['count'] }})</span>
+                    @endif
                 </a>
             @endforeach
         </div>
 
-        {{-- Search --}}
-        <form action="{{ route('admin.orders') }}" method="GET" class="flex items-center gap-2 shrink-0">
-            @if(request('tab')) <input type="hidden" name="tab" value="{{ request('tab') }}"> @endif
-            <div class="relative">
-                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                <input type="text" name="search" value="{{ request('search') }}"
-                       placeholder="Cari No. Pesanan / Resi / Nama..."
-                       class="pl-9 pr-4 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 w-64">
+        {{-- Sub-Filters (Tipe Pesanan & Sub-Status) --}}
+        <div class="p-4 bg-gray-50/50 border-b border-gray-100 space-y-3">
+            {{-- 1. Tipe Pesanan (Reguler / Instant / Kargo) --}}
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+                <span class="text-gray-500 font-medium w-24 shrink-0">Tipe Pesanan</span>
+                @php
+                    $shipType = request('shipping_type', 'all');
+                    $shipTypes = [
+                        'all'     => 'Semua',
+                        'reguler' => 'Pesanan Reguler (' . ($subCounts['reguler'] ?? 0) . ')',
+                        'instant' => 'Instant (' . ($subCounts['instant'] ?? 0) . ')',
+                        'cargo'   => 'Pengiriman Kilat / Kargo (' . ($subCounts['cargo'] ?? 0) . ')',
+                    ];
+                @endphp
+                @foreach($shipTypes as $stKey => $stLabel)
+                    @php
+                        $isStActive = ($shipType === $stKey);
+                        $stUrl = route('admin.orders', array_merge(request()->except(['page']), ['shipping_type' => $stKey]));
+                    @endphp
+                    <a href="{{ $stUrl }}"
+                       class="px-3.5 py-1 rounded-full text-xs font-semibold transition
+                       {{ $isStActive ? 'border border-[#EE4D2D] text-[#EE4D2D] bg-[#FFF5F2]' : 'border border-gray-200 text-gray-600 bg-white hover:bg-gray-100' }}">
+                        {{ $stLabel }}
+                    </a>
+                @endforeach
             </div>
-            <button type="submit" class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-4 py-2 rounded-xl transition">Cari</button>
+
+            {{-- 2. Status Pesanan (Sub-status Perlu Diproses vs Telah Diproses) --}}
+            @if(in_array($tabNow, ['all', 'ready']))
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <span class="text-gray-500 font-medium w-24 shrink-0">Status Pesanan</span>
+                    @php
+                        $subStat = request('sub_status', 'all');
+                        $subStats = [
+                            'all'         => 'Semua',
+                            'unprocessed' => 'Perlu diproses (' . ($subCounts['ready_unprocessed'] ?? 0) . ')',
+                            'processed'   => 'Telah diproses (' . ($subCounts['ready_processed'] ?? 0) . ')',
+                        ];
+                    @endphp
+                    @foreach($subStats as $ssKey => $ssLabel)
+                        @php
+                            $isSsActive = ($subStat === $ssKey);
+                            $ssUrl = route('admin.orders', array_merge(request()->except(['page']), ['sub_status' => $ssKey]));
+                        @endphp
+                        <a href="{{ $ssUrl }}"
+                           class="px-3.5 py-1 rounded-full text-xs font-semibold transition
+                           {{ $isSsActive ? 'border border-[#EE4D2D] text-[#EE4D2D] bg-[#FFF5F2]' : 'border border-gray-200 text-gray-600 bg-white hover:bg-gray-100' }}">
+                            {{ $ssLabel }}
+                        </a>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+
+        {{-- ═══════════════ MULTI FILTER & SEARCH BAR (SHOPEE STYLE) ═══════════════ --}}
+        <form action="{{ route('admin.orders') }}" method="GET" class="p-4 space-y-3">
+            @if(request('tab')) <input type="hidden" name="tab" value="{{ request('tab') }}"> @endif
+            @if(request('shipping_type')) <input type="hidden" name="shipping_type" value="{{ request('shipping_type') }}"> @endif
+            @if(request('sub_status')) <input type="hidden" name="sub_status" value="{{ request('sub_status') }}"> @endif
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                {{-- Search Box dengan Dropdown Selector --}}
+                <div class="md:col-span-5 flex rounded-xl border border-gray-200 bg-white overflow-hidden focus-within:ring-2 focus-within:ring-[#EE4D2D]/20 focus-within:border-[#EE4D2D]">
+                    <select name="search_type" class="bg-gray-50 text-xs font-semibold text-gray-700 border-r border-gray-200 px-3 py-2 focus:outline-none cursor-pointer">
+                        <option value="order_number" {{ request('search_type') === 'order_number' ? 'selected' : '' }}>Order/Booking ID</option>
+                        <option value="tracking_number" {{ request('search_type') === 'tracking_number' ? 'selected' : '' }}>No. Resi</option>
+                        <option value="buyer" {{ request('search_type') === 'buyer' ? 'selected' : '' }}>Nama Pembeli</option>
+                        <option value="product" {{ request('search_type') === 'product' ? 'selected' : '' }}>Nama Produk</option>
+                        <option value="sku" {{ request('search_type') === 'sku' ? 'selected' : '' }}>Kode SKU</option>
+                        <option value="all" {{ request('search_type', 'all') === 'all' ? 'selected' : '' }}>Semua Pencarian</option>
+                    </select>
+                    <input type="text" name="search" value="{{ request('search') }}"
+                           placeholder="Ketik kata kunci pencarian..."
+                           class="flex-1 px-3 py-2 text-xs border-0 focus:ring-0 focus:outline-none">
+                </div>
+
+                {{-- Jasa Kirim (Ekspedisi) --}}
+                <div class="md:col-span-3">
+                    <select name="courier" class="w-full text-xs rounded-xl border border-gray-200 px-3 py-2 focus:ring-2 focus:ring-[#EE4D2D]/20 focus:border-[#EE4D2D] bg-white text-gray-700 font-medium">
+                        <option value="all">Semua Jasa Kirim</option>
+                        <option value="j&t" {{ request('courier') === 'j&t' ? 'selected' : '' }}>J&T Express</option>
+                        <option value="sicepat" {{ request('courier') === 'sicepat' ? 'selected' : '' }}>SiCepat</option>
+                        <option value="jne" {{ request('courier') === 'jne' ? 'selected' : '' }}>JNE</option>
+                        <option value="pos" {{ request('courier') === 'pos' ? 'selected' : '' }}>Pos Indonesia</option>
+                        <option value="anteraja" {{ request('courier') === 'anteraja' ? 'selected' : '' }}>AnterAja</option>
+                        <option value="gojek" {{ request('courier') === 'gojek' ? 'selected' : '' }}>GoSend</option>
+                        <option value="grab" {{ request('courier') === 'grab' ? 'selected' : '' }}>GrabExpress</option>
+                    </select>
+                </div>
+
+                {{-- Filter Berdasarkan Hari / Tanggal --}}
+                <div class="md:col-span-2" x-data="{ dateMode: '{{ request('date_filter', 'all') }}' }">
+                    <select name="date_filter" x-model="dateMode" class="w-full text-xs rounded-xl border border-gray-200 px-3 py-2 focus:ring-2 focus:ring-[#EE4D2D]/20 focus:border-[#EE4D2D] bg-white text-gray-700 font-medium">
+                        <option value="all">Semua Waktu</option>
+                        <option value="today">Hari Ini</option>
+                        <option value="yesterday">Kemarin</option>
+                        <option value="last_7_days">7 Hari Terakhir</option>
+                        <option value="last_30_days">30 Hari Terakhir</option>
+                        <option value="this_month">Bulan Ini</option>
+                        <option value="custom">Pilih Tanggal...</option>
+                    </select>
+                </div>
+
+                {{-- Tombol Terapkan & Atur Ulang --}}
+                <div class="md:col-span-2 flex items-center gap-2">
+                    <button type="submit" class="flex-1 bg-[#EE4D2D] hover:bg-[#D73211] text-white text-xs font-bold py-2 px-3 rounded-xl transition shadow-sm text-center">
+                        Terapkan
+                    </button>
+                    <a href="{{ route('admin.orders', ['tab' => request('tab', 'all')]) }}"
+                       class="border border-gray-300 hover:bg-gray-100 text-gray-600 text-xs font-bold py-2 px-3 rounded-xl transition text-center">
+                        Atur Ulang
+                    </a>
+                </div>
+            </div>
+
+            {{-- Custom Datepicker Range (Muncul jika pilih 'Pilih Tanggal...') --}}
+            @if(request('date_filter') === 'custom')
+                <div class="flex items-center gap-3 pt-2 border-t border-gray-100">
+                    <span class="text-xs text-gray-500 font-semibold">Rentang Tanggal:</span>
+                    <input type="date" name="start_date" value="{{ request('start_date') }}" class="text-xs rounded-lg border-gray-200 py-1.5 px-3">
+                    <span class="text-xs text-gray-400">s/d</span>
+                    <input type="date" name="end_date" value="{{ request('end_date') }}" class="text-xs rounded-lg border-gray-200 py-1.5 px-3">
+                    <button type="submit" class="text-xs font-bold text-[#EE4D2D] hover:underline">Terapkan Tanggal</button>
+                </div>
+            @endif
         </form>
     </div>
 
-    {{-- ── Floating Action Bar Saat Pesanan Dicentang ── --}}
+    {{-- ═══════════════ HASIL & PENGURUTAN (RESULTS BAR) ═══════════════ --}}
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-1">
+        <div class="flex items-center gap-2">
+            <span class="text-sm font-black text-slate-800">{{ $orders->total() }} Results</span>
+            <span class="text-xs text-gray-400">&bull; Menampilkan pesanan aktif</span>
+        </div>
+
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            {{-- Sort Selector --}}
+            <form action="{{ route('admin.orders') }}" method="GET" id="sortForm" class="flex items-center gap-2">
+                @foreach(request()->except(['sort', 'page']) as $k => $v)
+                    <input type="hidden" name="{{ $k }}" value="{{ $v }}">
+                @endforeach
+                <span class="text-xs text-gray-500 font-medium hidden sm:inline">Urutkan:</span>
+                <select name="sort" onchange="document.getElementById('sortForm').submit()"
+                        class="text-xs font-semibold rounded-xl border border-gray-200 bg-white py-1.5 px-3 text-gray-700 focus:ring-2 focus:ring-[#EE4D2D]/20 focus:border-[#EE4D2D]">
+                    <option value="latest" {{ request('sort', 'latest') === 'latest' ? 'selected' : '' }}>Tanggal Pesanan (Terbaru ke Terlama)</option>
+                    <option value="oldest" {{ request('sort') === 'oldest' ? 'selected' : '' }}>Tanggal Pesanan (Terlama ke Terbaru)</option>
+                    <option value="amount_high" {{ request('sort') === 'amount_high' ? 'selected' : '' }}>Total Pesanan (Tertinggi)</option>
+                    <option value="amount_low" {{ request('sort') === 'amount_low' ? 'selected' : '' }}>Total Pesanan (Terendah)</option>
+                </select>
+            </form>
+        </div>
+    </div>
+
+    {{-- ═══════════════ FLOATING MASS ACTION BAR ═══════════════ --}}
     <div x-show="selected.length > 0" x-cloak
-         class="sticky top-4 z-40 bg-slate-900/95 backdrop-blur text-white rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl border border-slate-700">
+         class="sticky top-4 z-40 bg-slate-900/95 backdrop-blur text-white rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xl border border-slate-700">
         <div class="flex items-center gap-3">
-            <span class="bg-orange-500 text-white font-black text-xs px-2.5 py-1 rounded-lg" x-text="selected.length"></span>
-            <span class="font-bold text-xs">Pesanan Dicentang untuk Aksi Massal</span>
+            <span class="bg-[#EE4D2D] text-white font-black text-xs px-2.5 py-1 rounded-lg" x-text="selected.length"></span>
+            <span class="font-bold text-xs">Pesanan Dipilih untuk Aksi Massal</span>
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <button type="button" @click="showBulkShipModal = true"
-                    class="inline-flex items-center gap-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow-sm">
+                    class="inline-flex items-center gap-1.5 bg-[#EE4D2D] hover:bg-[#D73211] text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm">
                 <i class="fa-solid fa-truck-fast"></i> Atur Pengiriman (BiteShip)
             </button>
             <button type="button" @click="submitBulkPrint()"
-                    class="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow-sm border border-slate-600">
+                    class="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm border border-slate-600">
                 <i class="fa-solid fa-print"></i> Cetak Resi
             </button>
             <button type="button" @click="selected = []; selectAll = false"
@@ -135,185 +280,222 @@
         </div>
     </div>
 
-    {{-- Orders Table --}}
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    {{-- ═══════════════ SHOPEE STYLE ORDER CARDS TABLE ═══════════════ --}}
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         @if($orders->isEmpty())
             <div class="p-16 text-center">
                 <i class="fa-regular fa-folder-open text-4xl text-gray-300 mb-3 block"></i>
-                <h3 class="text-sm font-bold text-gray-500">Tidak ada data pesanan</h3>
-                <p class="text-xs text-gray-400 mt-1">Belum ada pesanan yang sesuai dengan filter yang dipilih.</p>
+                <h3 class="text-sm font-bold text-gray-600">Tidak ada pesanan yang sesuai</h3>
+                <p class="text-xs text-gray-400 mt-1">Coba sesuaikan filter status, tipe pesanan, atau kata kunci pencarian Anda.</p>
+                <a href="{{ route('admin.orders') }}" class="inline-block mt-4 text-xs font-bold text-[#EE4D2D] hover:underline">
+                    Reset Semua Filter
+                </a>
             </div>
         @else
-            {{-- ── Kepala kolom ── --}}
-            <div class="hidden lg:flex items-center gap-4 px-4 py-3 bg-gray-50/70 border-b border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                <div class="w-5 shrink-0">
+            {{-- Table Column Headers (Shopee Seller Style) --}}
+            <div class="hidden lg:grid grid-cols-12 gap-4 px-4 py-3 bg-gray-100/70 border-b border-gray-200 text-xs font-bold text-gray-600">
+                <div class="col-span-5 flex items-center gap-3">
                     <input type="checkbox" x-model="selectAll" @change="toggleAll()"
-                           class="rounded border-gray-300 text-orange-500 focus:ring-orange-500 cursor-pointer w-4 h-4">
+                           class="rounded border-gray-300 text-[#EE4D2D] focus:ring-[#EE4D2D] cursor-pointer w-4 h-4">
+                    <span>Produk</span>
                 </div>
-                <div class="flex-1 min-w-0">Produk</div>
-                <div class="w-40 shrink-0">Dibayar Pembeli</div>
-                <div class="w-36 shrink-0">Status</div>
-                <div class="w-40 shrink-0">Jasa Kirim</div>
-                <div class="w-40 shrink-0 text-right">Aksi</div>
+                <div class="col-span-2 text-left">Dibayar Pembeli</div>
+                <div class="col-span-2 text-left">Status / Batas Waktu</div>
+                <div class="col-span-2 text-left">Jasa Kirim</div>
+                <div class="col-span-1 text-right">Aksi</div>
             </div>
 
-            <div class="divide-y divide-gray-100">
+            {{-- List of Order Cards --}}
+            <div class="divide-y-8 divide-gray-100">
                 @foreach($orders as $order)
-                    @php $isPaid = $order->payment_status === 'paid'; @endphp
+                    @php
+                        $isPaid = $order->payment_status === 'paid';
+                        $alamat = (array) $order->shipping_address;
+                        $namaPenerima = $alamat['name'] ?? ($order->user->name ?? 'Pelanggan');
+                    @endphp
 
-                    <div class="transition {{ !$isPaid ? 'bg-amber-50/20' : '' }}"
-                         {{-- Dibandingkan sebagai teks lewat String(). --}}
-                         :class="selected.some(id => String(id) === '{{ $order->id }}') && 'bg-orange-50/40'">
+                    <div class="bg-white transition hover:bg-gray-50/40"
+                         :class="selected.some(id => String(id) === '{{ $order->id }}') && 'bg-orange-50/30'">
 
-                        {{-- ── Kepala kartu: pembeli di kiri, nomor pesanan di kanan ── --}}
-                        <div class="flex items-center gap-3 px-4 py-2.5 bg-gray-50/60 border-b border-gray-100">
-                            <input type="checkbox" :value="{{ $order->id }}" x-model="selected"
-                                   class="rounded border-gray-300 text-orange-500 focus:ring-orange-500 cursor-pointer w-4 h-4 shrink-0">
+                        {{-- ── Card Top Strip (Header Pembeli & No. Pesanan) ── --}}
+                        <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-gray-50/80 border-b border-gray-200 text-xs">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <input type="checkbox" :value="{{ $order->id }}" x-model="selected"
+                                       class="rounded border-gray-300 text-[#EE4D2D] focus:ring-[#EE4D2D] cursor-pointer w-4 h-4 shrink-0">
 
-                            <span class="w-6 h-6 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center shrink-0">
-                                <i class="fa-solid fa-user text-[9px]"></i>
-                            </span>
+                                {{-- Avatar & Nama Pembeli --}}
+                                <div class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-[10px] shrink-0">
+                                    {{ strtoupper(substr($namaPenerima, 0, 1)) }}
+                                </div>
+                                <span class="font-bold text-slate-800 truncate max-w-[140px] sm:max-w-[200px]" title="{{ $namaPenerima }}">
+                                    {{ $namaPenerima }}
+                                </span>
+                                <span class="text-[#EE4D2D] text-xs" title="Chat Pembeli">
+                                    <i class="fa-solid fa-comment-dots"></i>
+                                </span>
 
-                            <span class="font-bold text-gray-800 text-xs truncate">
-                                {{ $order->user->name ?? 'Guest' }}
-                            </span>
+                                <span class="text-gray-300 mx-1 hidden sm:inline">|</span>
+                                <span class="text-[11px] text-gray-400 hidden sm:inline shrink-0">
+                                    {{ $order->created_at->translatedFormat('d M Y, H:i') }}
+                                </span>
+                            </div>
 
-                            <span class="text-[10px] text-gray-400 hidden sm:inline shrink-0">
-                                {{ $order->created_at->format('d M Y, H:i') }}
-                            </span>
-
-                            <span class="ml-auto text-[11px] text-gray-500 shrink-0">
-                                No. Pesanan
+                            {{-- No. Pesanan --}}
+                            <div class="flex items-center gap-1.5 text-xs text-gray-500 shrink-0 ml-auto">
+                                <span>No. Pesanan</span>
                                 <a href="{{ route('admin.orders.show', $order->id) }}"
-                                   class="font-mono font-bold text-slate-900 hover:text-orange-600 transition">
+                                   class="font-mono font-bold text-slate-900 hover:text-[#EE4D2D] transition tracking-tight">
                                     {{ $order->order_number }}
                                 </a>
-                            </span>
+                                <button type="button" @click="navigator.clipboard.writeText('{{ $order->order_number }}'); alert('Nomor pesanan disalin!')"
+                                        class="text-gray-400 hover:text-gray-600 p-0.5" title="Salin No. Pesanan">
+                                    <i class="fa-regular fa-copy text-[11px]"></i>
+                                </button>
+                            </div>
                         </div>
 
-                        {{-- ── Isi kartu ── --}}
-                        <div class="flex flex-col lg:flex-row lg:items-start gap-4 px-4 py-4">
-
-                            {{-- Kolom kiri: daftar produk. Diberi ruang tumbuh
-                                 supaya kolom lain tetap sejajar antar kartu. --}}
-                            <div class="hidden lg:block w-5 shrink-0"></div>
-
-                            <div class="flex-1 min-w-0 space-y-3">
-                                {{-- Pesanan lama pada data uji ada yang barisnya --}}
-                                @if($order->items->isEmpty())
-                                    <p class="text-[11px] text-gray-400 italic">
-                                        Tidak ada rincian barang pada pesanan ini.
-                                    </p>
-                                @endif
-
-                                @foreach($order->items as $item)
+                        {{-- ── Card Grid Body ── --}}
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 items-start text-xs">
+                            {{-- 1. Kolom Produk (col-span-5) --}}
+                            <div class="lg:col-span-5 space-y-3">
+                                @forelse($order->items as $item)
                                     <div class="flex items-start gap-3">
                                         <img src="{{ $item->product?->image_url ?? asset('images/no-image.png') }}"
                                              alt="{{ $item->product_name }}"
-                                             class="w-12 h-12 rounded-lg object-cover bg-gray-100 border border-gray-200 shrink-0"
+                                             class="w-14 h-14 rounded-md object-cover bg-gray-100 border border-gray-200 shrink-0"
                                              onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=120&q=80';">
 
                                         <div class="min-w-0 flex-1">
-                                            <p class="text-xs text-gray-800 leading-snug line-clamp-2">
+                                            <p class="font-bold text-slate-800 leading-snug line-clamp-2 hover:text-[#EE4D2D] transition">
                                                 {{ $item->product_name }}
                                             </p>
                                             @if($item->variant_info)
-                                                <p class="text-[10px] text-gray-400 mt-0.5 truncate">
+                                                <p class="text-[11px] text-gray-500 mt-0.5">
                                                     Variasi: {{ $item->variant_info }}
+                                                </p>
+                                            @endif
+                                            @if($item->productVariant?->sku)
+                                                <p class="text-[10px] text-gray-400 font-mono">
+                                                    SKU: {{ $item->productVariant->sku }}
                                                 </p>
                                             @endif
                                         </div>
 
-                                        <span class="text-[11px] text-gray-500 shrink-0">x{{ $item->quantity }}</span>
+                                        <span class="text-xs text-gray-600 font-medium shrink-0">x{{ $item->quantity }}</span>
                                     </div>
-                                @endforeach
+                                @empty
+                                    <p class="text-xs text-gray-400 italic">Tidak ada item pesanan.</p>
+                                @endforelse
                             </div>
 
-                            {{-- Dibayar Pembeli --}}
-                            <div class="lg:w-40 shrink-0">
+                            {{-- 2. Kolom Dibayar Pembeli (col-span-2) --}}
+                            <div class="lg:col-span-2">
                                 <p class="lg:hidden text-[10px] font-bold uppercase text-gray-400 mb-0.5">Dibayar Pembeli</p>
-                                <p class="font-bold text-slate-900 text-xs">
+                                <p class="font-bold text-slate-900 text-sm">
                                     Rp {{ number_format($order->grand_total, 0, ',', '.') }}
                                 </p>
-                                <p class="text-[10px] text-gray-500 mt-0.5 uppercase">{{ $order->payment_method }}</p>
+                                <p class="text-[11px] text-gray-500 mt-0.5 font-medium">
+                                    {{ $order->payment_method === 'COD' ? 'COD (Bayar di Tempat)' : 'Online Payment' }}
+                                </p>
                                 @if($isPaid)
-                                    <span class="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">Lunas</span>
+                                    <span class="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        Lunas
+                                    </span>
                                 @else
-                                    <span class="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-200">Belum Bayar</span>
+                                    <span class="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                        Belum Bayar
+                                    </span>
                                 @endif
                             </div>
 
-                            {{-- Status --}}
-                            <div class="lg:w-36 shrink-0">
+                            {{-- 3. Kolom Status & Batas Waktu (col-span-2) --}}
+                            <div class="lg:col-span-2">
                                 <p class="lg:hidden text-[10px] font-bold uppercase text-gray-400 mb-0.5">Status</p>
-                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1
-                                    @if($order->status === 'pending') bg-amber-50 text-amber-800 border border-amber-200
-                                    @elseif($order->status === 'processing') bg-blue-50 text-blue-800 border border-blue-200
-                                    @elseif($order->status === 'shipped') bg-indigo-50 text-indigo-800 border border-indigo-200
-                                    @elseif($order->status === 'completed') bg-emerald-50 text-emerald-800 border border-emerald-200
-                                    @else bg-rose-50 text-rose-800 border border-rose-200
-                                    @endif">
-                                    <i class="fa-solid fa-circle text-[5px]"></i>
-                                    {{ $order->status_label }}
-                                </span>
+                                <p class="font-bold text-slate-800 text-xs">
+                                    @if($order->status === 'pending') Perlu Dikirim
+                                    @elseif($order->status === 'processing') Perlu Dikirim
+                                    @elseif($order->status === 'shipped') Dikirim
+                                    @elseif($order->status === 'completed') Selesai
+                                    @elseif($order->status === 'cancelled') Dibatalkan
+                                    @else {{ $order->status_label }}
+                                    @endif
+                                </p>
+                                <p class="text-[10px] text-gray-400 mt-1 leading-tight">
+                                    @if($order->status === 'shipped')
+                                        Paket dalam perjalanan kurir
+                                    @elseif($isPaid && $order->tracking_number && !str_starts_with($order->tracking_number, 'REC-'))
+                                        Menunggu penjemputan / drop-off
+                                    @elseif($isPaid)
+                                        Menunggu pengiriman diverifikasi oleh Jasa Kirim.
+                                    @else
+                                        Menunggu pembayaran pembeli
+                                    @endif
+                                </p>
 
-                                {{-- Nomor pengembalian ikut tampil bila ada, --}}
                                 @php $retur = $order->returns->firstWhere('type', 'return'); @endphp
                                 @if($retur)
                                     <a href="{{ route('admin.returns.show', $retur->id) }}"
-                                       class="block mt-1.5 text-[10px] font-bold text-rose-600 hover:text-rose-700">
-                                        <i class="fa-solid fa-rotate-left mr-0.5"></i>
-                                        {{ $retur->return_number ?? 'Pengembalian' }}
+                                       class="inline-block mt-1.5 text-[10px] font-bold text-rose-600 hover:underline">
+                                        <i class="fa-solid fa-rotate-left mr-0.5"></i> {{ $retur->return_number ?? 'Pengembalian' }}
                                     </a>
                                 @endif
                             </div>
 
-                            {{-- Jasa Kirim --}}
-                            <div class="lg:w-40 shrink-0 min-w-0">
+                            {{-- 4. Kolom Jasa Kirim (col-span-2) --}}
+                            <div class="lg:col-span-2">
                                 <p class="lg:hidden text-[10px] font-bold uppercase text-gray-400 mb-0.5">Jasa Kirim</p>
-                                <p class="text-xs font-bold text-gray-800 truncate">{{ $order->courier ?: '—' }}</p>
-                                @if($order->tracking_number)
-                                    <p class="font-mono text-[10px] text-gray-500 mt-0.5 select-all break-all">
+                                <p class="font-bold text-slate-800 text-xs">
+                                    {{ strtoupper($order->courier ?: 'Reguler') }}
+                                </p>
+                                <p class="text-[11px] text-gray-500 mt-0.5">
+                                    {{ $order->shipping_service ?: 'Drop off / Pickup' }}
+                                </p>
+                                @if($order->tracking_number && !str_starts_with($order->tracking_number, 'REC-'))
+                                    <p class="font-mono text-[10px] text-slate-600 font-bold mt-1 bg-gray-100 px-2 py-1 rounded inline-block">
                                         {{ $order->tracking_number }}
                                     </p>
-                                @else
-                                    <p class="text-[10px] text-gray-400 italic mt-0.5">Belum ada resi</p>
                                 @endif
                             </div>
 
-                            {{-- Aksi --}}
-                            <div class="lg:w-40 shrink-0">
-                                <div class="flex lg:flex-col items-stretch gap-1.5 flex-wrap">
-                                    @if($isPaid && $order->status !== 'shipped')
-                                        <form action="{{ route('admin.orders.bulk-ship') }}" method="POST">
-                                            @csrf
-                                            <input type="hidden" name="order_ids[]" value="{{ $order->id }}">
-                                            <button type="submit"
-                                                    onclick="return confirm('Proses pengiriman BiteShip untuk pesanan #{{ $order->order_number }}?')"
-                                                    class="w-full inline-flex items-center justify-center gap-1 bg-orange-600 hover:bg-orange-700 text-white font-bold text-[10px] px-2.5 py-1.5 rounded-lg transition shadow-sm">
-                                                <i class="fa-solid fa-truck-fast"></i> Proses Pengiriman
-                                            </button>
-                                        </form>
-                                    @endif
+                            {{-- 5. Kolom Aksi (col-span-1) --}}
+                            <div class="lg:col-span-1 flex flex-col items-start lg:items-end gap-2 shrink-0">
+                                <a href="{{ route('admin.orders.show', $order->id) }}"
+                                   class="text-[#0055AA] hover:text-[#EE4D2D] font-semibold text-xs transition">
+                                    Lihat Rincian Pengiriman
+                                </a>
 
-                                    <a href="{{ route('admin.orders.show', $order->id) . '?print=1' }}" target="_blank"
-                                       class="inline-flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[10px] px-2.5 py-1.5 rounded-lg transition">
-                                        <i class="fa-solid fa-print"></i> Cetak Label
-                                    </a>
+                                <a href="{{ route('admin.orders.show', $order->id) . '?print=1' }}" target="_blank"
+                                   class="text-[#0055AA] hover:text-[#EE4D2D] font-semibold text-xs transition">
+                                    Cetak Label
+                                </a>
 
-                                    <a href="{{ route('admin.orders.show', $order->id) }}"
-                                       class="inline-flex items-center justify-center gap-1 bg-slate-800 hover:bg-slate-900 text-white font-bold text-[10px] px-2.5 py-1.5 rounded-lg transition">
-                                        <i class="fa-solid fa-pen-to-square text-[9px]"></i> Lihat Rincian
-                                    </a>
-                                </div>
+                                @if($isPaid && $order->status !== 'shipped' && $order->status !== 'completed')
+                                    <form action="{{ route('admin.orders.bulk-ship') }}" method="POST">
+                                        @csrf
+                                        <input type="hidden" name="order_ids[]" value="{{ $order->id }}">
+                                        <button type="submit"
+                                                onclick="return confirm('Atur penjemputan Biteship untuk pesanan #{{ $order->order_number }}?')"
+                                                class="mt-1 text-xs font-bold text-[#EE4D2D] hover:underline">
+                                            Atur Pengiriman
+                                        </button>
+                                    </form>
+                                @endif
                             </div>
                         </div>
                     </div>
                 @endforeach
             </div>
 
+            {{-- Shopee Style Pagination Footer --}}
             @if($orders->hasPages())
-                <div class="p-4 border-t border-gray-100">{{ $orders->links() }}</div>
+                <div class="p-4 bg-gray-50/70 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
+                    <div>
+                        Menampilkan <span class="font-bold text-slate-800">{{ $orders->firstItem() }}</span> - <span class="font-bold text-slate-800">{{ $orders->lastItem() }}</span> dari <span class="font-bold text-slate-800">{{ $orders->total() }}</span> pesanan
+                    </div>
+                    <div>
+                        {{ $orders->links() }}
+                    </div>
+                </div>
             @endif
         @endif
     </div>
@@ -336,26 +518,23 @@
 
             <form method="POST" action="{{ route('admin.orders.ekspor') }}" class="p-6 space-y-4">
                 @csrf
-
                 <p class="text-xs text-gray-500 leading-relaxed">
-                    Pilih rentang tanggal pesanan dibuat. Kosongkan keduanya untuk
-                    mengekspor seluruh pesanan.
+                    Pilih rentang tanggal pesanan dibuat. Kosongkan keduanya untuk mengekspor seluruh pesanan.
                 </p>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">Dari Tanggal</label>
                         <input type="date" name="dari" x-model="eksporDari"
-                               class="w-full rounded-xl border-gray-200 text-xs focus:border-orange-500 focus:ring-orange-500">
+                               class="w-full rounded-xl border-gray-200 text-xs focus:border-[#EE4D2D] focus:ring-[#EE4D2D]">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1.5">Sampai Tanggal</label>
                         <input type="date" name="sampai" x-model="eksporSampai" :min="eksporDari"
-                               class="w-full rounded-xl border-gray-200 text-xs focus:border-orange-500 focus:ring-orange-500">
+                               class="w-full rounded-xl border-gray-200 text-xs focus:border-[#EE4D2D] focus:ring-[#EE4D2D]">
                     </div>
                 </div>
 
-                {{-- Jalan pintas rentang yang paling sering dipakai. --}}
                 <div class="flex flex-wrap gap-1.5">
                     <template x-for="p in pintasTanggal" :key="p.label">
                         <button type="button" @click="pakaiPintas(p)"
@@ -364,17 +543,13 @@
                     </template>
                 </div>
 
-                @error('sampai')
-                    <p class="text-[11px] text-rose-600">{{ $message }}</p>
-                @enderror
-
                 <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
                     <button type="button" @click="bukaEkspor = false"
                             class="px-4 py-2 rounded-xl text-xs font-bold text-gray-500 hover:bg-gray-100 transition">
                         Batal
                     </button>
                     <button type="submit"
-                            class="px-5 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition shadow-sm">
+                            class="px-5 py-2 rounded-xl bg-[#EE4D2D] hover:bg-[#D73211] text-white text-xs font-bold transition shadow-sm">
                         Export
                     </button>
                 </div>
@@ -395,8 +570,7 @@
                         Riwayat Download
                     </h3>
                     <p class="text-[10px] text-gray-400 mt-0.5">
-                        Disimpan maksimal {{ \App\Models\OrderExport::BATAS_RIWAYAT }} berkas terbaru —
-                        yang lebih lama terhapus otomatis.
+                        Disimpan maksimal {{ \App\Models\OrderExport::BATAS_RIWAYAT }} berkas terbaru.
                     </p>
                 </div>
                 <button type="button" @click="bukaRiwayat = false" class="text-gray-400 hover:text-gray-700">
@@ -432,7 +606,6 @@
                                     <i class="fa-solid fa-download mr-0.5"></i> Unduh
                                 </a>
                             @else
-                                {{-- Barisnya tetap ditampilkan meski berkasnya --}}
                                 <span class="px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-400 text-[10px] font-bold">
                                     Berkas hilang
                                 </span>
@@ -451,20 +624,19 @@
                     <div class="py-12 text-center">
                         <i class="fa-regular fa-folder-open text-3xl text-gray-200"></i>
                         <p class="mt-2 text-xs font-bold text-gray-500">Belum ada berkas ekspor</p>
-                        <p class="text-[10px] text-gray-400 mt-0.5">Berkas yang kamu buat lewat tombol Export muncul di sini.</p>
                     </div>
                 @endforelse
             </div>
         </div>
     </div>
 
-    {{-- Modal Konfirmasi Pengiriman Massal --}}
+    {{-- ══════════ Modal Konfirmasi Pengiriman Massal ══════════ --}}
     <div x-show="showBulkShipModal" x-cloak
          class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-gray-100" @click.away="showBulkShipModal = false">
             <div class="flex items-center justify-between border-b border-gray-100 pb-3">
                 <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-truck-fast text-orange-500"></i>
+                    <i class="fa-solid fa-truck-fast text-[#EE4D2D]"></i>
                     Konfirmasi Pengiriman Massal (BiteShip)
                 </h3>
                 <button type="button" @click="showBulkShipModal = false" class="text-gray-400 hover:text-gray-600">
@@ -473,7 +645,7 @@
             </div>
 
             <p class="text-xs text-gray-600 leading-relaxed">
-                Anda memilih <strong x-text="selected.length" class="text-orange-600"></strong> pesanan. Pesanan yang <strong>SUDAH LUNAS</strong> akan otomatis dibuatkan pengiriman resmi via API BiteShip dan resi AWB akan terbit.
+                Anda memilih <strong x-text="selected.length" class="text-[#EE4D2D]"></strong> pesanan. Pesanan yang <strong>SUDAH LUNAS</strong> akan otomatis dibuatkan pengiriman resmi via API BiteShip dan resi AWB akan terbit.
             </p>
 
             <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px] text-amber-800">
@@ -488,7 +660,7 @@
                 <form action="{{ route('admin.orders.bulk-ship') }}" method="POST" @submit="appendIds($event)">
                     @csrf
                     <button type="submit"
-                            class="px-4 py-2 text-xs font-bold bg-orange-600 hover:bg-orange-700 text-white rounded-xl transition shadow-sm">
+                            class="px-4 py-2 text-xs font-bold bg-[#EE4D2D] hover:bg-[#D73211] text-white rounded-xl transition shadow-sm">
                         Proses Sekarang
                     </button>
                 </form>
@@ -510,7 +682,6 @@ function orderBulk() {
         eksporDari: '',
         eksporSampai: '',
 
-        // Pintasan rentang yang paling sering diminta.
         pintasTanggal: [
             { label: '7 hari terakhir',  hari: 7 },
             { label: '30 hari terakhir', hari: 30 },
