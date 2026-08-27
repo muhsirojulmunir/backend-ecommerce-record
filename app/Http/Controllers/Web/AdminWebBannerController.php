@@ -12,14 +12,11 @@ class AdminWebBannerController extends Controller
     /**
      * Tampilkan daftar banner.
      */
-    /**
-     * Tampilkan daftar banner.
-     */
     public function index(Request $request)
     {
         $banners = Banner::orderBy('sort_order')->orderByDesc('created_at')->get();
-        $categories = \App\Models\Category::orderBy('name')->get();
-        $products = \App\Models\Product::where('is_active', true)->orderBy('name')->get(['id', 'name', 'slug']);
+        $categories = \App\Models\Category::where('is_active', true)->orderBy('name')->get();
+        $products = \App\Models\Product::where('status', 'active')->orderBy('name')->get(['id', 'name', 'slug']);
 
         return view('admin.banners', compact('banners', 'categories', 'products'));
     }
