@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Seller Center') - E-Commerce</title>
-    <link rel="icon" type="image/png" href="{{ asset('images/logo-brand-rapi.png') }}">
-    <link rel="shortcut icon" type="image/png" href="{{ asset('images/logo-brand-rapi.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/logo-brand-rapi.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/favicon-record.png?v=2') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('images/favicon-record.png?v=2') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/favicon-record.png?v=2') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
@@ -31,8 +31,8 @@
             <!-- Navigation -->
             <nav class="flex-1 px-3 py-4 space-y-0.5">
 
-                {{-- ─── Dashboard (Super Admin only) ──────────────────────── --}}
-                {{-- ─── Dashboard (Super Admin only) ──────────────────────── --}}
+                {{-- â”€â”€â”€ Dashboard (Super Admin only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
+                {{-- â”€â”€â”€ Dashboard (Super Admin only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
                 @can('view dashboard')
                 <a href="{{ route('admin.dashboard') }}"
                    class="flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-150 gap-3 {{ request()->routeIs('admin.dashboard') ? 'bg-orange-600 text-white shadow-md shadow-orange-900/40' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
@@ -41,7 +41,7 @@
                 </a>
                 @endcan
 
-                {{-- ─── Grup Produk ─────────────────────────────────────── --}}
+                {{-- â”€â”€â”€ Grup Produk â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
                 @canany(['manage products', 'manage orders', 'manage banners', 'manage discounts'])
                 <p class="px-4 pt-5 pb-2 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Grup Produk</p>
 
@@ -86,7 +86,7 @@
                 @endcan
                 @endcanany
 
-                {{-- ─── Grup Keuangan ───────────────────────────────────── --}}
+                {{-- â”€â”€â”€ Grup Keuangan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
                 @canany(['manage customers', 'view reports', 'manage returns', 'manage rpay', 'process withdrawals'])
                 <p class="px-4 pt-5 pb-2 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Grup Keuangan</p>
 
@@ -161,7 +161,7 @@
                 @endcan
                 @endcanany
 
-                {{-- ─── Grup Settings (Super Admin only) ───────────────── --}}
+                {{-- â”€â”€â”€ Grup Settings (Super Admin only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ --}}
                 @canany(['manage roles', 'manage permissions', 'manage settings', 'view activity logs'])
                 <p class="px-4 pt-5 pb-2 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">Settings</p>
 
@@ -270,7 +270,7 @@
             @if(session('error'))
                 {{-- Tanpa kelas "flash-alert": pesan galat TIDAK ikut hilang
                      sendiri setelah 5 detik. Laporan kegagalan pengiriman
-                     menyebut nomor pesanan dan alasannya satu per satu — kalau
+                     menyebut nomor pesanan dan alasannya satu per satu â€” kalau
                      lenyap sebelum sempat dibaca, admin tidak tahu pesanan mana
                      yang perlu diulang. Ditutup sendiri oleh admin. --}}
                 <div class="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center justify-between shadow-sm transition-all duration-500 overflow-hidden">
