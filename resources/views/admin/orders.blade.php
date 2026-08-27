@@ -485,14 +485,10 @@
                                 @endif
 
                                 @if(auth()->user() && (auth()->user()->isSuperAdmin() || auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('Super Admin')))
-                                    <form action="{{ route('admin.orders.destroy', $order->id) }}" method="POST"
-                                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus permanen pesanan #{{ $order->order_number }}? Data tidak dapat dikembalikan.')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="mt-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:underline flex items-center gap-1">
-                                            <i class="fa-regular fa-trash-can text-[10px]"></i> Hapus Pesanan
-                                        </button>
-                                    </form>
+                                    <button type="button" @click="konfirmasiHapusSingle({{ $order->id }}, '{{ $order->order_number }}')"
+                                            class="mt-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:underline flex items-center gap-1">
+                                        <i class="fa-regular fa-trash-can text-[10px]"></i> Hapus Pesanan
+                                    </button>
                                 @endif
                             </div>
                         </div>
@@ -681,6 +677,62 @@
             </div>
         </div>
     </div>
+
+    {{-- ══════════ Modal Konfirmasi Hapus Pesanan (Super Admin) ══════════ --}}
+    <div x-show="showDeleteModal" x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-gray-100 transform transition-all"
+             @click.away="showDeleteModal = false">
+            
+            <div class="flex items-start gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl shrink-0 shadow-inner">
+                    <i class="fa-solid fa-trash-can"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="font-bold text-slate-900 text-base">Hapus Pesanan Permanen?</h3>
+                    <p class="text-xs text-gray-500 mt-1 leading-relaxed" x-show="!isBulkDelete">
+                        Anda akan menghapus pesanan <span class="font-mono font-bold text-slate-900" x-text="'#' + deleteTargetNumber"></span>. Seluruh data barang, resi, dan riwayat pesanan akan dihapus permanen.
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1 leading-relaxed" x-show="isBulkDelete">
+                        Anda akan menghapus <span class="font-bold text-rose-600" x-text="selected.length"></span> pesanan yang dipilih secara permanen dari sistem.
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-rose-50 border border-rose-200 rounded-2xl p-3 text-[11px] text-rose-800 flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-rose-600 text-xs shrink-0"></i>
+                <span><strong>Peringatan:</strong> Tindakan ini bersifat permanen dan tidak dapat dibatalkan.</span>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                <button type="button" @click="showDeleteModal = false"
+                        class="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition">
+                    Batal
+                </button>
+
+                {{-- Form Submit Hapus Single --}}
+                <form x-show="!isBulkDelete" :action="deleteActionUrl" method="POST">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit"
+                            class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white transition shadow-lg shadow-rose-600/30 flex items-center gap-2">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                        <span>Ya, Hapus Sekarang</span>
+                    </button>
+                </form>
+
+                {{-- Form Submit Hapus Bulk --}}
+                <form x-show="isBulkDelete" action="{{ route('admin.orders.bulk-delete') }}" method="POST" @submit="appendIds($event)">
+                    @csrf
+                    <button type="submit"
+                            class="px-5 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white transition shadow-lg shadow-rose-600/30 flex items-center gap-2">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                        <span>Ya, Hapus Semua</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -689,6 +741,13 @@ function orderBulk() {
         selected: [],
         selectAll: false,
         showBulkShipModal: false,
+
+        // Modal Hapus Pesanan (Super Admin)
+        showDeleteModal: false,
+        deleteTargetId: null,
+        deleteTargetNumber: '',
+        deleteActionUrl: '',
+        isBulkDelete: false,
 
         // Modal ekspor & riwayat unduhan
         bukaEkspor: false,
@@ -774,6 +833,23 @@ function orderBulk() {
             document.body.removeChild(form);
         },
 
+        konfirmasiHapusSingle(id, number) {
+            this.isBulkDelete = false;
+            this.deleteTargetId = id;
+            this.deleteTargetNumber = number;
+            this.deleteActionUrl = '{{ url('admin/orders') }}/' + id;
+            this.showDeleteModal = true;
+        },
+
+        konfirmasiHapusBulk() {
+            if (this.selected.length === 0) {
+                alert('Pilih minimal satu pesanan untuk dihapus.');
+                return;
+            }
+            this.isBulkDelete = true;
+            this.showDeleteModal = true;
+        },
+
         appendIds(event) {
             const form = event.target;
             this.selected.forEach(id => {
@@ -783,37 +859,6 @@ function orderBulk() {
                 input.value = id;
                 form.appendChild(input);
             });
-        },
-
-        submitBulkDelete() {
-            if (this.selected.length === 0) {
-                alert('Pilih minimal satu pesanan untuk dihapus.');
-                return;
-            }
-            if (!confirm('Apakah Anda yakin ingin menghapus ' + this.selected.length + ' pesanan yang dipilih secara permanen?')) {
-                return;
-            }
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{{ route('admin.orders.bulk-delete') }}';
-
-            const csrf = document.createElement('input');
-            csrf.type = 'hidden';
-            csrf.name = '_token';
-            csrf.value = '{{ csrf_token() }}';
-            form.appendChild(csrf);
-
-            this.selected.forEach(id => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'order_ids[]';
-                input.value = id;
-                form.appendChild(input);
-            });
-
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
         }
     }
 }
