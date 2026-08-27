@@ -104,8 +104,32 @@
             @endforeach
         </div>
 
-        {{-- Sub-Filters (Sub-Status) --}}
+        {{-- Sub-Filters (Tipe Pesanan & Sub-Status) --}}
         <div class="p-4 bg-gray-50/50 border-b border-gray-100 space-y-3">
+
+            {{-- 1. Tipe Pesanan (Reguler / Instant Biteship) --}}
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+                <span class="text-gray-500 font-medium w-24 shrink-0">Tipe Pesanan</span>
+                @php
+                    $shipType = request('shipping_type', 'all');
+                    $shipTypes = [
+                        'all'     => 'Semua',
+                        'reguler' => 'Reguler (' . ($subCounts['reguler'] ?? 0) . ')',
+                        'instant' => 'Instant / Same Day (' . ($subCounts['instant'] ?? 0) . ')',
+                    ];
+                @endphp
+                @foreach($shipTypes as $stKey => $stLabel)
+                    @php
+                        $isStActive = ($shipType === $stKey);
+                        $stUrl = route('admin.orders', array_merge(request()->except(['page']), ['shipping_type' => $stKey]));
+                    @endphp
+                    <a href="{{ $stUrl }}"
+                       class="px-3.5 py-1 rounded-full text-xs font-semibold transition
+                       {{ $isStActive ? 'border border-[#EE4D2D] text-[#EE4D2D] bg-[#FFF5F2]' : 'border border-gray-200 text-gray-600 bg-white hover:bg-gray-100' }}">
+                        {{ $stLabel }}
+                    </a>
+                @endforeach
+            </div>
 
             {{-- 2. Status Pesanan (Sub-status Perlu Diproses vs Telah Diproses) --}}
             @if(in_array($tabNow, ['all', 'ready']))
@@ -133,6 +157,7 @@
                 </div>
             @endif
         </div>
+
 
         {{-- ═══════════════ MULTI FILTER & SEARCH BAR (SHOPEE STYLE) ═══════════════ --}}
         <form action="{{ route('admin.orders') }}" method="GET" class="p-4 space-y-3">
