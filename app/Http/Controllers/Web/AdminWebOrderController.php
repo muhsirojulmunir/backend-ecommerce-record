@@ -817,4 +817,53 @@ class AdminWebOrderController extends Controller
 
         return view('admin.partials.order-bulk-print', compact('orders'));
     }
+
+    /**
+     * Hapus satu pesanan (Khusus Super Admin).
+     */
+    public function destroy(int $id)
+    {
+        $user = auth()->user();
+        if (!$user || (!$user->isSuperAdmin() && !$user->hasRole('super_admin') && !$user->hasRole('Super Admin'))) {
+            return redirect()->back()->with('error', 'Akses ditolak: Hanya Super Admin yang berhak menghapus pesanan.');
+        }
+
+        $order = Order::findOrFail($id);
+        $orderNumber = $order->order_number;
+
+        // Hapus relasi items dan returns terlebih dahulu
+        $order->items()->delete();
+        $order->returns()->delete();
+        $order->delete();
+
+        return redirect()->route('admin.orders')->with('success', "Pesanan #{$orderNumber} berhasil dihapus permanen oleh Super Admin.");
+    }
+
+    /**
+     * Hapus banyak pesanan sekaligus (Bulk Delete - Khusus Super Admin).
+     */
+    public function bulkDelete(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user || (!$user->isSuperAdmin() && !$user->hasRole('super_admin') && !$user->hasRole('Super Admin'))) {
+            return redirect()->back()->with('error', 'Akses ditolak: Hanya Super Admin yang berhak menghapus pesanan.');
+        }
+
+        $request->validate([
+            'order_ids'   => 'required|array|min:1',
+            'order_ids.*' => 'integer|exists:orders,id',
+        ]);
+
+        $orders = Order::whereIn('id', $request->order_ids)->get();
+        $count = $orders->count();
+
+        foreach ($orders as $order) {
+            $order->items()->delete();
+            $order->returns()->delete();
+            $order->delete();
+        }
+
+        return redirect()->route('admin.orders')->with('success', "{$count} pesanan berhasil dihapus permanen oleh Super Admin.");
+    }
 }
+

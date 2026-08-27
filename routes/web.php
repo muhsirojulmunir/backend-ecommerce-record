@@ -137,6 +137,9 @@ Route::prefix('admin')->group(function () {
             Route::post('/bulk/confirm-payment', [AdminWebOrderController::class, 'bulkConfirmPayment'])->name('admin.orders.bulk-confirm-payment');
             Route::post('/bulk/ship', [AdminWebOrderController::class, 'bulkShip'])->name('admin.orders.bulk-ship');
             Route::post('/bulk/print', [AdminWebOrderController::class, 'bulkPrint'])->name('admin.orders.bulk-print');
+            Route::post('/bulk/delete', [AdminWebOrderController::class, 'bulkDelete'])->name('admin.orders.bulk-delete');
+            // Hapus Pesanan (Khusus Super Admin)
+            Route::delete('/{id}', [AdminWebOrderController::class, 'destroy'])->whereNumber('id')->name('admin.orders.destroy');
         });
 
         // ── Grup Keuangan ───────────────────────────────────────────────────

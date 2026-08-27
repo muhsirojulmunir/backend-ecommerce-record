@@ -273,6 +273,12 @@
                     class="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm border border-slate-600">
                 <i class="fa-solid fa-print"></i> Cetak Resi
             </button>
+            @if(auth()->user() && (auth()->user()->isSuperAdmin() || auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('Super Admin')))
+                <button type="button" @click="submitBulkDelete()"
+                        class="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm">
+                    <i class="fa-solid fa-trash-can"></i> Hapus Pesanan
+                </button>
+            @endif
             <button type="button" @click="selected = []; selectAll = false"
                     class="text-gray-400 hover:text-white text-xs font-bold px-2.5 py-2 rounded-xl transition">
                 Batal
@@ -329,9 +335,6 @@
                                 </div>
                                 <span class="font-bold text-slate-800 truncate max-w-[140px] sm:max-w-[200px]" title="{{ $namaPenerima }}">
                                     {{ $namaPenerima }}
-                                </span>
-                                <span class="text-[#EE4D2D] text-xs" title="Chat Pembeli">
-                                    <i class="fa-solid fa-comment-dots"></i>
                                 </span>
 
                                 <span class="text-gray-300 mx-1 hidden sm:inline">|</span>
@@ -477,6 +480,17 @@
                                                 onclick="return confirm('Atur penjemputan Biteship untuk pesanan #{{ $order->order_number }}?')"
                                                 class="mt-1 text-xs font-bold text-[#EE4D2D] hover:underline">
                                             Atur Pengiriman
+                                        </button>
+                                    </form>
+                                @endif
+
+                                @if(auth()->user() && (auth()->user()->isSuperAdmin() || auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('Super Admin')))
+                                    <form action="{{ route('admin.orders.destroy', $order->id) }}" method="POST"
+                                          onsubmit="return confirm('Apakah Anda yakin ingin menghapus permanen pesanan #{{ $order->order_number }}? Data tidak dapat dikembalikan.')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="mt-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:underline flex items-center gap-1">
+                                            <i class="fa-regular fa-trash-can text-[10px]"></i> Hapus Pesanan
                                         </button>
                                     </form>
                                 @endif
@@ -769,6 +783,37 @@ function orderBulk() {
                 input.value = id;
                 form.appendChild(input);
             });
+        },
+
+        submitBulkDelete() {
+            if (this.selected.length === 0) {
+                alert('Pilih minimal satu pesanan untuk dihapus.');
+                return;
+            }
+            if (!confirm('Apakah Anda yakin ingin menghapus ' + this.selected.length + ' pesanan yang dipilih secara permanen?')) {
+                return;
+            }
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route('admin.orders.bulk-delete') }}';
+
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = '_token';
+            csrf.value = '{{ csrf_token() }}';
+            form.appendChild(csrf);
+
+            this.selected.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'order_ids[]';
+                input.value = id;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
         }
     }
 }
