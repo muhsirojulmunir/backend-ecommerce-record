@@ -207,9 +207,9 @@
     {{-- ════════════════════════════════ --}}
     {{-- MODAL: Tambah Banner Baru        --}}
     {{-- ════════════════════════════════ --}}
-    <div x-show="showAddModal"
+    <div x-show="showAddModal" x-cloak
         class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-        x-transition style="display:none;">
+        x-transition>
         <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full flex flex-col" style="max-height:90vh;" @click.away="showAddModal = false">
             <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0 rounded-t-3xl">
                 <div>
@@ -346,9 +346,9 @@
     {{-- ════════════════════════════════ --}}
     {{-- MODAL: Edit Banner               --}}
     {{-- ════════════════════════════════ --}}
-    <div x-show="showEditModal"
+    <div x-show="showEditModal" x-cloak
         class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-        x-transition style="display:none;">
+        x-transition>
         <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full flex flex-col" style="max-height:90vh;" @click.away="showEditModal = false">
             <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between shrink-0 rounded-t-3xl">
                 <div>
@@ -478,9 +478,9 @@
     {{-- ════════════════════════════════ --}}
     {{-- MODAL: Konfirmasi Hapus          --}}
     {{-- ════════════════════════════════ --}}
-    <div x-show="showDeleteModal"
+    <div x-show="showDeleteModal" x-cloak
         class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-        x-transition style="display:none;">
+        x-transition>
         <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full" @click.away="showDeleteModal = false">
             <div class="p-8 text-center">
                 <div class="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-5">

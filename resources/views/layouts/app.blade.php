@@ -19,6 +19,9 @@
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
+
+        /* Sembunyikan elemen Alpine.js sebelum Alpine selesai inisialisasi (cegah modal muncul sesaat saat refresh) */
+        [x-cloak] { display: none !important; }
     </style>
 </head>
 
