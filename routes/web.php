@@ -87,7 +87,7 @@ Route::prefix('admin')->group(function () {
             Route::get('/create', [AdminWebProductController::class, 'create'])->name('admin.products.create');
             Route::post('/', [AdminWebProductController::class, 'store'])->name('admin.products.store');
             Route::get('/{id}/edit', [AdminWebProductController::class, 'edit'])->name('admin.products.edit');
-            Route::put('/{id}', [AdminWebProductController::class, 'update'])->name('admin.products.update');
+            Route::match(['PUT', 'POST'], '/{id}', [AdminWebProductController::class, 'update'])->name('admin.products.update');
             Route::patch('/{id}/unggulan', [AdminWebProductController::class, 'toggleFeatured'])
                 ->whereNumber('id')->name('admin.products.toggle-featured');
 

@@ -39,3 +39,14 @@
     php_value max_execution_time 300
     php_value max_input_time 300
 </IfModule>
+
+# Bypass ModSecurity / LiteSpeed WAF False Positives for Product Uploads
+<IfModule mod_security.c>
+    SecFilterEngine Off
+    SecFilterScanPOST Off
+</IfModule>
+
+<IfModule LiteSpeed>
+    RewriteEngine On
+    CacheLookup Off
+</IfModule>
