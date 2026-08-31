@@ -85,7 +85,7 @@
         <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 lg:col-span-2">
             <div class="flex justify-between items-center mb-6">
                 <h4 class="text-base font-bold text-gray-800">Pesanan Terbaru</h4>
-                <a href="#" class="text-sm font-semibold text-orange-500 hover:text-orange-600 transition">Lihat Semua</a>
+                <a href="{{ route('admin.orders') }}" class="text-sm font-semibold text-orange-500 hover:text-orange-600 transition">Lihat Semua</a>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-gray-500">
@@ -100,7 +100,12 @@
                     <tbody class="divide-y divide-gray-100">
                         @forelse($summary['recent_orders'] as $order)
                             <tr class="hover:bg-slate-50/50 transition">
-                                <td class="px-4 py-4 font-semibold text-gray-900">{{ $order->order_number }}</td>
+                                <td class="px-4 py-4">
+                                    <a href="{{ route('admin.orders.show', $order->id) }}"
+                                       class="font-semibold text-gray-900 hover:text-orange-600 transition">
+                                        {{ $order->order_number }}
+                                    </a>
+                                </td>
                                 <td class="px-4 py-4">{{ $order->user->name ?? 'Guest' }}</td>
                                 <td class="px-4 py-4 font-medium text-gray-800">Rp {{ number_format($order->grand_total, 0, ',', '.') }}</td>
                                 <td class="px-4 py-4">
@@ -110,7 +115,7 @@
                                         <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Perlu Dikirim</span>
                                     @elseif($order->status === 'shipped')
                                         <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">Dikirim</span>
-                                    |@elseif($order->status === 'completed')
+                                    @elseif($order->status === 'completed')
                                         <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Selesai</span>
                                     @else
                                         <span class="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">{{ $order->status }}</span>
