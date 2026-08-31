@@ -865,5 +865,18 @@ class AdminWebOrderController extends Controller
 
         return redirect()->route('admin.orders')->with('success', "{$count} pesanan berhasil dihapus permanen oleh Super Admin.");
     }
-}
 
+    /**
+     * Unduh berkas invoice resmi berformat PDF untuk admin.
+     */
+    public function downloadInvoicePdf($id)
+    {
+        $order = \App\Models\Order::with(['items.product', 'items.productVariant', 'user'])->findOrFail($id);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.pdf.invoice', ['order' => $order])
+            ->setPaper('a4', 'portrait');
+
+        $filename = 'Invoice-' . ($order->invoice_number ?: $order->order_number) . '.pdf';
+        return $pdf->download($filename);
+    }
+}

@@ -25,6 +25,11 @@
                class="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs px-4 py-2 rounded-xl transition border border-gray-200">
                 <i class="fa-solid fa-print"></i> Cetak Resi
             </a>
+            {{-- Unduh Invoice PDF Button --}}
+            <a href="{{ route('admin.orders.invoice-pdf', $order->id) }}"
+               class="inline-flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs px-4 py-2 rounded-xl transition border border-indigo-200">
+                <i class="fa-solid fa-file-pdf"></i> Unduh Invoice PDF
+            </a>
             <span class="px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider
                 @if($order->status === 'pending') bg-amber-100 text-amber-800 border border-amber-200
                 @elseif($order->status === 'processing') bg-blue-100 text-blue-800 border border-blue-200
