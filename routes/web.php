@@ -129,6 +129,7 @@ Route::prefix('admin')->group(function () {
         // Orders (Kelola Pesanan)
         Route::prefix('orders')->middleware('can:manage orders')->group(function () {
             Route::get('/', [AdminWebOrderController::class, 'index'])->name('admin.orders');
+            Route::get('/{id}/invoice-pdf', [AdminWebOrderController::class, 'downloadInvoicePdf'])->name('admin.orders.invoice-pdf');
             Route::get('/{id}', [AdminWebOrderController::class, 'show'])->name('admin.orders.show');
             Route::put('/{id}/status', [AdminWebOrderController::class, 'updateStatus'])->name('admin.orders.update-status');
             Route::put('/{id}/tracking', [AdminWebOrderController::class, 'updateTracking'])->name('admin.orders.update-tracking');

@@ -303,7 +303,15 @@ class AdminWebOrderController extends Controller
      */
     public function show(Request $request, $id)
     {
-        $order = Order::with(['user', 'items.product', 'items.productVariant'])->findOrFail($id);
+        $order = Order::with(['user', 'items.product', 'items.productVariant'])
+            ->where(function ($q) use ($id) {
+                if (is_numeric($id)) {
+                    $q->where('id', $id)->orWhere('order_number', $id);
+                } else {
+                    $q->where('order_number', $id);
+                }
+            })
+            ->firstOrFail();
 
         // Mode cetak resi: tampilkan halaman print tanpa layout admin
         if ($request->boolean('print')) {
@@ -871,7 +879,15 @@ class AdminWebOrderController extends Controller
      */
     public function downloadInvoicePdf($id)
     {
-        $order = \App\Models\Order::with(['items.product', 'items.productVariant', 'user'])->findOrFail($id);
+        $order = \App\Models\Order::with(['items.product', 'items.productVariant', 'user'])
+            ->where(function ($q) use ($id) {
+                if (is_numeric($id)) {
+                    $q->where('id', $id)->orWhere('order_number', $id);
+                } else {
+                    $q->where('order_number', $id);
+                }
+            })
+            ->firstOrFail();
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('admin.pdf.invoice', ['order' => $order])
             ->setPaper('a4', 'portrait');
