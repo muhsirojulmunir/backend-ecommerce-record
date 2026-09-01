@@ -82,6 +82,12 @@
         </div>
     </div>
 
+        @if($customer->trashed())
+        <div class="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-xl mb-6 text-xs font-bold flex items-center gap-2">
+            <i class="fa-solid fa-user-slash text-rose-600 text-base"></i>
+            <span>Akun customer ini telah dinonaktifkan/dihapus oleh customer pada {{ $customer->deleted_at ? $customer->deleted_at->timezone('Asia/Jakarta')->translatedFormat('d F Y, H:i') : '' }} WIB. Seluruh riwayat pesanan tetap tersimpan untuk pembukuan.</span>
+        </div>
+    @endif
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {{-- ── Riwayat Pesanan ── --}}

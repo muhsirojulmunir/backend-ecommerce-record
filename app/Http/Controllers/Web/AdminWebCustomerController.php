@@ -39,7 +39,7 @@ class AdminWebCustomerController extends Controller
      */
     public function show(int $id)
     {
-        $customer = User::customers()
+        $customer = User::withTrashed()->customers()
             ->with(['addresses' => fn ($q) => $q->orderByDesc('is_default')])
             ->findOrFail($id);
 
@@ -80,7 +80,7 @@ class AdminWebCustomerController extends Controller
      */
     public function toggleBlock(int $id)
     {
-        $customer = User::customers()->findOrFail($id);
+        $customer = User::withTrashed()->customers()->findOrFail($id);
         $customer->update(['is_blocked' => ! $customer->is_blocked]);
 
         // Cabut token API yang masih aktif supaya blokir langsung berlaku, bukan menunggu login berikutnya
@@ -135,7 +135,7 @@ class AdminWebCustomerController extends Controller
      */
     private function baseQuery()
     {
-        return User::customers()
+        return User::withTrashed()->customers()
             ->withCount('orders')
             ->withSum(
                 ['orders as total_spent' => fn ($q) => $q->where('payment_status', 'paid')],
@@ -182,26 +182,26 @@ class AdminWebCustomerController extends Controller
     private function tabCounts(): array
     {
         return [
-            'all'      => User::customers()->count(),
-            'active'   => User::customers()->has('orders')->count(),
-            'inactive' => User::customers()->doesntHave('orders')->count(),
-            'new'      => User::customers()->where('created_at', '>=', now()->subDays(30))->count(),
-            'blocked'  => User::customers()->where('is_blocked', true)->count(),
+            'all'      => User::withTrashed()->customers()->count(),
+            'active'   => User::withTrashed()->customers()->has('orders')->count(),
+            'inactive' => User::withTrashed()->customers()->doesntHave('orders')->count(),
+            'new'      => User::withTrashed()->customers()->where('created_at', '>=', now()->subDays(30))->count(),
+            'blocked'  => User::withTrashed()->customers()->where('is_blocked', true)->count(),
         ];
     }
 
     private function headlineStats(): array
     {
-        $customerIds = User::customers()->select('id');
+        $customerIds = User::withTrashed()->customers()->select('id');
 
         $paidOrders = Order::whereIn('user_id', $customerIds)->where('payment_status', 'paid');
 
         $totalRevenue = (float) (clone $paidOrders)->sum('grand_total');
-        $buyerCount   = User::customers()->has('orders')->count();
+        $buyerCount   = User::withTrashed()->customers()->has('orders')->count();
 
         return [
-            'total'         => User::customers()->count(),
-            'new_this_month' => User::customers()->where('created_at', '>=', now()->startOfMonth())->count(),
+            'total'         => User::withTrashed()->customers()->count(),
+            'new_this_month' => User::withTrashed()->customers()->where('created_at', '>=', now()->startOfMonth())->count(),
             'buyers'        => $buyerCount,
             'total_revenue' => $totalRevenue,
             // Rata-rata nilai belanja per customer yang pernah bertransaksi
