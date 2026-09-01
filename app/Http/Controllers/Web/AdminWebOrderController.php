@@ -832,7 +832,7 @@ class AdminWebOrderController extends Controller
     public function destroy(int $id)
     {
         $user = auth()->user();
-        if (!$user || (!$user->isSuperAdmin() && !$user->hasRole('super_admin') && !$user->hasRole('Super Admin'))) {
+        if (!$user || (!$user->isAdmin() && !$user->isSuperAdmin() && !$user->hasRole('super_admin') && !$user->hasRole('Super Admin') && !$user->hasRole('admin'))) {
             return redirect()->back()->with('error', 'Akses ditolak: Hanya Super Admin yang berhak menghapus pesanan.');
         }
 
@@ -853,7 +853,7 @@ class AdminWebOrderController extends Controller
     public function bulkDelete(Request $request)
     {
         $user = auth()->user();
-        if (!$user || (!$user->isSuperAdmin() && !$user->hasRole('super_admin') && !$user->hasRole('Super Admin'))) {
+        if (!$user || (!$user->isAdmin() && !$user->isSuperAdmin() && !$user->hasRole('super_admin') && !$user->hasRole('Super Admin') && !$user->hasRole('admin'))) {
             return redirect()->back()->with('error', 'Akses ditolak: Hanya Super Admin yang berhak menghapus pesanan.');
         }
 

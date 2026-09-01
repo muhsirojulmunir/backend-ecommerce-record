@@ -274,10 +274,10 @@
                     class="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm border border-slate-600">
                 <i class="fa-solid fa-print"></i> Cetak Resi
             </button>
-            @if(auth()->user() && (auth()->user()->isSuperAdmin() || auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('Super Admin')))
-                <button type="button" @click="submitBulkDelete()"
-                        class="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm">
-                    <i class="fa-solid fa-trash-can"></i> Hapus Pesanan
+            @if(auth()->user() && (auth()->user()->isAdmin() || auth()->user()->isSuperAdmin() || auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('admin')))
+                <button type="button" @click="konfirmasiHapusBulk()"
+                        class="inline-flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm cursor-pointer">
+                    <i class="fa-solid fa-trash-can"></i> Hapus Pesanan (<span x-text="selected.length"></span>)
                 </button>
             @endif
             <button type="button" @click="selected = []; selectAll = false"
@@ -485,7 +485,7 @@
                                     </form>
                                 @endif
 
-                                @if(auth()->user() && (auth()->user()->isSuperAdmin() || auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('Super Admin')))
+                                @if(auth()->user() && (auth()->user()->isAdmin() || auth()->user()->isSuperAdmin() || auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('admin')))
                                     <button type="button" @click.stop="$nextTick(() => konfirmasiHapusSingle({{ $order->id }}, '{{ $order->order_number }}'))"
                                             class="mt-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:underline flex items-center gap-1">
                                         <i class="fa-regular fa-trash-can text-[10px]"></i> Hapus Pesanan
@@ -842,8 +842,12 @@ function orderBulk() {
             this.showDeleteModal = true;
         },
 
+        submitBulkDelete() {
+            this.konfirmasiHapusBulk();
+        },
+
         konfirmasiHapusBulk() {
-            if (this.selected.length === 0) {
+            if (!this.selected || this.selected.length === 0) {
                 alert('Pilih minimal satu pesanan untuk dihapus.');
                 return;
             }
