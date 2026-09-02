@@ -518,9 +518,9 @@ class AdminWebOrderController extends Controller
             // Jenis layanan default: untuk instan gunakan 'instant', untuk reguler gunakan 'reg'
             $jenisLayanan = $jenisLayanan ?: ($instan ? 'instant' : 'reg');
 
-            // Kurir cadangan berjenjang: jika instan ditolak karena rute antarkota, otomatis fallback ke kurir reguler
+            // Kurir cadangan: tetap dalam kategori yang sama (instan hanya sesama instan: Gojek/Grab)
             $courierFallbacks = $instan
-                ? array_values(array_unique([$primaryCourier, 'gojek', 'grab', 'anteraja', 'jne', 'sicepat']))
+                ? array_values(array_unique([$primaryCourier, 'gojek', 'grab']))
                 : array_values(array_unique([$primaryCourier, 'anteraja', 'jne', 'sicepat']));
 
             // Berat dibaca dari satu tempat saja, supaya angka yang dilaporkan
@@ -559,16 +559,22 @@ class AdminWebOrderController extends Controller
                 }
             }
 
+            // Koordinat gudang asal toko (Surabaya)
+            $originLat = (float) env('STORE_LATITUDE', -7.2275);
+            $originLng = (float) env('STORE_LONGITUDE', 112.7865);
+
             $basePayload = [
-                'shipper_name'         => env('STORE_LABEL', 'RECORD Official Store'),
-                'shipper_contact_name' => env('STORE_LABEL', 'RECORD Official Store'),
-                'shipper_phone'        => env('STORE_PHONE', '081323065554'),
-                'origin_contact_name'  => env('STORE_LABEL', 'RECORD Official Store'),
-                'origin_contact_phone' => env('STORE_PHONE', '081323065554'),
-                'origin_address'       => env('STORE_ADDRESS', 'Jln Kyai tambak deres 32, Kedungcowek, Bulak, Surabaya, Jawa Timur'),
-                'origin_postal_code'   => (int) env('STORE_POSTAL_CODE', '60123'),
-                'origin_latitude'      => (float) env('STORE_LATITUDE', -7.2275),
-                'origin_longitude'     => (float) env('STORE_LONGITUDE', 112.7865),
+                'shipper_name'          => env('STORE_LABEL', 'RECORD Official Store'),
+                'shipper_contact_name'  => env('STORE_LABEL', 'RECORD Official Store'),
+                'shipper_phone'         => env('STORE_PHONE', '081323065554'),
+                'origin_contact_name'   => env('STORE_LABEL', 'RECORD Official Store'),
+                'origin_contact_phone'  => env('STORE_PHONE', '081323065554'),
+                'origin_address'        => env('STORE_ADDRESS', 'Jln Kyai tambak deres 32, Kedungcowek, Bulak, Surabaya, Jawa Timur'),
+                'origin_postal_code'    => (int) env('STORE_POSTAL_CODE', '60123'),
+                'origin_coordinate'     => [
+                    'latitude'  => $originLat,
+                    'longitude' => $originLng,
+                ],
 
                 'destination_contact_name'  => $address['recipient_name'] ?? ($order->user->name ?? 'Customer'),
                 'destination_contact_phone' => $address['phone'] ?? ($order->user->phone ?? '08123456789'),
@@ -584,9 +590,18 @@ class AdminWebOrderController extends Controller
                 $basePayload['destination_postal_code'] = (int) $postalCode;
             }
 
+            // Sertakan koordinat tujuan (wajib untuk instan Gojek / Grab)
             if ($destLat && $destLng) {
-                $basePayload['destination_latitude']  = (float) $destLat;
-                $basePayload['destination_longitude'] = (float) $destLng;
+                $basePayload['destination_coordinate'] = [
+                    'latitude'  => (float) $destLat,
+                    'longitude' => (float) $destLng,
+                ];
+            } elseif ($instan) {
+                // Fallback koordinat tujuan terdekat di Surabaya jika customer tidak mengizinkan akses GPS
+                $basePayload['destination_coordinate'] = [
+                    'latitude'  => $originLat - 0.014,
+                    'longitude' => $originLng - 0.021,
+                ];
             }
 
             /*
