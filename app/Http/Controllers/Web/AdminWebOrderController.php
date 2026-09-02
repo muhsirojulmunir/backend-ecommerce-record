@@ -656,8 +656,25 @@ class AdminWebOrderController extends Controller
                         return $gagal('Biteship menerima pesanan tetapi tidak mengembalikan nomor resi.');
                     }
 
-                    // Simpan courier yang berhasil ke order
-                    $order->courier = $courier;
+                    // Simpan nama kurir dan layanan yang serasi dengan sistem Biteship
+                    $comp = strtolower($data['courier']['company'] ?? $courier);
+                    $type = strtolower($data['courier']['type'] ?? $curType);
+
+                    if ($comp === 'gojek') {
+                        $order->courier = 'Gojek Instant';
+                    } elseif ($comp === 'grab') {
+                        $order->courier = 'GrabExpress Instant';
+                    } elseif ($comp === 'anteraja') {
+                        $order->courier = 'AnterAja ' . ($type === 'instant' ? 'Instant' : 'Reguler');
+                    } elseif ($comp === 'jne') {
+                        $order->courier = 'JNE ' . ($type === 'instant' ? 'Instant' : 'Reguler');
+                    } elseif ($comp === 'sicepat') {
+                        $order->courier = 'SiCepat ' . ($type === 'instant' ? 'Instant' : 'Reguler');
+                    } elseif ($comp === 'jnt' || $comp === 'j&t') {
+                        $order->courier = 'J&T ' . ($type === 'instant' ? 'Instant' : 'Reguler');
+                    } else {
+                        $order->courier = strtoupper($comp) . ($type ? ' ' . ucfirst($type) : '');
+                    }
 
                     /*
                      * Premi asuransi diambil dari jawaban Biteship, bukan
