@@ -479,7 +479,7 @@ class AdminWebOrderController extends Controller
             'soal_saldo' => $soalSaldo,
         ];
 
-        $apiKey = env('BITESHIP_API_KEY');
+        $apiKey = config('biteship.api_key', env('BITESHIP_API_KEY'));
 
         if (! $apiKey) {
             return $gagal('Kunci API Biteship belum diisi di berkas .env.');

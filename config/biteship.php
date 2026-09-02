@@ -4,6 +4,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Kunci API & URL Biteship
+    |--------------------------------------------------------------------------
+    |
+    | Kunci API didapatkan dari dasbor Biteship (https://dashboard.biteship.com).
+    | Digunakan untuk request pickup kurir, cek ongkir, dan pelacakan AWB.
+    |
+    */
+    'api_key' => env('BITESHIP_API_KEY'),
+    'api_url' => env('BITESHIP_API_URL', 'https://api.biteship.com/v1'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Ambang peringatan saldo
     |--------------------------------------------------------------------------
     |
