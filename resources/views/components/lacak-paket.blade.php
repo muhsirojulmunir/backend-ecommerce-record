@@ -157,6 +157,27 @@
                 </div>
             </template>
 
+            {{-- Foto Bukti Diterima (Proof of Delivery / POD) --}}
+            <template x-if="data.foto_bukti">
+                <div class="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2">
+                    <div class="flex items-center justify-between">
+                        <p class="text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
+                            <i class="fa-solid fa-camera"></i>
+                            <span>Foto Bukti Diterima (Proof of Delivery)</span>
+                        </p>
+                        <template x-if="data.penerima_nama">
+                            <span class="text-[10px] text-emerald-700 font-semibold" x-text="'Diterima oleh: ' + data.penerima_nama"></span>
+                        </template>
+                    </div>
+                    <a :href="data.foto_bukti" target="_blank" rel="noopener" class="inline-block group relative overflow-hidden rounded-lg border border-emerald-300 w-28 h-28 bg-gray-100 shadow-sm">
+                        <img :src="data.foto_bukti" alt="Bukti Serah Terima" class="w-full h-full object-cover group-hover:scale-105 transition" />
+                        <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-[9px] font-bold text-center p-1">
+                            Perbesar Foto
+                        </div>
+                    </a>
+                </div>
+            </template>
+
             {{-- Riwayat, terbaru di atas. --}}
             <ol class="relative border-l border-gray-200 ml-1.5 space-y-4 pt-1">
                 <template x-for="(r, i) in data.riwayat" :key="i">

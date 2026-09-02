@@ -229,12 +229,14 @@ class PelacakanService
                     // Halaman pelacakan milik Biteship. Membukanya tidak
                     // memotong saldo lagi, jadi admin maupun pembeli bisa
                     // memeriksa sepuasnya di sana.
-                    'tautan'     => $data['link'] ?? null,
+                    'tautan'            => $data['link'] ?? null,
+                    'foto_bukti'        => $data['proof_of_delivery']['link'] ?? $data['destination']['proof_of_delivery']['link'] ?? null,
+                    'penerima_nama'     => $data['proof_of_delivery']['recipient_name'] ?? $data['proof_of_delivery']['note'] ?? null,
 
                     // Nama dan pelat kurir: satu-satunya keterangan yang bisa
                     // dipegang bila paket bermasalah di tangan kurir.
-                    'kurir_nama' => $data['courier']['driver_name'] ?? null,
-                    'kurir_hp'   => $data['courier']['driver_phone'] ?? null,
+                    'kurir_nama' => $data['courier']['driver_name'] ?? $data['courier']['name'] ?? null,
+                    'kurir_hp'   => $data['courier']['driver_phone'] ?? $data['courier']['phone'] ?? null,
                     'kurir_plat' => $data['courier']['driver_plate_number'] ?? null,
                 ];
             } catch (\Throwable $e) {
