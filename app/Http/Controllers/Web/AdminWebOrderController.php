@@ -518,10 +518,10 @@ class AdminWebOrderController extends Controller
             // Jenis layanan default: untuk instan gunakan 'instant', untuk reguler gunakan 'reg'
             $jenisLayanan = $jenisLayanan ?: ($instan ? 'instant' : 'reg');
 
-            // Kurir cadangan HANYA untuk pengiriman reguler.
+            // Kurir cadangan berjenjang: jika instan ditolak karena rute antarkota, otomatis fallback ke kurir reguler
             $courierFallbacks = $instan
-                ? array_values(array_unique([$primaryCourier, 'gojek', 'grab']))
-                : array_values(array_unique([$primaryCourier, 'jne', 'sicepat', 'anteraja']));
+                ? array_values(array_unique([$primaryCourier, 'gojek', 'grab', 'anteraja', 'jne', 'sicepat']))
+                : array_values(array_unique([$primaryCourier, 'anteraja', 'jne', 'sicepat']));
 
             // Berat dibaca dari satu tempat saja, supaya angka yang dilaporkan
             // ke Biteship selalu sama dengan yang tercetak di label.
@@ -576,7 +576,6 @@ class AdminWebOrderController extends Controller
                 'destination_phone'         => $address['phone'] ?? ($order->user->phone ?? '08123456789'),
                 'destination_address'       => $destAddress ?: 'Indonesia',
 
-                'courier_type'        => $jenisLayanan,
                 'delivery_type'       => 'now',
                 'items'               => $items,
             ];
@@ -619,7 +618,11 @@ class AdminWebOrderController extends Controller
 
             // Coba setiap kurir fallback sampai berhasil
             foreach ($courierFallbacks as $courier) {
-                $payload = array_merge($basePayload, ['courier_company' => $courier]);
+                $curType = in_array($courier, ['gojek', 'grab', 'lalamove', 'borzo']) ? 'instant' : 'reg';
+                $payload = array_merge($basePayload, [
+                    'courier_company' => $courier,
+                    'courier_type'    => $curType,
+                ]);
 
                 \Illuminate\Support\Facades\Log::info('Biteship Trying Courier: ' . $courier . ' | Payload: ' . json_encode($payload));
 
