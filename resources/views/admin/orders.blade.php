@@ -6,31 +6,7 @@
 @section('content')
 <div class="space-y-4" x-data="orderBulk()">
 
-    {{-- Flash Alert Success --}}
-    @if(session('success'))
-        <div class="flash-alert p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between shadow-sm">
-            <div class="flex items-center gap-3">
-                <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
-                <span>{{ session('success') }}</span>
-            </div>
-            <button type="button" onclick="this.closest('.flash-alert').remove()" class="text-emerald-500 hover:text-emerald-700 transition p-1">
-                <i class="fa-solid fa-xmark text-sm"></i>
-            </button>
-        </div>
-    @endif
-
-    {{-- Flash Alert Error --}}
-    @if(session('error'))
-        <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center justify-between shadow-sm">
-            <div class="flex items-center gap-3">
-                <i class="fa-solid fa-triangle-exclamation text-red-600 text-base"></i>
-                <span>{{ session('error') }}</span>
-            </div>
-            <button type="button" onclick="this.closest('div').remove()" class="text-red-500 hover:text-red-700 transition p-1">
-                <i class="fa-solid fa-xmark text-sm"></i>
-            </button>
-        </div>
-    @endif
+    {{-- Flash alert sudah ditampilkan oleh layout app.blade.php, tidak perlu duplikat di sini --}}
 
     {{-- ═══════════════ HEADER UTAMA PESANAN SAYA ═══════════════ --}}
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
