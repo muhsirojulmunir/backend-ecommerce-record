@@ -301,7 +301,7 @@
         @else
             {{-- Table Column Headers (Shopee Seller Style) --}}
             <div class="hidden lg:grid grid-cols-12 gap-4 px-4 py-3 bg-gray-100/70 border-b border-gray-200 text-xs font-bold text-gray-600">
-                <div class="col-span-5 flex items-center gap-3">
+                <div class="col-span-4 flex items-center gap-3">
                     <input type="checkbox" x-model="selectAll" @change="toggleAll()"
                            class="rounded border-gray-300 text-[#EE4D2D] focus:ring-[#EE4D2D] cursor-pointer w-4 h-4">
                     <span>Produk</span>
@@ -309,7 +309,7 @@
                 <div class="col-span-2 text-left">Dibayar Pembeli</div>
                 <div class="col-span-2 text-left">Status / Batas Waktu</div>
                 <div class="col-span-2 text-left">Jasa Kirim</div>
-                <div class="col-span-1 text-right">Aksi</div>
+                <div class="col-span-2 text-right">Aksi</div>
             </div>
 
             {{-- List of Order Cards --}}
@@ -370,8 +370,8 @@
 
                         {{-- ── Card Grid Body ── --}}
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 items-start text-xs">
-                            {{-- 1. Kolom Produk (col-span-5) --}}
-                            <div class="lg:col-span-5 space-y-3">
+                            {{-- 1. Kolom Produk (col-span-4) --}}
+                            <div class="lg:col-span-4 space-y-3">
                                 @forelse($order->items as $item)
                                     <div class="flex items-start gap-3">
                                         <img src="{{ $item->product?->image_url ?? asset('images/no-image.png') }}"
@@ -481,15 +481,15 @@
                                 @endif
                             </div>
 
-                            {{-- 5. Kolom Aksi (col-span-1) --}}
-                            <div class="lg:col-span-1 flex flex-col items-start lg:items-end gap-2 shrink-0">
+                                                        {{-- 5. Kolom Aksi (col-span-2) --}}
+                            <div class="lg:col-span-2 flex flex-col items-start lg:items-end justify-start gap-2 text-right shrink-0">
                                 <a href="{{ route('admin.orders.show', $order->id) }}"
-                                   class="text-[#0055AA] hover:text-[#EE4D2D] font-semibold text-xs transition">
+                                   class="text-[#0055AA] hover:text-[#EE4D2D] font-semibold text-xs transition whitespace-nowrap">
                                     Lihat Rincian Pengiriman
                                 </a>
 
                                 <a href="{{ route('admin.orders.show', $order->id) . '?print=1' }}" target="_blank"
-                                   class="text-[#0055AA] hover:text-[#EE4D2D] font-semibold text-xs transition">
+                                   class="text-[#0055AA] hover:text-[#EE4D2D] font-semibold text-xs transition whitespace-nowrap">
                                     Cetak Label
                                 </a>
 
@@ -499,7 +499,7 @@
                                         <input type="hidden" name="order_ids[]" value="{{ $order->id }}">
                                         <button type="submit"
                                                 onclick="return confirm('Atur penjemputan Biteship untuk pesanan #{{ $order->order_number }}?')"
-                                                class="mt-1 text-xs font-bold text-[#EE4D2D] hover:underline">
+                                                class="text-xs font-bold text-[#EE4D2D] hover:underline whitespace-nowrap">
                                             Atur Pengiriman
                                         </button>
                                     </form>
@@ -507,8 +507,9 @@
 
                                 @if(auth()->user() && (auth()->user()->isAdmin() || auth()->user()->isSuperAdmin() || auth()->user()->hasRole('super_admin') || auth()->user()->hasRole('Super Admin') || auth()->user()->hasRole('admin')))
                                     <button type="button" @click.stop="$nextTick(() => konfirmasiHapusSingle({{ $order->id }}, '{{ $order->order_number }}'))"
-                                            class="mt-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:underline flex items-center gap-1">
-                                        <i class="fa-regular fa-trash-can text-[10px]"></i> Hapus Pesanan
+                                            class="text-[11px] font-semibold text-rose-600 hover:text-rose-800 hover:underline inline-flex items-center gap-1.5 whitespace-nowrap">
+                                        <i class="fa-regular fa-trash-can text-[10px]"></i>
+                                        <span>Hapus Pesanan</span>
                                     </button>
                                 @endif
                             </div>
