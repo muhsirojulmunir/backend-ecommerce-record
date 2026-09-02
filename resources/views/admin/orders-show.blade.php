@@ -411,7 +411,7 @@
 
         </div>
 
-        {{-- Right: Actions --}}
+                {{-- Right: Actions & Automation Dashboard --}}
         <div class="space-y-6">
 
             {{-- Alasan pembatalan dari pembeli --}}
@@ -441,16 +441,105 @@
                 </div>
             @endif
 
-            {{-- Update Status --}}
+            {{-- 1. Status Otomatis & Aksi Utama (Automated Flow) --}}
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-                <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-gray-100 pb-3">
-                    Ubah Status Pesanan
-                </h3>
-                <form action="{{ route('admin.orders.update-status', $order->id) }}" method="POST" class="space-y-3">
-                    @csrf
-                    @method('PUT')
-                    <div>
-                        <label class="text-[11px] font-bold text-gray-500 block mb-1">Status Baru</label>
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-bolt text-amber-500"></i>
+                        <span>Proses Otomatis Sistem</span>
+                    </h3>
+                    <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Terintegrasi
+                    </span>
+                </div>
+
+                {{-- Status Pembayaran Otomatis --}}
+                <div class="p-3.5 rounded-xl bg-gray-50 border border-gray-100 space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-gray-500 font-medium">Pembayaran (Midtrans)</span>
+                        @if($order->payment_status === 'paid')
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                ✓ Lunas Otomatis
+                            </span>
+                        @elseif($order->payment_status === 'pending_verification')
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-200">
+                                ⏳ Menunggu Verifikasi
+                            </span>
+                        @else
+                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">
+                                ⏳ Menunggu Pembayaran
+                            </span>
+                        @endif
+                    </div>
+                    <p class="text-[10px] text-gray-400 leading-tight">
+                        @if($order->payment_status === 'paid')
+                            Pembayaran telah diverifikasi otomatis via Midtrans ({{ strtoupper($order->payment_method) }}).
+                        @else
+                            Sistem secara otomatis menunggu konfirmasi pembayaran dari gateway Midtrans.
+                        @endif
+                    </p>
+                </div>
+
+                {{-- Tombol Aksi Utama Pengiriman Otomatis Biteship --}}
+                @if($order->payment_status === 'paid' && in_array($order->status, ['pending', 'processing']))
+                    <form action="{{ route('admin.orders.bulk-ship') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="order_ids[]" value="{{ $order->id }}">
+                        <button type="submit"
+                                onclick="return confirm('Panggil kurir BiteShip ({{ $order->courier ?: 'Ekspedisi' }}) dan terbitkan nomor resi resmi otomatis?')"
+                                class="w-full bg-[#EE4D2D] hover:bg-[#D73211] text-white font-bold text-xs py-3 rounded-xl transition shadow-lg shadow-orange-600/20 flex items-center justify-center gap-2 uppercase tracking-wider">
+                            <i class="fa-solid fa-truck-fast"></i>
+                            <span>Panggil Kurir & Buat Resi</span>
+                        </button>
+                    </form>
+                    <p class="text-[10px] text-center text-gray-400">
+                        Klik 1 tombol di atas untuk request pickup kurir & generate resi AWB resmi otomatis.
+                    </p>
+                @elseif($order->status === 'shipped')
+                    <div class="p-3.5 rounded-xl bg-sky-50 border border-sky-200 space-y-1">
+                        <div class="flex items-center gap-2 text-sky-900 font-bold text-xs">
+                            <i class="fa-solid fa-truck text-sky-600"></i>
+                            <span>Paket Dalam Pengiriman</span>
+                        </div>
+                        <p class="text-[10px] text-sky-800 leading-tight">
+                            Resi resmi <strong>{{ $order->tracking_number }}</strong> aktif. Garis pelacakan di sebelah kiri otomatis terupdate saat kurir bergerak.
+                        </p>
+                    </div>
+                @elseif($order->status === 'completed')
+                    <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-1">
+                        <div class="flex items-center gap-2 text-emerald-900 font-bold text-xs">
+                            <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                            <span>Pesanan Telah Selesai</span>
+                        </div>
+                        <p class="text-[10px] text-emerald-800 leading-tight">
+                            Paket telah sampai di rumah pembeli dan status pesanan otomatis diselesaikan oleh sistem.
+                        </p>
+                    </div>
+                @endif
+            </div>
+
+            {{-- 2. Opsi Penyesuaian Manual / Darurat (Super Admin Accordion) --}}
+            <div x-data="{ openManual: false }" class="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
+                <button type="button" @click="openManual = !openManual"
+                        class="w-full px-5 py-3.5 flex items-center justify-between text-xs font-bold text-gray-500 hover:text-slate-800 transition bg-gray-50/70">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-gray-400"></i>
+                        <span>Penyesuaian Manual (Darurat)</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" :class="openManual && 'rotate-180'"></i>
+                </button>
+
+                <div x-show="openManual" x-cloak class="p-5 space-y-5 border-t border-gray-100 text-xs">
+                    <p class="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 p-2.5 rounded-lg leading-relaxed">
+                        <i class="fa-solid fa-circle-info mr-1"></i>
+                        Gunakan form manual ini hanya jika terjadi kendala pada API otomatis Midtrans / BiteShip.
+                    </p>
+
+                    {{-- Ubah Status Manual --}}
+                    <form action="{{ route('admin.orders.update-status', $order->id) }}" method="POST" class="space-y-2.5">
+                        @csrf
+                        @method('PUT')
+                        <label class="text-[11px] font-bold text-gray-700 block">Override Status Pesanan</label>
                         <select name="status" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500">
                             <option value="pending" {{ $order->status === 'pending' ? 'selected' : '' }}>Pending (Menunggu Pembayaran)</option>
                             <option value="processing" {{ $order->status === 'processing' ? 'selected' : '' }}>Processing (Sedang Diproses)</option>
@@ -458,91 +547,43 @@
                             <option value="completed" {{ $order->status === 'completed' ? 'selected' : '' }}>Completed (Pesanan Selesai)</option>
                             <option value="cancelled" {{ $order->status === 'cancelled' ? 'selected' : '' }}>Cancelled (Dibatalkan)</option>
                         </select>
-                    </div>
-                    <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2.5 rounded-xl transition uppercase tracking-wider">
-                        Simpan Status
-                    </button>
-                </form>
-            </div>
-
-            {{-- Input Resi --}}
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-                <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-gray-100 pb-3 flex items-center gap-2">
-                    <i class="fa-solid fa-truck-fast text-orange-600"></i>
-                    <span>Input Nomor Resi</span>
-                </h3>
-                <form action="{{ route('admin.orders.update-tracking', $order->id) }}" method="POST" class="space-y-3">
-                    @csrf
-                    @method('PUT')
-                    <div>
-                        <label class="text-[11px] font-bold text-gray-500 block mb-1">Nama Kurir</label>
-                        <input type="text" name="courier" value="{{ old('courier', $order->courier) }}"
-                               placeholder="Contoh: JNE Reguler / J&T Express"
-                               class="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500">
-                    </div>
-                    <div>
-                        <label class="text-[11px] font-bold text-gray-500 block mb-1">Nomor Resi (AWB)</label>
-                        <input type="text" name="tracking_number" value="{{ old('tracking_number', $order->tracking_number) }}"
-                               placeholder="Contoh: JNE123456789ID" required
-                               class="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500">
-                    </div>
-                    <button type="submit" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs py-2.5 rounded-xl transition uppercase tracking-wider shadow-md shadow-orange-600/20">
-                        Simpan & Update Resi
-                    </button>
-                </form>
-            </div>
-
-            {{-- Status pembayaran + konfirmasi lunas. --}}
-            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4 text-xs">
-                <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider border-b border-gray-100 pb-3">
-                    Status Pembayaran
-                </h3>
-
-                <div class="flex justify-between items-center">
-                    <span class="text-gray-400 font-bold text-[10px] uppercase">Dibayar Pembeli:</span>
-                    <span class="font-black text-sm text-orange-600">
-                        Rp {{ number_format($order->grand_total, 0, ',', '.') }}
-                    </span>
-                </div>
-
-                <div class="border-t border-gray-100 pt-3 space-y-2">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-400 font-bold text-[10px] uppercase">Metode Bayar:</span>
-                        <span class="font-bold text-slate-900 uppercase">{{ $order->payment_method }}</span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-400 font-bold text-[10px] uppercase">Status Bayar:</span>
-                        @if($order->payment_status === 'paid')
-                            <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                ✓ Lunas
-                            </span>
-                        @elseif($order->payment_status === 'pending_verification')
-                            <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
-                                ⏳ Menunggu Verifikasi
-                            </span>
-                        @else
-                            <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-800 border border-red-300">
-                                ✗ Belum Bayar
-                            </span>
-                        @endif
-                    </div>
-                </div>
-
-                @if($order->payment_status !== 'paid')
-                    <form action="{{ route('admin.orders.confirm-payment', $order->id) }}" method="POST" class="pt-2">
-                        @csrf
-                        @method('PATCH')
-                        <button type="submit" onclick="return confirm('Tandai pembayaran pesanan ini sebagai LUNAS?')"
-                                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 rounded-xl transition uppercase tracking-wider shadow-sm">
-                            <i class="fa-solid fa-check mr-1"></i> Tandai Lunas
+                        <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-2 rounded-xl transition uppercase tracking-wider">
+                            Simpan Status Manual
                         </button>
                     </form>
-                @endif
+
+                    {{-- Input Resi Manual --}}
+                    <form action="{{ route('admin.orders.update-tracking', $order->id) }}" method="POST" class="space-y-2.5 pt-3 border-t border-gray-100">
+                        @csrf
+                        @method('PUT')
+                        <label class="text-[11px] font-bold text-gray-700 block">Input Resi Ekspedisi Manual</label>
+                        <input type="text" name="courier" value="{{ old('courier', $order->courier) }}"
+                               placeholder="Nama Kurir (Contoh: JNE / J&T / AnterAja)"
+                               class="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs">
+                        <input type="text" name="tracking_number" value="{{ old('tracking_number', $order->tracking_number) }}"
+                               placeholder="Nomor Resi (AWB)" required
+                               class="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs font-mono font-bold">
+                        <button type="submit" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs py-2 rounded-xl transition uppercase tracking-wider">
+                            Simpan Resi Manual
+                        </button>
+                    </form>
+
+                    {{-- Konfirmasi Lunas Manual --}}
+                    @if($order->payment_status !== 'paid')
+                        <form action="{{ route('admin.orders.confirm-payment', $order->id) }}" method="POST" class="pt-3 border-t border-gray-100">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" onclick="return confirm('Tandai pembayaran pesanan ini sebagai LUNAS secara manual?')"
+                                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2 rounded-xl transition uppercase tracking-wider">
+                                <i class="fa-solid fa-check mr-1"></i> Override Tandai Lunas
+                            </button>
+                        </form>
+                    @endif
+                </div>
             </div>
 
         </div>
     </div>
-
 </div>
 @endsection
 

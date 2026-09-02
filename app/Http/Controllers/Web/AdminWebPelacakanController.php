@@ -17,13 +17,19 @@ class AdminWebPelacakanController extends Controller
     }
 
     /** Paket keluar: dari toko menuju pembeli. */
-    public function pesanan(int $id)
+        public function pesanan(int $id)
     {
         $order = Order::findOrFail($id);
+        $result = $this->pelacakan->lacak($order->tracking_number, $order->courier);
+
+        // Otomatisasi: Jika status pelacakan kurir BiteShip sudah sampai tujuan (delivered), otomatis ubah status pesanan menjadi completed
+        if (!empty($result['status']) && $result['status'] === 'delivered' && $order->status === 'shipped') {
+            $order->status = 'completed';
+            $order->save();
+        }
 
         return response()->json(
-            $this->pelacakan->lacak($order->tracking_number, $order->courier)
-                + ['arah' => 'keluar']
+            $result + ['arah' => 'keluar']
         );
     }
 
