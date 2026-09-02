@@ -540,6 +540,18 @@ class AdminWebOrderController extends Controller
                 $address['province']     ?? null,
             ])));
 
+            $destLat = $address['latitude'] ?? null;
+            $destLng = $address['longitude'] ?? null;
+
+            // Jika koordinat belum tersimpan di snapshot alamat pesanan, ambil dari alamat tersimpan customer
+            if ((!$destLat || !$destLng) && !empty($order->user_id)) {
+                $userAddr = \App\Models\Address::where('user_id', $order->user_id)->orderByDesc('is_default')->first();
+                if ($userAddr && $userAddr->latitude && $userAddr->longitude) {
+                    $destLat = $userAddr->latitude;
+                    $destLng = $userAddr->longitude;
+                }
+            }
+
             $basePayload = [
                 'shipper_name'         => env('STORE_LABEL', 'RECORD Official Store'),
                 'shipper_contact_name' => env('STORE_LABEL', 'RECORD Official Store'),
@@ -548,6 +560,8 @@ class AdminWebOrderController extends Controller
                 'origin_contact_phone' => env('STORE_PHONE', '081323065554'),
                 'origin_address'       => env('STORE_ADDRESS', 'Jln Kyai tambak deres 32, Kedungcowek, Bulak, Surabaya, Jawa Timur'),
                 'origin_postal_code'   => (int) env('STORE_POSTAL_CODE', '60123'),
+                'origin_latitude'      => (float) env('STORE_LATITUDE', -7.2275),
+                'origin_longitude'     => (float) env('STORE_LONGITUDE', 112.7865),
 
                 'destination_contact_name'  => $address['recipient_name'] ?? ($order->user->name ?? 'Customer'),
                 'destination_contact_phone' => $address['phone'] ?? ($order->user->phone ?? '08123456789'),
@@ -560,14 +574,13 @@ class AdminWebOrderController extends Controller
                 'items'               => $items,
             ];
 
-            // Tambahkan titik koordinat penjemputan gudang agar akurat bagi kurir (khususnya instan & same-day)
-            if (env('STORE_LATITUDE') && env('STORE_LONGITUDE')) {
-                $basePayload['origin_latitude']  = (float) env('STORE_LATITUDE', -7.2275);
-                $basePayload['origin_longitude'] = (float) env('STORE_LONGITUDE', 112.7865);
-            }
-
             if ($postalCode) {
                 $basePayload['destination_postal_code'] = (int) $postalCode;
+            }
+
+            if ($destLat && $destLng) {
+                $basePayload['destination_latitude']  = (float) $destLat;
+                $basePayload['destination_longitude'] = (float) $destLng;
             }
 
             /*
