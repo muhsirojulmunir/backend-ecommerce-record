@@ -101,7 +101,7 @@ class BiteshipReturnService
                 $basePayload['destination_longitude'] = (float) env('STORE_LONGITUDE', 112.7865);
             }
 
-            $endpoint = rtrim(config('biteship.api_url', env('BITESHIP_API_URL', 'https://api.biteship.com/v1'), '/') . '/orders';
+            $endpoint = rtrim(config('biteship.api_url', env('BITESHIP_API_URL', 'https://api.biteship.com/v1')), '/') . '/orders';
 
             foreach ($couriers as $courierCode) {
                 $payload = array_merge($basePayload, [

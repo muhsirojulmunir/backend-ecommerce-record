@@ -190,7 +190,7 @@ class PelacakanService
             try {
                 $respons = Http::timeout(8)
                     ->withHeaders(['Authorization' => 'Bearer ' . $kunci])
-                    ->get(rtrim(config('biteship.api_url', env('BITESHIP_API_URL', 'https://api.biteship.com/v1'), '/')
+                    ->get(rtrim(config('biteship.api_url', env('BITESHIP_API_URL', 'https://api.biteship.com/v1')), '/')
                         . '/trackings/' . urlencode($resi) . '/couriers/' . $kode);
 
                 $data = $respons->json();
