@@ -693,13 +693,13 @@ class AdminWebOrderController extends Controller
                     return $gagal('Saldo Biteship tidak cukup untuk membayar ongkir pengiriman ini.', true);
                 }
 
-                // Jika error bukan soal kurir (misal postal code salah), hentikan retry
-                if (!in_array($errorCode, [40002031, 40002030, 40002032])) {
-                    \Illuminate\Support\Facades\Log::warning('Biteship Fatal Error (no retry): ' . $response->body());
+                // Jika error fatal seperti unauthorized (kunci API salah), baru hentikan retry
+                if (in_array($errorCode, [40100001, 40100002, 40300001]) || str_contains(strtolower($galatTerakhir), 'unauthorized')) {
+                    \Illuminate\Support\Facades\Log::warning('Biteship Fatal Auth Error (no retry): ' . $response->body());
                     break;
                 }
 
-                \Illuminate\Support\Facades\Log::warning('Biteship Courier ' . $courier . ' not available, trying next...');
+                \Illuminate\Support\Facades\Log::warning('Biteship Courier ' . $courier . ' (' . $curType . ') failed: ' . $galatTerakhir . ', trying next fallback...');
             }
 
             return $gagal($this->rapikanGalatBiteship($galatTerakhir));
