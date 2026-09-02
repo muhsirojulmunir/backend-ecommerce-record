@@ -504,16 +504,23 @@ class AdminWebOrderController extends Controller
                 explode(':', (string) $kodeTersimpan, 2), 2, null
             );
 
+            // Normalisasi alias nama kurir ke format resmi Biteship
+            if (in_array(strtolower((string)$primaryCourier), ['gosend', 'go-send'])) {
+                $primaryCourier = 'gojek';
+            } elseif (in_array(strtolower((string)$primaryCourier), ['grabexpress', 'grab-express'])) {
+                $primaryCourier = 'grab';
+            }
+
             $primaryCourier = $primaryCourier ?: 'jne';
 
-            // Jenis layanan diteruskan apa adanya ke Biteship.
-            $jenisLayanan = $jenisLayanan ?: 'reg';
-
-            // Kurir cadangan HANYA untuk pengiriman reguler.
             $instan = in_array($primaryCourier, ['gojek', 'grab', 'lalamove', 'borzo'], true);
 
+            // Jenis layanan default: untuk instan gunakan 'instant', untuk reguler gunakan 'reg'
+            $jenisLayanan = $jenisLayanan ?: ($instan ? 'instant' : 'reg');
+
+            // Kurir cadangan HANYA untuk pengiriman reguler.
             $courierFallbacks = $instan
-                ? [$primaryCourier]
+                ? array_values(array_unique([$primaryCourier, 'gojek', 'grab']))
                 : array_values(array_unique([$primaryCourier, 'jne', 'sicepat', 'anteraja']));
 
             // Berat dibaca dari satu tempat saja, supaya angka yang dilaporkan
