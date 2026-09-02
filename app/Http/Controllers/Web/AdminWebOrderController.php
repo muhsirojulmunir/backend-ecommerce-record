@@ -381,6 +381,11 @@ class AdminWebOrderController extends Controller
         }
 
         // Resi kosong: minta Biteship menerbitkannya sekaligus menjemput paket.
+        // Hanya proses jika pesanan sudah lunas
+        if ($order->payment_status !== 'paid' || in_array($order->status, ['cancelled', 'completed'])) {
+            return redirect()->back()->with('error', 'Pesanan ini belum lunas atau telah dibatalkan. Hanya pesanan yang sudah lunas yang dapat diproses pengirimannya.');
+        }
+
         $hasil = $this->createBiteshipShipment($order);
 
         /*
@@ -819,9 +824,15 @@ class AdminWebOrderController extends Controller
             'order_ids.*' => 'integer|exists:orders,id',
         ]);
 
+        // Hanya cetak pesanan yang sudah lunas
         $orders = Order::with(['user', 'items.product', 'items.productVariant'])
             ->whereIn('id', $request->order_ids)
+            ->where('payment_status', 'paid')
             ->get();
+
+        if ($orders->isEmpty()) {
+            return redirect()->back()->with('error', 'Tidak ada pesanan lunas yang dipilih untuk dicetak resinya.');
+        }
 
         return view('admin.partials.order-bulk-print', compact('orders'));
     }

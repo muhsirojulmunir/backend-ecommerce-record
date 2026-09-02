@@ -317,6 +317,7 @@
                 @foreach($orders as $order)
                     @php
                         $isPaid = $order->payment_status === 'paid';
+                        $canProcess = $isPaid && !in_array($order->status, ['cancelled']);
                         $alamat = (array) $order->shipping_address;
                         $namaPenerima = $alamat['name'] ?? ($order->user->name ?? 'Pelanggan');
                     @endphp
@@ -327,8 +328,17 @@
                         {{-- ── Card Top Strip (Header Pembeli & No. Pesanan) ── --}}
                         <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-gray-50/80 border-b border-gray-200 text-xs">
                             <div class="flex items-center gap-2.5 min-w-0">
-                                <input type="checkbox" :value="{{ $order->id }}" x-model="selected"
-                                       class="rounded border-gray-300 text-[#EE4D2D] focus:ring-[#EE4D2D] cursor-pointer w-4 h-4 shrink-0">
+                                @if($canProcess)
+                                    <input type="checkbox" :value="{{ $order->id }}" x-model="selected"
+                                           class="rounded border-gray-300 text-[#EE4D2D] focus:ring-[#EE4D2D] cursor-pointer w-4 h-4 shrink-0"
+                                           title="Pilih pesanan lunas ini untuk diproses">
+                                @else
+                                    <span class="inline-flex items-center justify-center w-4 h-4 shrink-0"
+                                          title="{{ !$isPaid ? 'Pesanan Belum Lunas - Tidak dapat diproses pengiriman' : 'Pesanan Telah Dibatalkan' }}">
+                                        <input type="checkbox" disabled
+                                               class="rounded border-gray-200 text-gray-300 cursor-not-allowed w-4 h-4 bg-gray-100 opacity-40">
+                                    </span>
+                                @endif
 
                                 {{-- Avatar & Nama Pembeli --}}
                                 <div class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-[10px] shrink-0">
@@ -416,17 +426,27 @@
                             <div class="lg:col-span-2">
                                 <p class="lg:hidden text-[10px] font-bold uppercase text-gray-400 mb-0.5">Status</p>
                                 <p class="font-bold text-slate-800 text-xs">
-                                    @if($order->status === 'pending') Perlu Dikirim
-                                    @elseif($order->status === 'processing') Perlu Dikirim
-                                    @elseif($order->status === 'shipped') Dikirim
-                                    @elseif($order->status === 'completed') Selesai
-                                    @elseif($order->status === 'cancelled') Dibatalkan
-                                    @else {{ $order->status_label }}
+                                    @if(!$isPaid && $order->status !== 'cancelled')
+                                        <span class="text-amber-600 font-extrabold flex items-center gap-1">
+                                            <i class="fa-solid fa-hourglass-half text-[10px]"></i> Menunggu Pembayaran
+                                        </span>
+                                    @elseif($order->status === 'cancelled')
+                                        <span class="text-gray-500 font-bold">Dibatalkan</span>
+                                    @elseif($order->status === 'shipped')
+                                        <span class="text-sky-600 font-bold">Dikirim</span>
+                                    @elseif($order->status === 'completed')
+                                        <span class="text-emerald-600 font-bold">Selesai</span>
+                                    @elseif(in_array($order->status, ['pending', 'processing']))
+                                        <span class="text-indigo-600 font-bold">Perlu Dikirim</span>
+                                    @else
+                                        {{ $order->status_label ?? ucfirst($order->status) }}
                                     @endif
                                 </p>
                                 <p class="text-[10px] text-gray-400 mt-1 leading-tight">
                                     @if($order->status === 'shipped')
                                         Paket dalam perjalanan kurir
+                                    @elseif($order->status === 'cancelled')
+                                        Pesanan telah dibatalkan
                                     @elseif($isPaid && $order->tracking_number && !str_starts_with($order->tracking_number, 'REC-'))
                                         Menunggu penjemputan / drop-off
                                     @elseif($isPaid)
@@ -789,7 +809,9 @@ function orderBulk() {
             if (this.selectAll) {
                 this.selected = [
                     @foreach($orders as $order)
-                        {{ $order->id }},
+                        @if($order->payment_status === 'paid' && !in_array($order->status, ['cancelled']))
+                            {{ $order->id }},
+                        @endif
                     @endforeach
                 ];
             } else {
