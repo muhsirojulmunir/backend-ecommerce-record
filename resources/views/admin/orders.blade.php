@@ -88,6 +88,7 @@
                 <span class="text-gray-500 font-medium w-24 shrink-0">Tipe Pesanan</span>
                 @php
                     $shipType = request('shipping_type', 'all');
+                    // subCounts sudah di-scope ke tab aktif oleh controller
                     $shipTypes = [
                         'all'     => 'Semua',
                         'reguler' => 'Reguler (' . ($subCounts['reguler'] ?? 0) . ')',

@@ -19,31 +19,7 @@ class AdminWebOrderController extends Controller
 
         // 1. Filter Tab Status Utama
         $currentTab = $request->query('tab', 'all');
-        switch ($currentTab) {
-            case 'ready':
-                // Perlu Dikirim: Lunas & status pending/processing
-                $query->where('payment_status', 'paid')->whereIn('status', ['pending', 'processing']);
-                break;
-            case 'unpaid':
-                // Belum bayar
-                $query->whereIn('payment_status', ['unpaid', 'pending_verification']);
-                break;
-            case 'shipped':
-                // Sedang dikirim
-                $query->where('status', 'shipped');
-                break;
-            case 'completed':
-                // Selesai
-                $query->where('status', 'completed');
-                break;
-            case 'cancelled':
-                // Pengembalian / Pembatalan
-                $query->where(function ($q) {
-                    $q->where('status', 'cancelled')
-                      ->orWhereHas('returns');
-                });
-                break;
-        }
+        $this->applyTabScope($query, $currentTab);
 
         // 2. Filter Sub-Status (Perlu diproses vs Telah diproses)
         if ($request->filled('sub_status') && $request->sub_status !== 'all') {
@@ -64,28 +40,13 @@ class AdminWebOrderController extends Controller
         if ($request->filled('shipping_type') && $request->shipping_type !== 'all') {
             switch ($request->shipping_type) {
                 case 'instant':
-                    $query->where(function ($q) {
-                        $q->where('courier', 'like', '%instant%')
-                          ->orWhere('courier', 'like', '%gojek%')
-                          ->orWhere('courier', 'like', '%grab%')
-                          ->orWhere('courier_code', 'like', '%instant%');
-                    });
+                    $this->scopeInstant($query);
                     break;
                 case 'cargo':
-                    $query->where(function ($q) {
-                        $q->where('courier', 'like', '%cargo%')
-                          ->orWhere('courier', 'like', '%kargo%')
-                          ->orWhere('courier_code', 'like', '%cargo%');
-                    });
+                    $this->scopeCargo($query);
                     break;
                 case 'reguler':
-                    $query->where(function ($q) {
-                        $q->where('courier', 'not like', '%instant%')
-                          ->where('courier', 'not like', '%gojek%')
-                          ->where('courier', 'not like', '%grab%')
-                          ->where('courier', 'not like', '%cargo%')
-                          ->where('courier', 'not like', '%kargo%');
-                    });
+                    $this->scopeReguler($query);
                     break;
             }
         }
@@ -205,40 +166,32 @@ class AdminWebOrderController extends Controller
             'unpaid'    => Order::whereIn('payment_status', ['unpaid', 'pending_verification'])->count(),
             'shipped'   => Order::where('status', 'shipped')->count(),
             'completed' => Order::where('status', 'completed')->count(),
-            'cancelled' => Order::where('status', 'cancelled')->orWhereHas('returns')->count(),
+            'cancelled' => Order::where(function ($q) {
+                $q->where('status', 'cancelled')->orWhereHas('returns');
+            })->count(),
         ];
 
-        // Hitungan Sub-Filter
+        // Base query untuk hitungan sub-filter pada tab yang aktif saat ini
+        $currentTabBaseQuery = Order::query();
+        $this->applyTabScope($currentTabBaseQuery, $currentTab);
+
+        // Hitungan Sub-Filter (Disesuaikan secara presisi dengan tab aktif saat ini)
         $subCounts = [
-            'ready_unprocessed' => Order::where('payment_status', 'paid')
-                ->whereIn('status', ['pending', 'processing'])
+            'ready_unprocessed' => (clone $currentTabBaseQuery)
                 ->where(function ($q) {
                     $q->whereNull('tracking_number')
                       ->orWhere('tracking_number', '')
                       ->orWhere('tracking_number', 'like', 'REC-%');
                 })->count(),
-            'ready_processed' => Order::where('payment_status', 'paid')
-                ->whereIn('status', ['pending', 'processing'])
+            'ready_processed' => (clone $currentTabBaseQuery)
                 ->whereNotNull('tracking_number')
                 ->where('tracking_number', '!=', '')
                 ->where('tracking_number', 'not like', 'REC-%')
                 ->count(),
-            'reguler' => Order::where(function ($q) {
-                $q->where('courier', 'not like', '%instant%')
-                  ->where('courier', 'not like', '%gojek%')
-                  ->where('courier', 'not like', '%grab%')
-                  ->where('courier', 'not like', '%cargo%')
-                  ->where('courier', 'not like', '%kargo%');
-            })->count(),
-            'instant' => Order::where(function ($q) {
-                $q->where('courier', 'like', '%instant%')
-                  ->orWhere('courier', 'like', '%gojek%')
-                  ->orWhere('courier', 'like', '%grab%');
-            })->count(),
-            'cargo' => Order::where(function ($q) {
-                $q->where('courier', 'like', '%cargo%')
-                  ->orWhere('courier', 'like', '%kargo%');
-            })->count(),
+            'reguler'        => $this->scopeReguler(clone $currentTabBaseQuery)->count(),
+            'instant'        => $this->scopeInstant(clone $currentTabBaseQuery)->count(),
+            'cargo'          => $this->scopeCargo(clone $currentTabBaseQuery)->count(),
+            'global_instant' => $this->scopeInstant(Order::query())->count(),
         ];
 
         return view('admin.orders', [
@@ -960,5 +913,93 @@ class AdminWebOrderController extends Controller
 
         $filename = 'Invoice-' . ($order->invoice_number ?: $order->order_number) . '.pdf';
         return $pdf->download($filename);
+    }
+
+    /**
+     * Terapkan scope filter tab status utama.
+     */
+    private function applyTabScope($query, string $tab)
+    {
+        switch ($tab) {
+            case 'ready':
+                // Perlu Dikirim: Lunas & status pending/processing
+                $query->where('payment_status', 'paid')->whereIn('status', ['pending', 'processing']);
+                break;
+            case 'unpaid':
+                // Belum bayar
+                $query->whereIn('payment_status', ['unpaid', 'pending_verification']);
+                break;
+            case 'shipped':
+                // Sedang dikirim
+                $query->where('status', 'shipped');
+                break;
+            case 'completed':
+                // Selesai
+                $query->where('status', 'completed');
+                break;
+            case 'cancelled':
+                // Pengembalian / Pembatalan
+                $query->where(function ($q) {
+                    $q->where('status', 'cancelled')
+                      ->orWhereHas('returns');
+                });
+                break;
+            case 'all':
+            default:
+                break;
+        }
+    }
+
+    /**
+     * Scope query untuk mendeteksi pesanan instant / sameday.
+     */
+    private function scopeInstant($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('courier', 'like', '%instant%')
+              ->orWhere('courier', 'like', '%sameday%')
+              ->orWhere('courier', 'like', '%same day%')
+              ->orWhere('courier', 'like', '%same_day%')
+              ->orWhere('courier', 'like', '%gojek%')
+              ->orWhere('courier', 'like', '%grab%')
+              ->orWhere('courier', 'like', '%gosend%')
+              ->orWhere('courier', 'like', '%lalamove%')
+              ->orWhere('courier', 'like', '%borzo%')
+              ->orWhere('courier_code', 'like', '%instant%')
+              ->orWhere('courier_code', 'like', '%sameday%')
+              ->orWhere('courier_code', 'like', '%same_day%')
+              ->orWhere('courier_code', 'like', '%gojek%')
+              ->orWhere('courier_code', 'like', '%grab%')
+              ->orWhere('courier_code', 'like', '%gosend%')
+              ->orWhere('courier_code', 'like', '%lalamove%')
+              ->orWhere('courier_code', 'like', '%borzo%');
+        });
+    }
+
+    /**
+     * Scope query untuk mendeteksi pesanan cargo / kargo.
+     */
+    private function scopeCargo($query)
+    {
+        return $query->where(function ($q) {
+            $q->where('courier', 'like', '%cargo%')
+              ->orWhere('courier', 'like', '%kargo%')
+              ->orWhere('courier_code', 'like', '%cargo%')
+              ->orWhere('courier_code', 'like', '%kargo%');
+        });
+    }
+
+    /**
+     * Scope query untuk pesanan reguler (bukan instant dan bukan cargo).
+     */
+    private function scopeReguler($query)
+    {
+        return $query->where(function ($q) {
+            $q->whereNot(function ($sub) {
+                $this->scopeInstant($sub);
+            })->whereNot(function ($sub) {
+                $this->scopeCargo($sub);
+            });
+        });
     }
 }
