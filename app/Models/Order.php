@@ -236,19 +236,6 @@ class Order extends Model
         };
     }
 
-    public function getPaymentProofUrlAttribute(): ?string
-    {
-        if (blank($this->payment_proof)) {
-            return null;
-        }
-
-        if (str_starts_with($this->payment_proof, 'http://') || str_starts_with($this->payment_proof, 'https://')) {
-            return $this->payment_proof;
-        }
-
-        return \Illuminate\Support\Facades\Storage::disk('public')->url($this->payment_proof);
-    }
-
     public function getFormattedGrandTotalAttribute(): string
     {
         return 'Rp ' . number_format($this->grand_total, 0, ',', '.');
