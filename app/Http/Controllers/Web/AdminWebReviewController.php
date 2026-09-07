@@ -114,4 +114,25 @@ class AdminWebReviewController extends Controller
             ->route('admin.reviews')
             ->with('success', 'Ulasan dihapus permanen beserta fotonya.');
     }
+
+    /**
+     * Generate 50 ulasan fiktif natural untuk produk aktif via FakeReviewSeeder.
+     */
+    public function generateFake()
+    {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('db:seed', [
+                '--class' => 'Database\\Seeders\\FakeReviewSeeder',
+                '--force' => true,
+            ]);
+
+            return redirect()
+                ->route('admin.reviews')
+                ->with('success', '50 ulasan fiktif natural berhasil digenerate ke semua produk aktif!');
+        } catch (\Throwable $e) {
+            return redirect()
+                ->route('admin.reviews')
+                ->with('error', 'Gagal generate ulasan: ' . $e->getMessage());
+        }
+    }
 }

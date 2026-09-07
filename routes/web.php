@@ -182,6 +182,7 @@ Route::prefix('admin')->group(function () {
         // Ulasan produk (Kelola Ulasan)
         Route::prefix('reviews')->middleware('can:manage reviews')->group(function () {
             Route::get('/', [AdminWebReviewController::class, 'index'])->name('admin.reviews');
+            Route::post('/generate-fake', [AdminWebReviewController::class, 'generateFake'])->name('admin.reviews.generate_fake');
             Route::patch('/{id}/toggle', [AdminWebReviewController::class, 'toggle'])->whereNumber('id')->name('admin.reviews.toggle');
             Route::delete('/{id}', [AdminWebReviewController::class, 'destroy'])->whereNumber('id')->name('admin.reviews.destroy');
         });

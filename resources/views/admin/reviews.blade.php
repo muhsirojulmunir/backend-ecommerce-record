@@ -34,6 +34,29 @@
         @endforeach
     </div>
 
+    {{-- ── Banner Generator Ulasan Fiktif ── --}}
+    <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </span>
+                <h4 class="text-sm font-extrabold text-gray-800">Generate Ulasan & Penilaian Fiktif</h4>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Buat otomatis 50 ulasan natural dengan bintang, komentar, dan varian yang terverifikasi untuk semua produk aktif.</p>
+        </div>
+        <form method="POST" action="{{ route('admin.reviews.generate_fake') }}"
+              onsubmit="return confirm('Generate 50 ulasan fiktif natural untuk produk aktif sekarang? Data ulasan fiktif sebelumnya akan diperbarui.')"
+              class="shrink-0">
+            @csrf
+            <button type="submit"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-orange-600 hover:bg-orange-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-orange-600/20 transition">
+                <i class="fa-solid fa-rotate"></i>
+                <span>Generate Ulasan Sekarang</span>
+            </button>
+        </form>
+    </div>
+
     {{-- ── Penyaring ── --}}
     <div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
         <form method="GET" action="{{ route('admin.reviews') }}"
