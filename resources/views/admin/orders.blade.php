@@ -386,11 +386,21 @@
                                     Rp {{ number_format($order->grand_total, 0, ',', '.') }}
                                 </p>
                                 <p class="text-[11px] text-gray-500 mt-0.5 font-medium">
-                                    {{ $order->payment_method === 'COD' ? 'COD (Bayar di Tempat)' : 'Online Payment' }}
+                                    @if($order->payment_method === 'MANUAL_BCA')
+                                        <span class="font-bold text-blue-700">Transfer Manual BCA</span>
+                                    @elseif($order->payment_method === 'COD')
+                                        COD (Bayar di Tempat)
+                                    @else
+                                        Online Payment ({{ strtoupper($order->payment_method) }})
+                                    @endif
                                 </p>
                                 @if($isPaid)
                                     <span class="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                         Lunas
+                                    </span>
+                                @elseif($order->payment_status === 'pending_verification')
+                                    <span class="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300 animate-pulse">
+                                        <i class="fa-solid fa-receipt text-[9px] text-amber-600"></i> Perlu Cek Bukti
                                     </span>
                                 @else
                                     <span class="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
@@ -404,9 +414,15 @@
                                 <p class="lg:hidden text-[10px] font-bold uppercase text-gray-400 mb-0.5">Status</p>
                                 <p class="font-bold text-slate-800 text-xs">
                                     @if(!$isPaid && $order->status !== 'cancelled')
-                                        <span class="text-amber-600 font-extrabold flex items-center gap-1">
-                                            <i class="fa-solid fa-hourglass-half text-[10px]"></i> Menunggu Pembayaran
-                                        </span>
+                                        @if($order->payment_status === 'pending_verification')
+                                            <span class="text-amber-700 font-extrabold flex items-center gap-1">
+                                                <i class="fa-solid fa-receipt text-[10px]"></i> Verifikasi Bukti
+                                            </span>
+                                        @else
+                                            <span class="text-amber-600 font-extrabold flex items-center gap-1">
+                                                <i class="fa-solid fa-hourglass-half text-[10px]"></i> Menunggu Pembayaran
+                                            </span>
+                                        @endif
                                     @elseif($order->status === 'cancelled')
                                         <span class="text-gray-500 font-bold">Dibatalkan</span>
                                     @elseif($order->status === 'shipped')

@@ -48,7 +48,7 @@ class TransactionFeeService
                 => (int) floor($grandTotal * 0.0333),
 
             // ─── COD / R_Pay / Manual → tidak ada biaya Midtrans ─────────────────
-            in_array($method, ['cod', 'r_pay', 'tunai', 'cash'])
+            in_array($method, ['cod', 'r_pay', 'tunai', 'cash', 'manual_bca', 'manual'])
                 => 0,
 
             // ─── Default: anggap VA flat ──────────────────────────────────────────
@@ -141,8 +141,8 @@ class TransactionFeeService
     {
         $method = strtolower(trim($paymentMethod));
 
-        if (in_array($method, ['cod', 'r_pay', 'tunai', 'cash'])) {
-            return 'Tidak ada (COD / Internal)';
+        if (in_array($method, ['cod', 'r_pay', 'tunai', 'cash', 'manual_bca', 'manual'])) {
+            return 'Tidak ada (Transfer Manual / Internal)';
         }
 
         if (str_contains($method, 'va') || str_contains($method, 'transfer') || str_contains($method, 'bank')) {

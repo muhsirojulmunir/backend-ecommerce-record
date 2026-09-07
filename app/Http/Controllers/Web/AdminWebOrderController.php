@@ -148,8 +148,8 @@ class AdminWebOrderController extends Controller
                 break;
         }
 
-        // Auto-sync status pembayaran pesanan unpaid dengan Midtrans API
-        $this->syncMidtransPaymentStatus(Order::whereIn('payment_status', ['unpaid', 'pending_verification'])->where('payment_method', '!=', 'COD')->limit(10)->get());
+        // Auto-sync status pembayaran pesanan unpaid dengan Midtrans API (Kecualikan COD & Transfer Manual BCA)
+        $this->syncMidtransPaymentStatus(Order::whereIn('payment_status', ['unpaid', 'pending_verification'])->whereNotIn('payment_method', ['COD', 'MANUAL_BCA'])->limit(10)->get());
 
         $orders = $query->paginate(15)->withQueryString();
 
@@ -372,6 +372,7 @@ class AdminWebOrderController extends Controller
     {
         $order = Order::findOrFail($id);
         $order->payment_status = 'paid';
+        $order->payment_rejection_note = null;
 
         if ($order->status === 'pending') {
             $order->status = 'processing';
@@ -380,6 +381,25 @@ class AdminWebOrderController extends Controller
         $order->save();
 
         return redirect()->back()->with('success', "Pembayaran pesanan #{$order->order_number} berhasil dikonfirmasi LUNAS.");
+    }
+
+    /**
+     * Tolak bukti pembayaran manual dan minta pembeli upload ulang.
+     */
+    public function rejectPayment(Request $request, $id)
+    {
+        $request->validate([
+            'payment_rejection_note' => 'required|string|max:500',
+        ], [
+            'payment_rejection_note.required' => 'Mohon isi alasan penolakan bukti pembayaran.',
+        ]);
+
+        $order = Order::findOrFail($id);
+        $order->payment_status = 'unpaid';
+        $order->payment_rejection_note = $request->payment_rejection_note;
+        $order->save();
+
+        return redirect()->back()->with('info', "Bukti transfer pesanan #{$order->order_number} telah ditolak. Pembeli dapat mengunggah bukti ulang.");
     }
 
     /**

@@ -453,32 +453,174 @@
                     </span>
                 </div>
 
-                {{-- Status Pembayaran Otomatis --}}
-                <div class="p-3.5 rounded-xl bg-gray-50 border border-gray-100 space-y-2">
-                    <div class="flex justify-between items-center text-xs">
-                        <span class="text-gray-500 font-medium">Pembayaran (Midtrans)</span>
-                        @if($order->payment_status === 'paid')
-                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
-                                ✓ Lunas Otomatis
-                            </span>
-                        @elseif($order->payment_status === 'pending_verification')
-                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-200">
-                                ⏳ Menunggu Verifikasi
-                            </span>
-                        @else
-                            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">
-                                ⏳ Menunggu Pembayaran
-                            </span>
+                {{-- Status & Verifikasi Pembayaran --}}
+                @if($order->payment_method === 'MANUAL_BCA')
+                    {{-- KARTU VERIFIKASI PEMBAYARAN MANUAL BCA --}}
+                    <div class="p-4 rounded-xl bg-gradient-to-br from-blue-50/80 to-indigo-50/80 border-2 border-blue-200 space-y-4" x-data="{ showRejectModal: false }">
+                        <div class="flex justify-between items-center text-xs border-b border-blue-200/80 pb-2.5">
+                            <div class="flex items-center gap-2">
+                                <span class="w-7 h-7 rounded-lg bg-blue-600 text-white font-black text-[10px] flex items-center justify-center shadow-xs">BCA</span>
+                                <div>
+                                    <span class="text-blue-950 font-black text-xs block">Transfer Bank BCA</span>
+                                    <span class="text-[10px] text-blue-700 font-medium">Pembayaran Manual</span>
+                                </div>
+                            </div>
+                            @if($order->payment_status === 'paid')
+                                <span class="px-2.5 py-1 rounded-md text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    ✓ Lunas Terverifikasi
+                                </span>
+                            @elseif($order->payment_status === 'pending_verification')
+                                <span class="px-2.5 py-1 rounded-md text-[10px] font-black uppercase bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
+                                    ⏳ Menunggu Verifikasi
+                                </span>
+                            @else
+                                <span class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">
+                                    Belum Bayar
+                                </span>
+                            @endif
+                        </div>
+
+                        {{-- Detail Rekening & Tagihan --}}
+                        <div class="space-y-2 text-xs bg-white/80 p-3 rounded-lg border border-blue-100">
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-500">Rekening Tujuan:</span>
+                                <span class="font-mono font-bold text-blue-900">BCA 1000028122</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-500">Atas Nama:</span>
+                                <span class="font-bold text-slate-800">Lily Minawati Prajogo</span>
+                            </div>
+                            <div class="flex justify-between items-center border-t border-gray-100 pt-1.5">
+                                <span class="text-gray-500 font-semibold">Total Tagihan:</span>
+                                <span class="font-black text-emerald-700 font-mono text-sm">Rp {{ number_format($order->grand_total, 0, ',', '.') }}</span>
+                            </div>
+                            @if($order->payment_proof_uploaded_at)
+                                <div class="flex justify-between items-center border-t border-gray-100 pt-1.5">
+                                    <span class="text-gray-500">Bukti Diunggah:</span>
+                                    <span class="font-semibold text-slate-800">{{ $order->payment_proof_uploaded_at->translatedFormat('d M Y, H:i') }} WIB</span>
+                                </div>
+                            @endif
+                        </div>
+
+                        {{-- Foto Bukti Transfer --}}
+                        <div class="space-y-2">
+                            <label class="text-[11px] font-bold text-slate-800 flex items-center justify-between uppercase tracking-wide">
+                                <span>Foto Bukti Transfer:</span>
+                                @if($order->payment_proof)
+                                    <a href="{{ $order->payment_proof_url }}" target="_blank" class="text-[11px] font-bold text-blue-700 hover:text-blue-900 hover:underline inline-flex items-center gap-1 normal-case">
+                                        <i class="fa-solid fa-up-right-from-square text-[10px]"></i> Buka Tab Baru
+                                    </a>
+                                @endif
+                            </label>
+
+                            @if($order->payment_proof)
+                                <div class="relative rounded-xl overflow-hidden border-2 border-blue-200 bg-white shadow-xs group">
+                                    <a href="{{ $order->payment_proof_url }}" target="_blank" class="block">
+                                        <img src="{{ $order->payment_proof_url }}" alt="Bukti Transfer" class="w-full h-48 object-contain bg-slate-900/5 group-hover:scale-105 transition duration-200">
+                                        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-bold gap-1.5">
+                                            <i class="fa-solid fa-magnifying-glass-plus"></i> Klik untuk Buka Gambar Penuh
+                                        </div>
+                                    </a>
+                                </div>
+                            @else
+                                <div class="p-4 rounded-xl bg-white border border-dashed border-gray-300 text-center text-xs text-gray-500 space-y-1">
+                                    <i class="fa-solid fa-receipt text-gray-400 text-xl block mb-1"></i>
+                                    <p class="font-bold text-slate-700">Bukti transfer belum diunggah</p>
+                                    <p class="text-[11px] text-gray-400">Pembeli belum mengirimkan struk transfer di halaman pesanan.</p>
+                                </div>
+                            @endif
+                        </div>
+
+                        {{-- Catatan Penolakan Jika Ada --}}
+                        @if($order->payment_rejection_note)
+                            <div class="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-[11px] text-rose-800 space-y-0.5">
+                                <span class="font-bold block text-rose-900">Catatan Penolakan Sebelumnya:</span>
+                                <p>{{ $order->payment_rejection_note }}</p>
+                            </div>
+                        @endif
+
+                        {{-- Tombol Aksi Verifikasi Admin --}}
+                        @if($order->payment_status !== 'paid' && $order->status !== 'cancelled')
+                            <div class="pt-2 border-t border-blue-200/80 space-y-2">
+                                <form action="{{ route('admin.orders.confirm-payment', $order->id) }}" method="POST">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit"
+                                            onclick="return confirm('Apakah Anda sudah mengecek mutasi rekening BCA dan memastikan dana Rp {{ number_format($order->grand_total, 0, ',', '.') }} SUDAH MASUK?')"
+                                            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs py-3 rounded-xl transition uppercase tracking-wider shadow-sm flex items-center justify-center gap-2">
+                                        <i class="fa-solid fa-circle-check text-sm"></i>
+                                        <span>Konfirmasi Dana Masuk (Tandai Lunas)</span>
+                                    </button>
+                                </form>
+
+                                <button type="button"
+                                        @click="showRejectModal = true"
+                                        class="w-full bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 font-bold text-xs py-2.5 rounded-xl border border-rose-200 transition uppercase tracking-wider flex items-center justify-center gap-1.5">
+                                    <i class="fa-solid fa-circle-xmark text-sm"></i>
+                                    <span>Tolak Bukti / Minta Unggah Ulang</span>
+                                </button>
+                            </div>
+
+                            {{-- Modal Alasan Penolakan --}}
+                            <div x-show="showRejectModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+                                <div @click.away="showRejectModal = false" class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl border border-gray-100 space-y-4 text-left">
+                                    <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+                                        <h4 class="font-black text-slate-900 text-xs uppercase tracking-wide flex items-center gap-1.5 text-rose-600">
+                                            <i class="fa-solid fa-circle-exclamation"></i>
+                                            <span>Tolak Bukti Pembayaran</span>
+                                        </h4>
+                                        <button type="button" @click="showRejectModal = false" class="text-gray-400 hover:text-gray-600 text-lg leading-none">&times;</button>
+                                    </div>
+                                    <form action="{{ route('admin.orders.reject-payment', $order->id) }}" method="POST" class="space-y-3">
+                                        @csrf
+                                        @method('PATCH')
+                                        <div>
+                                            <label class="text-[11px] font-bold text-slate-700 block mb-1">Alasan Penolakan:</label>
+                                            <textarea name="payment_rejection_note" rows="3" required
+                                                      placeholder="Misal: Dana belum masuk di mutasi BCA, atau bukti transfer buram/terpotong..."
+                                                      class="w-full text-xs border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"></textarea>
+                                        </div>
+                                        <div class="flex items-center justify-end gap-2 pt-1">
+                                            <button type="button" @click="showRejectModal = false" class="px-3 py-1.5 text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">
+                                                Batal
+                                            </button>
+                                            <button type="submit" class="px-4 py-1.5 text-xs font-black text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-sm">
+                                                Kirim Penolakan
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
                         @endif
                     </div>
-                    <p class="text-[10px] text-gray-400 leading-tight">
-                        @if($order->payment_status === 'paid')
-                            Pembayaran telah diverifikasi otomatis via Midtrans ({{ strtoupper($order->payment_method) }}).
-                        @else
-                            Sistem secara otomatis menunggu konfirmasi pembayaran dari gateway Midtrans.
-                        @endif
-                    </p>
-                </div>
+                @else
+                    {{-- Status Pembayaran Otomatis Midtrans --}}
+                    <div class="p-3.5 rounded-xl bg-gray-50 border border-gray-100 space-y-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-gray-500 font-medium">Pembayaran (Midtrans)</span>
+                            @if($order->payment_status === 'paid')
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    ✓ Lunas Otomatis
+                                </span>
+                            @elseif($order->payment_status === 'pending_verification')
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-200">
+                                    ⏳ Menunggu Verifikasi
+                                </span>
+                            @else
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">
+                                    ⏳ Menunggu Pembayaran
+                                </span>
+                            @endif
+                        </div>
+                        <p class="text-[10px] text-gray-400 leading-tight">
+                            @if($order->payment_status === 'paid')
+                                Pembayaran telah diverifikasi otomatis via Midtrans ({{ strtoupper($order->payment_method) }}).
+                            @else
+                                Sistem secara otomatis menunggu konfirmasi pembayaran dari gateway Midtrans.
+                            @endif
+                        </p>
+                    </div>
+                @endif
 
                 {{-- Tombol Aksi Utama Pengiriman Otomatis Biteship --}}
                 @if($order->payment_status === 'paid' && in_array($order->status, ['pending', 'processing']))

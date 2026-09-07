@@ -134,6 +134,7 @@ Route::prefix('admin')->group(function () {
             Route::put('/{id}/status', [AdminWebOrderController::class, 'updateStatus'])->name('admin.orders.update-status');
             Route::put('/{id}/tracking', [AdminWebOrderController::class, 'updateTracking'])->name('admin.orders.update-tracking');
             Route::patch('/{id}/confirm-payment', [AdminWebOrderController::class, 'confirmPayment'])->name('admin.orders.confirm-payment');
+            Route::patch('/{id}/reject-payment', [AdminWebOrderController::class, 'rejectPayment'])->name('admin.orders.reject-payment');
             // Aksi Massal
             Route::post('/bulk/confirm-payment', [AdminWebOrderController::class, 'bulkConfirmPayment'])->name('admin.orders.bulk-confirm-payment');
             Route::post('/bulk/ship', [AdminWebOrderController::class, 'bulkShip'])->name('admin.orders.bulk-ship');
