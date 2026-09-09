@@ -15,7 +15,8 @@ class AdminWebOrderController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Order::with(['user', 'items.product', 'returns']);
+        // Kecualikan pesanan fiktif (dari FakeReviewSeeder) — hanya tampilkan pesanan nyata.
+        $query = Order::with(['user', 'items.product', 'returns'])->where('is_fake', false);
 
         // 1. Filter Tab Status Utama
         $currentTab = $request->query('tab', 'all');
@@ -159,20 +160,21 @@ class AdminWebOrderController extends Controller
             ->take(OrderExport::BATAS_RIWAYAT)
             ->get();
 
-        // Hitungan Tab Utama
+        // Hitungan Tab Utama — hanya pesanan nyata (is_fake = false)
+        $realOrders = Order::where('is_fake', false);
         $counts = [
-            'all'       => Order::count(),
-            'ready'     => Order::where('payment_status', 'paid')->whereIn('status', ['pending', 'processing'])->count(),
-            'unpaid'    => Order::whereIn('payment_status', ['unpaid', 'pending_verification'])->count(),
-            'shipped'   => Order::where('status', 'shipped')->count(),
-            'completed' => Order::where('status', 'completed')->count(),
-            'cancelled' => Order::where(function ($q) {
+            'all'       => (clone $realOrders)->count(),
+            'ready'     => (clone $realOrders)->where('payment_status', 'paid')->whereIn('status', ['pending', 'processing'])->count(),
+            'unpaid'    => (clone $realOrders)->whereIn('payment_status', ['unpaid', 'pending_verification'])->count(),
+            'shipped'   => (clone $realOrders)->where('status', 'shipped')->count(),
+            'completed' => (clone $realOrders)->where('status', 'completed')->count(),
+            'cancelled' => (clone $realOrders)->where(function ($q) {
                 $q->where('status', 'cancelled')->orWhereHas('returns');
             })->count(),
         ];
 
-        // Base query untuk hitungan sub-filter pada tab yang aktif saat ini
-        $currentTabBaseQuery = Order::query();
+        // Base query untuk hitungan sub-filter pada tab yang aktif saat ini — hanya pesanan nyata
+        $currentTabBaseQuery = Order::where('is_fake', false);
         $this->applyTabScope($currentTabBaseQuery, $currentTab);
 
         // Hitungan Sub-Filter (Disesuaikan secara presisi dengan tab aktif saat ini)
@@ -191,7 +193,7 @@ class AdminWebOrderController extends Controller
             'reguler'        => $this->scopeReguler(clone $currentTabBaseQuery)->count(),
             'instant'        => $this->scopeInstant(clone $currentTabBaseQuery)->count(),
             'cargo'          => $this->scopeCargo(clone $currentTabBaseQuery)->count(),
-            'global_instant' => $this->scopeInstant(Order::query())->count(),
+            'global_instant' => $this->scopeInstant(Order::where('is_fake', false))->count(),
         ];
 
         return view('admin.orders', [

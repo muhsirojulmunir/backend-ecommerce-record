@@ -21,6 +21,7 @@ class Order extends Model
         'total_price',
         'shipping_cost',
         'grand_total',
+        'is_fake',
         'status',
         'shipping_address',
         'courier',

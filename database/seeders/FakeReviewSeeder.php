@@ -187,6 +187,7 @@ class FakeReviewSeeder extends Seeder
                     'total_price'      => $variantPrice,
                     'shipping_cost'    => 15000,
                     'grand_total'      => $variantPrice + 15000,
+                    'is_fake'          => true,
                     'shipping_address' => json_encode([
                         'name'        => $user['name'],
                         'phone'       => '08' . rand(12, 98) . rand(1000000, 9999999),
