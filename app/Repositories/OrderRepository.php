@@ -11,7 +11,8 @@ class OrderRepository implements OrderRepositoryInterface
 {
     public function all(array $filters = [])
     {
-        $query = Order::with(['user', 'items.product', 'items.variant', 'payment', 'returnRequest', 'returns']);
+        $query = Order::with(['user', 'items.product', 'items.variant', 'payment', 'returnRequest', 'returns'])
+            ->where('is_fake', false);
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -74,7 +75,8 @@ class OrderRepository implements OrderRepositoryInterface
 
     public function paginate(int $perPage = 15, array $filters = [])
     {
-        $query = Order::with(['user', 'items.product', 'items.variant', 'payment', 'returnRequest', 'returns']);
+        $query = Order::with(['user', 'items.product', 'items.variant', 'payment', 'returnRequest', 'returns'])
+            ->where('is_fake', false);
 
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -102,20 +104,23 @@ class OrderRepository implements OrderRepositoryInterface
     {
         return Order::with(['items.product', 'items.variant', 'payment', 'returnRequest'])
             ->where('user_id', $userId)
+            ->where('is_fake', false)
             ->orderBy('id', 'desc')
             ->get();
     }
 
     public function countByStatus(): array
     {
+        $base = Order::where('is_fake', false);
+
         return [
-            'all' => Order::count(),
-            'pending' => Order::where('status', 'pending')->count(),
-            'processing' => Order::where('status', 'processing')->count(),
-            'shipped' => Order::where('status', 'shipped')->count(),
-            'completed' => Order::where('status', 'completed')->count(),
-            'cancelled' => Order::where('status', 'cancelled')->count(),
-            'returned' => Order::whereHas('returnRequest')->count(),
+            'all' => (clone $base)->count(),
+            'pending' => (clone $base)->where('status', 'pending')->count(),
+            'processing' => (clone $base)->where('status', 'processing')->count(),
+            'shipped' => (clone $base)->where('status', 'shipped')->count(),
+            'completed' => (clone $base)->where('status', 'completed')->count(),
+            'cancelled' => (clone $base)->where('status', 'cancelled')->count(),
+            'returned' => (clone $base)->whereHas('returnRequest')->count(),
         ];
     }
 }

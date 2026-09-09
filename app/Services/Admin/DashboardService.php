@@ -27,7 +27,9 @@ class DashboardService
         $statusCounts = $this->orderRepository->countByStatus();
 
         // 3. Total customers and products
-        $totalCustomers = User::where('role', 'customer')->count();
+        $totalCustomers = User::where('role', 'customer')
+            ->where('email', 'not like', '%fake%@mail.test')
+            ->count();
         $totalProducts = Product::count();
 
         // 4. Recent activity log

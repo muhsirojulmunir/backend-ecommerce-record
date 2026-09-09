@@ -136,9 +136,10 @@ class AdminWebCustomerController extends Controller
     private function baseQuery()
     {
         return User::withTrashed()->customers()
-            ->withCount('orders')
+            ->where('email', 'not like', '%fake%@mail.test')
+            ->withCount(['orders' => fn ($q) => $q->where('is_fake', false)])
             ->withSum(
-                ['orders as total_spent' => fn ($q) => $q->where('payment_status', 'paid')],
+                ['orders as total_spent' => fn ($q) => $q->where('payment_status', 'paid')->where('is_fake', false)],
                 'grand_total'
             )
             ->withMax('orders as last_order_at', 'created_at');
@@ -181,27 +182,36 @@ class AdminWebCustomerController extends Controller
 
     private function tabCounts(): array
     {
+        $realCustomers = fn () => User::withTrashed()->customers()->where('email', 'not like', '%fake%@mail.test');
+
         return [
-            'all'      => User::withTrashed()->customers()->count(),
-            'active'   => User::withTrashed()->customers()->has('orders')->count(),
-            'inactive' => User::withTrashed()->customers()->doesntHave('orders')->count(),
-            'new'      => User::withTrashed()->customers()->where('created_at', '>=', now()->subDays(30))->count(),
-            'blocked'  => User::withTrashed()->customers()->where('is_blocked', true)->count(),
+            'all'      => $realCustomers()->count(),
+            'active'   => $realCustomers()->whereHas('orders', fn ($q) => $q->where('is_fake', false))->count(),
+            'inactive' => $realCustomers()->whereDoesntHave('orders', fn ($q) => $q->where('is_fake', false))->count(),
+            'new'      => $realCustomers()->where('created_at', '>=', now()->subDays(30))->count(),
+            'blocked'  => $realCustomers()->where('is_blocked', true)->count(),
         ];
     }
 
     private function headlineStats(): array
     {
-        $customerIds = User::withTrashed()->customers()->select('id');
+        $customerIds = User::withTrashed()->customers()
+            ->where('email', 'not like', '%fake%@mail.test')
+            ->select('id');
 
-        $paidOrders = Order::whereIn('user_id', $customerIds)->where('payment_status', 'paid');
+        $paidOrders = Order::whereIn('user_id', $customerIds)
+            ->where('is_fake', false)
+            ->where('payment_status', 'paid');
 
         $totalRevenue = (float) (clone $paidOrders)->sum('grand_total');
-        $buyerCount   = User::withTrashed()->customers()->has('orders')->count();
+        $buyerCount   = User::withTrashed()->customers()
+            ->where('email', 'not like', '%fake%@mail.test')
+            ->whereHas('orders', fn ($q) => $q->where('is_fake', false))
+            ->count();
 
         return [
-            'total'         => User::withTrashed()->customers()->count(),
-            'new_this_month' => User::withTrashed()->customers()->where('created_at', '>=', now()->startOfMonth())->count(),
+            'total'         => User::withTrashed()->customers()->where('email', 'not like', '%fake%@mail.test')->count(),
+            'new_this_month' => User::withTrashed()->customers()->where('email', 'not like', '%fake%@mail.test')->where('created_at', '>=', now()->startOfMonth())->count(),
             'buyers'        => $buyerCount,
             'total_revenue' => $totalRevenue,
             // Rata-rata nilai belanja per customer yang pernah bertransaksi

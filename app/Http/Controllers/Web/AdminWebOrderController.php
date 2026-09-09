@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderExport;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class AdminWebOrderController extends Controller
@@ -880,10 +881,14 @@ class AdminWebOrderController extends Controller
         $order = Order::findOrFail($id);
         $orderNumber = $order->order_number;
 
-        // Hapus relasi items dan returns terlebih dahulu
-        $order->items()->delete();
-        $order->returns()->delete();
-        $order->delete();
+        // Hapus relasi anak terlebih dahulu dalam transaksi agar tidak melanggar foreign key constraint
+        DB::transaction(function () use ($order) {
+            $order->reviews()->delete();
+            $order->items()->delete();
+            $order->returns()->delete();
+            $order->payment()->delete();
+            $order->delete();
+        });
 
         return redirect()->route('admin.orders')->with('success', "Pesanan #{$orderNumber} berhasil dihapus permanen oleh Super Admin.");
     }
@@ -906,11 +911,16 @@ class AdminWebOrderController extends Controller
         $orders = Order::whereIn('id', $request->order_ids)->get();
         $count = $orders->count();
 
-        foreach ($orders as $order) {
-            $order->items()->delete();
-            $order->returns()->delete();
-            $order->delete();
-        }
+        // Hapus relasi anak setiap pesanan dalam transaksi
+        DB::transaction(function () use ($orders) {
+            foreach ($orders as $order) {
+                $order->reviews()->delete();
+                $order->items()->delete();
+                $order->returns()->delete();
+                $order->payment()->delete();
+                $order->delete();
+            }
+        });
 
         return redirect()->route('admin.orders')->with('success', "{$count} pesanan berhasil dihapus permanen oleh Super Admin.");
     }

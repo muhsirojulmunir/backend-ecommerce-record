@@ -305,17 +305,9 @@
                         {{-- ── Card Top Strip (Header Pembeli & No. Pesanan) ── --}}
                         <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-gray-50/80 border-b border-gray-200 text-xs">
                             <div class="flex items-center gap-2.5 min-w-0">
-                                @if($canProcess)
-                                    <input type="checkbox" :value="{{ $order->id }}" x-model="selected"
-                                           class="rounded border-gray-300 text-[#EE4D2D] focus:ring-[#EE4D2D] cursor-pointer w-4 h-4 shrink-0"
-                                           title="Pilih pesanan lunas ini untuk diproses">
-                                @else
-                                    <span class="inline-flex items-center justify-center w-4 h-4 shrink-0"
-                                          title="{{ !$isPaid ? 'Pesanan Belum Lunas - Tidak dapat diproses pengiriman' : 'Pesanan Telah Dibatalkan' }}">
-                                        <input type="checkbox" disabled
-                                               class="rounded border-gray-200 text-gray-300 cursor-not-allowed w-4 h-4 bg-gray-100 opacity-40">
-                                    </span>
-                                @endif
+                                <input type="checkbox" :value="{{ $order->id }}" x-model="selected"
+                                       class="rounded border-gray-300 text-[#EE4D2D] focus:ring-[#EE4D2D] cursor-pointer w-4 h-4 shrink-0"
+                                       title="Pilih pesanan #{{ $order->order_number }}">
 
                                 {{-- Avatar & Nama Pembeli --}}
                                 <div class="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-[10px] shrink-0">
@@ -803,9 +795,7 @@ function orderBulk() {
             if (this.selectAll) {
                 this.selected = [
                     @foreach($orders as $order)
-                        @if($order->payment_status === 'paid' && !in_array($order->status, ['cancelled']))
-                            {{ $order->id }},
-                        @endif
+                        {{ $order->id }},
                     @endforeach
                 ];
             } else {
