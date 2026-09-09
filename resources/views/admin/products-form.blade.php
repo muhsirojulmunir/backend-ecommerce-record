@@ -5,10 +5,11 @@
 @section('page_subtitle', 'Masukkan detail informasi produk Anda di bawah ini.')
 
 @section('content')
-<form action="{{ isset($product) ? route('admin.products.update', $product->id) : route('admin.products.store') }}" 
-      method="POST" 
-      enctype="multipart/form-data" 
-      class="max-w-5xl mx-auto space-y-8 pb-16">
+<form action="{{ isset($product) ? route('admin.products.update', $product->id) : route('admin.products.store') }}"
+      method="POST"
+      enctype="multipart/form-data"
+      id="product-form"
+      class="max-w-5xl mx-auto space-y-8 pb-32">
     @csrf
     @if(isset($product))
         @method('PUT')
@@ -480,16 +481,63 @@
         </div>
     </div>
 
-    <!-- Form Actions -->
-    <div class="flex items-center justify-end space-x-4">
-        <a href="{{ route('admin.products') }}" class="px-6 py-3 border border-gray-200 rounded-xl text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition">
+    <!-- Tombol Aksi: kosongkan area lama, posisi nyata pindah ke sticky bar bawah -->
+</form>
+
+<!-- ──────────────────────────── Sticky Bottom Bar ──────────────────────────── -->
+<div id="sticky-bar"
+     class="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm border-t border-gray-200 shadow-[0_-4px_24px_rgba(0,0,0,0.07)] transition-all">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+
+        <!-- Indikator perubahan -->
+        <p id="bar-status" class="text-xs text-gray-400 hidden">
+            <i class="fa-solid fa-pencil text-orange-400 mr-1"></i>
+            <span id="bar-status-text">Ada perubahan belum disimpan</span>
+        </p>
+        <div class="flex-1"></div>
+
+        <!-- Batal -->
+        <button type="button" id="btn-batal"
+                class="px-6 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition">
             Batal
-        </a>
-        <button type="submit" class="px-8 py-3 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-bold rounded-xl shadow-lg shadow-orange-500/20 active:scale-[0.98] text-sm transition">
+        </button>
+
+        <!-- Simpan -->
+        <button type="submit" form="product-form"
+                class="px-8 py-2.5 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-bold rounded-xl shadow-lg shadow-orange-500/20 active:scale-[0.98] text-sm transition">
+            <i class="fa-solid fa-floppy-disk mr-1.5"></i>
             Simpan Produk
         </button>
     </div>
-</form>
+</div>
+
+<!-- ──────────────────────────── Modal Konfirmasi Batal ──────────────────────────── -->
+<div id="modal-batal"
+     class="fixed inset-0 z-[60] hidden items-center justify-center p-4"
+     style="background:rgba(0,0,0,0.45)">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+        <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-gray-800">Batalkan perubahan?</h3>
+                <p class="text-sm text-gray-500 mt-1">Perubahan berikut akan hilang:</p>
+                <ul id="modal-batal-list" class="mt-2 space-y-1 text-sm text-gray-700 list-disc list-inside max-h-48 overflow-y-auto"></ul>
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
+            <button type="button" id="modal-batal-tetap"
+                    class="px-5 py-2 text-sm font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+                Tetap Edit
+            </button>
+            <a href="{{ route('admin.products') }}"
+               class="px-5 py-2 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl transition">
+                Ya, Batalkan
+            </a>
+        </div>
+    </div>
+</div>
 
 <script>
     // Initialize or parse existing variants
@@ -1127,8 +1175,9 @@
                 <!-- Editable: Stok -->
                 <td class="px-4 py-3">
                     <input type="number" name="variants[${idx}][stock]" value="${item.stock}" required
-                           min="-999999" max="999999"
+                           min="0" max="999999"
                            onfocus="this.dataset.lastValue = this.value"
+                           oninput="if(parseInt(this.value,10)<0||this.value==='-'){this.value='0';}updateVariantStock(${idx},this.value)"
                            onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='z'){event.preventDefault();if(this.dataset.lastValue!==undefined){this.value=this.dataset.lastValue;updateVariantStock(${idx},this.value);}}"
                            onchange="updateVariantStock(${idx}, this.value)"
                            class="px-2 py-1.5 border border-gray-200 rounded-lg w-16 text-xs text-center font-semibold focus:ring-1 focus:ring-orange-400 focus:outline-none">
@@ -1327,6 +1376,107 @@
         recalculateBasePriceAndAdjustments();
         renderVariantsTable();
         alert('Perubahan massal berhasil diterapkan!');
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // TRACKING PERUBAHAN & KONFIRMASI BATAL
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // Snapshot nilai awal seluruh field form saat halaman pertama dimuat
+    const _formAwal = {};
+    const _namaField = {
+        name:        'Nama produk',
+        description: 'Deskripsi produk',
+        price:       'Harga dasar',
+        status:      'Status produk',
+        category_id: 'Kategori',
+        weight_gram:     'Berat paket',
+        package_length:  'Panjang paket',
+        package_width:   'Lebar paket',
+        package_height:  'Tinggi paket',
+    };
+
+    function _ambilNilaiForm() {
+        const hasil = {};
+        const form  = document.getElementById('product-form');
+        if (!form) return hasil;
+        // Simpan field teks/number/select yang namanya dikenali
+        Object.keys(_namaField).forEach(n => {
+            const el = form.querySelector(`[name="${n}"]`);
+            if (el) hasil[n] = el.value;
+        });
+        // Simpan stok varian sebagai JSON string
+        hasil['__stok_varian'] = JSON.stringify(variants.map(v => v.stock));
+        return hasil;
+    }
+
+    function _deteksiPerubahan() {
+        const sekarang = _ambilNilaiForm();
+        const daftar   = [];
+        Object.keys(_namaField).forEach(n => {
+            if (_formAwal[n] !== undefined && _formAwal[n] !== sekarang[n]) {
+                daftar.push(_namaField[n]);
+            }
+        });
+        if ((_formAwal['__stok_varian'] || '') !== (sekarang['__stok_varian'] || '')) {
+            daftar.push('Stok varian');
+        }
+        return daftar;
+    }
+
+    // Inisialisasi snapshot setelah DOM & variant table siap
+    document.addEventListener('DOMContentLoaded', function () {
+        // Beri jeda singkat agar renderVariantsTable() selesai
+        setTimeout(function () {
+            Object.assign(_formAwal, _ambilNilaiForm());
+        }, 300);
+
+        // Deteksi perubahan setiap kali ada input di form
+        const form = document.getElementById('product-form');
+        if (form) {
+            form.addEventListener('input', _perbaruiStatusBar);
+            form.addEventListener('change', _perbaruiStatusBar);
+        }
+        // Tombol batal
+        document.getElementById('btn-batal').addEventListener('click', function () {
+            const perubahan = _deteksiPerubahan();
+            if (perubahan.length === 0) {
+                // Tidak ada perubahan — langsung balik
+                window.location.href = '{{ route('admin.products') }}';
+                return;
+            }
+            // Isi daftar perubahan di modal
+            const ul = document.getElementById('modal-batal-list');
+            ul.innerHTML = perubahan.map(p => `<li>${p}</li>`).join('');
+            const modal = document.getElementById('modal-batal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        });
+        // Tombol "Tetap Edit" di modal
+        document.getElementById('modal-batal-tetap').addEventListener('click', function () {
+            const modal = document.getElementById('modal-batal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        });
+        // Tutup modal saat klik backdrop
+        document.getElementById('modal-batal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+                this.classList.remove('flex');
+            }
+        });
+    });
+
+    function _perbaruiStatusBar() {
+        const perubahan = _deteksiPerubahan();
+        const status    = document.getElementById('bar-status');
+        const teks      = document.getElementById('bar-status-text');
+        if (perubahan.length > 0) {
+            teks.textContent = perubahan.length + ' perubahan belum disimpan';
+            status.classList.remove('hidden');
+        } else {
+            status.classList.add('hidden');
+        }
     }
 </script>
 @endsection
