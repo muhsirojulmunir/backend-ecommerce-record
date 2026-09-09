@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\DeviceDetector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Spatie\Activitylog\Models\Activity;
@@ -11,17 +12,40 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminWebActivityLogController extends Controller
 {
+    /** Log module yang berasal dari interaksi toko (frontend), bukan admin. */
+    private const SHOP_LOG_NAMES = ['pesanan', 'ulasan', 'pengembalian', 'checkout', 'keranjang', 'toko', 'rpay', 'rpaywithdrawal'];
+
     public function index(Request $request)
     {
-        $logs = $this->filtered($request)
+        $tab = $request->get('tab', 'admin');
+        if (! in_array($tab, ['admin', 'user', 'all'], true)) {
+            $tab = 'admin';
+        }
+
+        $logs = $this->filtered($request, $tab)
             ->with('causer')
             ->latest('id')
             ->paginate(20)
             ->withQueryString();
 
+        // Hitung counter per tab
+        $adminCount = Activity::whereHas('causer', fn ($q) => $q->whereIn('role', ['admin', 'super_admin']))->count();
+        $userCount  = Activity::where(function ($q) {
+            $q->whereHas('causer', fn ($q2) => $q2->where('role', 'customer'))
+              ->orWhere(function ($q2) {
+                  // Guest: causer_id null, log dari modul toko
+                  $q2->whereNull('causer_id')->whereIn('log_name', self::SHOP_LOG_NAMES);
+              });
+        })->count();
+        $allCount   = Activity::count();
+
+        // Causers dropdown: disesuaikan per tab
+        $causers = $this->caUsers($tab);
+
         return view('admin.activity-logs', [
-            'logs'    => $logs,
-            'filters' => [
+            'tab'        => $tab,
+            'logs'       => $logs,
+            'filters'    => [
                 'log_name' => $request->get('log_name', ''),
                 'event'    => $request->get('event', ''),
                 'causer'   => $request->get('causer', ''),
@@ -29,35 +53,47 @@ class AdminWebActivityLogController extends Controller
                 'to'       => $request->get('to', ''),
                 'search'   => $request->get('search', ''),
             ],
-            'logNames' => Activity::select('log_name')->distinct()->orderBy('log_name')->pluck('log_name')->filter()->values(),
-            'causers'  => User::whereIn('id', Activity::whereNotNull('causer_id')->distinct()->pluck('causer_id'))
-                ->orderBy('name')
-                ->get(['id', 'name', 'email']),
-            'stats'    => $this->stats(),
+            'logNames'   => Activity::select('log_name')->distinct()->orderBy('log_name')->pluck('log_name')->filter()->values(),
+            'causers'    => $causers,
+            'stats'      => $this->stats(),
+            'tabCounts'  => [
+                'admin' => $adminCount,
+                'user'  => $userCount,
+                'all'   => $allCount,
+            ],
         ]);
     }
 
     /**
-     * Unduh log sesuai filter aktif sebagai CSV.
+     * Unduh log sesuai filter aktif sebagai CSV, termasuk kolom Perangkat.
      */
     public function export(Request $request): StreamedResponse
     {
-        $logs = $this->filtered($request)->with('causer')->latest('id')->limit(5000)->get();
+        $tab  = $request->get('tab', 'admin');
+        $logs = $this->filtered($request, $tab)->with('causer')->latest('id')->limit(5000)->get();
 
         return response()->streamDownload(function () use ($logs) {
             $out = fopen('php://output', 'w');
             fwrite($out, "\xEF\xBB\xBF"); // BOM supaya Excel membaca UTF-8 dengan benar
-            fputcsv($out, ['Waktu', 'Modul', 'Aksi', 'Deskripsi', 'Pelaku', 'Subjek', 'Perubahan'], escape: '');
+            fputcsv($out, ['Waktu', 'Tab', 'Modul', 'Aksi', 'Deskripsi', 'Pelaku', 'Peran', 'Perangkat', 'IP', 'Subjek', 'Perubahan'], escape: '');
 
             foreach ($logs as $log) {
+                $device     = DeviceDetector::fromActivity($log);
+                $actorInfo  = DeviceDetector::actorInfo($log);
+                $props      = is_array($log->properties) ? $log->properties : $log->properties->toArray();
+
                 fputcsv($out, [
                     $log->created_at?->format('d/m/Y H:i:s'),
+                    $actorInfo['type'],
                     $log->log_name,
                     $log->event ?? '-',
                     $log->description,
-                    $log->causer?->name ?? 'Sistem',
+                    $actorInfo['name'],
+                    $actorInfo['role_label'],
+                    $device['formatted'] ?? '-',
+                    $props['ip'] ?? '-',
                     class_basename($log->subject_type ?? '') . ' #' . ($log->subject_id ?? '-'),
-                    json_encode($log->properties, JSON_UNESCAPED_UNICODE),
+                    json_encode($props, JSON_UNESCAPED_UNICODE),
                 ], escape: '');
             }
 
@@ -89,18 +125,36 @@ class AdminWebActivityLogController extends Controller
 
     // ─── Helper privat ────────────────────────────────────────────────────────
 
-    private function filtered(Request $request)
+    /**
+     * Membangun query Activity dengan filter tab + filter UI.
+     */
+    private function filtered(Request $request, string $tab)
     {
         $query = Activity::query();
 
+        // Filter berdasarkan tab
+        match ($tab) {
+            'admin' => $query->whereHas('causer', fn ($q) => $q->whereIn('role', ['admin', 'super_admin'])),
+            'user'  => $query->where(function ($q) {
+                $q->whereHas('causer', fn ($q2) => $q2->where('role', 'customer'))
+                  ->orWhere(function ($q2) {
+                      $q2->whereNull('causer_id')->whereIn('log_name', self::SHOP_LOG_NAMES);
+                  });
+            }),
+            default => null, // 'all' — tidak ada filter tambahan
+        };
+
+        // Filter form: modul
         if (filled($request->get('log_name'))) {
             $query->where('log_name', $request->get('log_name'));
         }
 
+        // Filter form: aksi
         if (filled($request->get('event'))) {
             $query->where('event', $request->get('event'));
         }
 
+        // Filter form: pelaku (tidak berlaku untuk tab user agar tidak konflik dengan filter guest)
         if (filled($request->get('causer'))) {
             $query->where('causer_id', $request->get('causer'));
         }
@@ -122,6 +176,20 @@ class AdminWebActivityLogController extends Controller
         }
 
         return $query;
+    }
+
+    /**
+     * Daftar user untuk dropdown filter Pelaku, disesuaikan per tab.
+     */
+    private function caUsers(string $tab)
+    {
+        $causerIds = Activity::when($tab === 'admin', fn ($q) =>
+            $q->whereHas('causer', fn ($q2) => $q2->whereIn('role', ['admin', 'super_admin']))
+        )->when($tab === 'user', fn ($q) =>
+            $q->whereHas('causer', fn ($q2) => $q2->where('role', 'customer'))
+        )->whereNotNull('causer_id')->distinct()->pluck('causer_id');
+
+        return User::whereIn('id', $causerIds)->orderBy('name')->get(['id', 'name', 'email', 'role']);
     }
 
     private function parseDate(?string $value): ?Carbon

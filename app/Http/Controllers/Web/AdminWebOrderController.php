@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderExport;
+use App\Models\OrderReturn;
+use App\Models\RpayTransaction;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -898,6 +901,7 @@ class AdminWebOrderController extends Controller
 
         // Hapus relasi anak terlebih dahulu dalam transaksi agar tidak melanggar foreign key constraint
         DB::transaction(function () use ($order) {
+            $this->cleanupOrderRpay($order);
             $order->reviews()->delete();
             $order->items()->delete();
             $order->returns()->delete();
@@ -929,6 +933,7 @@ class AdminWebOrderController extends Controller
         // Hapus relasi anak setiap pesanan dalam transaksi
         DB::transaction(function () use ($orders) {
             foreach ($orders as $order) {
+                $this->cleanupOrderRpay($order);
                 $order->reviews()->delete();
                 $order->items()->delete();
                 $order->returns()->delete();
@@ -938,6 +943,45 @@ class AdminWebOrderController extends Controller
         });
 
         return redirect()->route('admin.orders')->with('success', "{$count} pesanan berhasil dihapus permanen oleh Super Admin.");
+    }
+
+    /**
+     * Bersihkan mutasi R_Pay dan sesuaikan saldo dompet user terkait saat pesanan dihapus,
+     * agar tidak menyisakan data menggantung atau saldo fiktif di menu Kelola R_Pay.
+     */
+    private function cleanupOrderRpay(Order $order): void
+    {
+        $returnIds = $order->returns()->pluck('id')->all();
+
+        $transactions = RpayTransaction::query()
+            ->where(function ($q) use ($order, $returnIds) {
+                $q->where(function ($q1) use ($order) {
+                    $q1->where('reference_type', Order::class)
+                       ->where('reference_id', $order->id);
+                });
+                if (!empty($returnIds)) {
+                    $q->orWhere(function ($q2) use ($returnIds) {
+                        $q2->where('reference_type', OrderReturn::class)
+                           ->whereIn('reference_id', $returnIds);
+                    });
+                }
+            })
+            ->get();
+
+        foreach ($transactions as $tx) {
+            $user = User::find($tx->user_id);
+            if ($user) {
+                if ($tx->direction === 'credit') {
+                    // Jika dana pernah dikreditkan ke user (misal: komisi referral / pengembalian dana), kurangi saldo
+                    $newBalance = max(0, (float) $user->rpay_balance - (float) $tx->amount);
+                    $user->update(['rpay_balance' => $newBalance]);
+                } elseif ($tx->direction === 'debit') {
+                    // Jika dana pernah didebit dari user (misal: bayar checkout via R_Pay), kembalikan saldo
+                    $user->increment('rpay_balance', (float) $tx->amount);
+                }
+            }
+            $tx->delete();
+        }
     }
 
     /**

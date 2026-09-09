@@ -6,22 +6,28 @@
 
 @section('content')
 @php
+    use App\Support\DeviceDetector;
     // Warna & ikon per jenis aksi
     $eventMeta = [
-        'created' => ['Ditambahkan', 'fa-plus',        'bg-emerald-100 text-emerald-700', 'bg-emerald-500'],
-        'updated' => ['Diperbarui',  'fa-pen',         'bg-blue-100 text-blue-700',       'bg-blue-500'],
-        'deleted' => ['Dihapus',     'fa-trash',       'bg-rose-100 text-rose-700',       'bg-rose-500'],
+        'created' => ['Ditambahkan', 'fa-plus',  'bg-emerald-100 text-emerald-700', 'bg-emerald-500'],
+        'updated' => ['Diperbarui',  'fa-pen',   'bg-blue-100 text-blue-700',       'bg-blue-500'],
+        'deleted' => ['Dihapus',     'fa-trash', 'bg-rose-100 text-rose-700',       'bg-rose-500'],
     ];
     $moduleIcons = [
-        'produk'     => 'fa-box-open',
-        'pesanan'    => 'fa-receipt',
-        'banner'     => 'fa-images',
-        'diskon'     => 'fa-tags',
-        'kategori'   => 'fa-layer-group',
-        'pengguna'   => 'fa-user',
-        'pengaturan' => 'fa-gear',
+        'produk'         => 'fa-box-open',
+        'pesanan'        => 'fa-receipt',
+        'banner'         => 'fa-images',
+        'diskon'         => 'fa-tags',
+        'kategori'       => 'fa-layer-group',
+        'pengguna'       => 'fa-user',
+        'pengaturan'     => 'fa-gear',
+        'ulasan'         => 'fa-star',
+        'pengembalian'   => 'fa-rotate-left',
+        'rpay'           => 'fa-wallet',
+        'rpaywithdrawal' => 'fa-money-bill-transfer',
     ];
-    $hasFilter = collect($filters)->filter()->isNotEmpty();
+    $hasFilter = collect($filters)->filter(fn($v) => $v !== '')->isNotEmpty();
+    $currentTab = $tab ?? 'admin';
 @endphp
 
 <div class="space-y-6" x-data="{ showDetail: false, detail: {}, showPrune: false }">
@@ -86,9 +92,51 @@
         </div>
     @endif
 
+    {{-- ── Tab Navigasi Pill ── --}}
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-1.5 flex gap-1">
+        @php
+            $tabConfig = [
+                'admin' => [
+                    'label'  => 'Aktivitas Admin',
+                    'icon'   => 'fa-user-shield',
+                    'count'  => $tabCounts['admin'],
+                    'color'  => $currentTab === 'admin' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100',
+                    'badge'  => 'bg-blue-100 text-blue-700',
+                ],
+                'user' => [
+                    'label'  => 'User & Tamu',
+                    'icon'   => 'fa-users',
+                    'count'  => $tabCounts['user'],
+                    'color'  => $currentTab === 'user' ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100',
+                    'badge'  => 'bg-emerald-100 text-emerald-700',
+                ],
+                'all' => [
+                    'label'  => 'Semua / Sistem',
+                    'icon'   => 'fa-server',
+                    'count'  => $tabCounts['all'],
+                    'color'  => $currentTab === 'all' ? 'bg-slate-700 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100',
+                    'badge'  => 'bg-slate-100 text-slate-700',
+                ],
+            ];
+        @endphp
+        @foreach ($tabConfig as $tabKey => $tc)
+            <a href="{{ route('admin.activity-logs', array_merge(request()->except(['tab','page']), ['tab' => $tabKey])) }}"
+               class="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all duration-150 {{ $tc['color'] }}">
+                <i class="fa-solid {{ $tc['icon'] }}"></i>
+                <span>{{ $tc['label'] }}</span>
+                <span class="ml-auto text-[10px] font-black px-2 py-0.5 rounded-full {{ $currentTab === $tabKey ? 'bg-white/25 text-white' : $tc['badge'] }}">
+                    {{ number_format($tc['count']) }}
+                </span>
+            </a>
+        @endforeach
+    </div>
+
     {{-- ── Filter ── --}}
     <form action="{{ route('admin.activity-logs') }}" method="GET"
           class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        {{-- Pertahankan tab aktif saat filter diterapkan --}}
+        <input type="hidden" name="tab" value="{{ $currentTab }}">
+
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-3 items-end">
 
             <div class="xl:col-span-2">
@@ -96,7 +144,7 @@
                 <div class="relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
                     <input type="text" name="search" value="{{ $filters['search'] }}"
-                           placeholder="Deskripsi atau isi perubahan..."
+                           placeholder="Deskripsi, IP, atau isi perubahan..."
                            class="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500">
                 </div>
             </div>
@@ -122,12 +170,17 @@
             </div>
 
             <div>
-                <label class="block text-[10px] font-black text-gray-500 uppercase mb-1.5">Pelaku</label>
+                <label class="block text-[10px] font-black text-gray-500 uppercase mb-1.5">
+                    {{ $currentTab === 'user' ? 'Pelaku (Customer)' : 'Pelaku' }}
+                </label>
                 <select name="causer" class="w-full border border-gray-200 rounded-xl py-2 px-3 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500">
                     <option value="">Semua Pelaku</option>
                     @foreach($causers as $user)
                         <option value="{{ $user->id }}" @selected((string) $filters['causer'] === (string) $user->id)>{{ $user->name }}</option>
                     @endforeach
+                    @if($currentTab === 'user')
+                        <option value="__guest__" @selected($filters['causer'] === '__guest__')>Tamu (Guest / Tanpa Login)</option>
+                    @endif
                 </select>
             </div>
 
@@ -150,12 +203,12 @@
                 <i class="fa-solid fa-filter mr-1.5"></i>Terapkan Filter
             </button>
             @if($hasFilter)
-                <a href="{{ route('admin.activity-logs') }}"
+                <a href="{{ route('admin.activity-logs', ['tab' => $currentTab]) }}"
                    class="text-xs font-bold px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition">
                     <i class="fa-solid fa-xmark mr-1"></i>Reset
                 </a>
-                <span class="text-[11px] text-gray-400 font-semibold ml-auto">{{ number_format($logs->total()) }} catatan cocok</span>
             @endif
+            <span class="text-[11px] text-gray-400 font-semibold ml-auto">{{ number_format($logs->total()) }} catatan</span>
         </div>
     </form>
 
@@ -180,25 +233,38 @@
                         [$evLabel, $evIcon, $evBadge, $evDot] = $eventMeta[$log->event] ?? ['Aktivitas', 'fa-circle-info', 'bg-gray-100 text-gray-700', 'bg-gray-400'];
                         $moduleIcon = $moduleIcons[$log->log_name] ?? 'fa-circle-dot';
 
-                        $attributes = $log->properties['attributes'] ?? [];
-                        $old        = $log->properties['old'] ?? [];
+                        $props      = is_array($log->properties) ? $log->properties : $log->properties->toArray();
+                        $attributes = $props['attributes'] ?? [];
+                        $old        = $props['old'] ?? [];
                         $changeKeys = array_keys($attributes);
 
+                        // Resolve actor & device info
+                        $actorInfo = DeviceDetector::actorInfo($log);
+                        $device    = DeviceDetector::fromActivity($log);
+
                         $payload = [
-                            'description' => $log->description,
-                            'module'      => ucfirst($log->log_name),
-                            'event'       => $evLabel,
-                            'causer'      => $log->causer?->name ?? 'Sistem',
-                            'causerEmail' => $log->causer?->email ?? '—',
-                            'subject'     => class_basename($log->subject_type ?? '') . ($log->subject_id ? ' #' . $log->subject_id : ''),
-                            'time'        => $log->created_at?->translatedFormat('l, d F Y · H:i:s'),
-                            'ago'         => $log->created_at?->diffForHumans(),
-                            'attributes'  => $attributes,
-                            'old'         => $old,
+                            'description'   => $log->description,
+                            'module'        => ucfirst($log->log_name),
+                            'event'         => $evLabel,
+                            'causer'        => $actorInfo['name'],
+                            'causerEmail'   => $actorInfo['email'],
+                            'causerRole'    => $actorInfo['role_label'],
+                            'isGuest'       => $actorInfo['is_guest'],
+                            'subject'       => class_basename($log->subject_type ?? '') . ($log->subject_id ? ' #' . $log->subject_id : ''),
+                            'time'          => $log->created_at?->translatedFormat('l, d F Y · H:i:s'),
+                            'ago'           => $log->created_at?->diffForHumans(),
+                            'attributes'    => $attributes,
+                            'old'           => $old,
+                            'deviceType'    => $device['device_type'],
+                            'deviceLabel'   => $device['formatted'],
+                            'devicePlatform'=> $device['platform'],
+                            'deviceBrowser' => $device['browser'],
+                            'ip'            => $props['ip'] ?? null,
+                            'userAgent'     => $props['user_agent'] ?? null,
                         ];
                     @endphp
 
-                    <div class="px-6 py-4 hover:bg-slate-50/60 transition flex items-start gap-4">
+                    <div class="px-5 py-4 hover:bg-slate-50/60 transition flex items-start gap-4">
 
                         {{-- Titik aksi --}}
                         <div class="shrink-0 pt-0.5">
@@ -209,11 +275,14 @@
 
                         {{-- Isi --}}
                         <div class="flex-1 min-w-0">
-                            <div class="flex flex-wrap items-center gap-2 mb-1">
+                            <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
+                                {{-- Module badge --}}
                                 <span class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
                                     <i class="fa-solid {{ $moduleIcon }} text-[9px]"></i>{{ $log->log_name }}
                                 </span>
+                                {{-- Action badge --}}
                                 <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full {{ $evBadge }}">{{ $evLabel }}</span>
+                                {{-- Subject --}}
                                 @if($log->subject_id)
                                     <code class="text-[10px] text-gray-400">{{ class_basename($log->subject_type) }} #{{ $log->subject_id }}</code>
                                 @endif
@@ -221,7 +290,7 @@
 
                             <p class="text-xs font-bold text-gray-800 leading-relaxed">{{ ucfirst($log->description) }}</p>
 
-                            {{-- Ringkasan kolom yang berubah --}}
+                            {{-- Changed fields --}}
                             @if(!empty($changeKeys))
                                 <div class="flex flex-wrap gap-1.5 mt-2">
                                     @foreach(array_slice($changeKeys, 0, 5) as $key)
@@ -233,14 +302,31 @@
                                 </div>
                             @endif
 
-                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[10px] text-gray-400 font-semibold">
-                                <span>
-                                    <i class="fa-solid fa-user mr-1"></i>
-                                    {{ $log->causer?->name ?? 'Sistem' }}
+                            {{-- Actor + Device + Time row --}}
+                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5">
+                                {{-- Actor badge --}}
+                                <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full {{ $actorInfo['badge_class'] }}">
+                                    <i class="fa-solid {{ $actorInfo['icon'] }} text-[9px]"></i>
+                                    {{ $actorInfo['name'] }}
+                                    @if($actorInfo['is_guest'])
+                                        <span class="opacity-70">· Tamu</span>
+                                    @endif
                                 </span>
-                                <span title="{{ $log->created_at }}">
-                                    <i class="fa-solid fa-clock mr-1"></i>
-                                    {{ $log->created_at?->translatedFormat('d M Y H:i') }} · {{ $log->created_at?->diffForHumans() }}
+                                {{-- Device badge --}}
+                                <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full {{ $device['badge_class'] }} border">
+                                    <i class="fa-solid {{ $device['icon'] }} text-[9px]"></i>
+                                    {{ $device['device_type'] }}
+                                    @if(!empty($props['ip']))
+                                        <span class="opacity-60">· {{ $props['ip'] }}</span>
+                                    @endif
+                                </span>
+                                {{-- Browser & Platform --}}
+                                <span class="text-[10px] text-gray-400 font-semibold">
+                                    {{ $device['platform'] }} · {{ $device['browser'] }}
+                                </span>
+                                {{-- Time --}}
+                                <span class="text-[10px] text-gray-400 font-semibold ml-auto" title="{{ $log->created_at }}">
+                                    <i class="fa-solid fa-clock mr-1"></i>{{ $log->created_at?->translatedFormat('d M Y H:i') }} · {{ $log->created_at?->diffForHumans() }}
                                 </span>
                             </div>
                         </div>
@@ -291,14 +377,48 @@
                         </div>
                         <div class="p-3 rounded-xl bg-gray-50 border border-gray-100">
                             <p class="text-[10px] text-gray-400 font-black uppercase">Pelaku</p>
-                            <p class="text-xs font-bold text-gray-800 mt-0.5" x-text="detail.causer"></p>
+                            <div class="flex items-center gap-1.5 mt-0.5">
+                                <p class="text-xs font-bold text-gray-800" x-text="detail.causer"></p>
+                                <span x-show="detail.isGuest" class="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">Tamu</span>
+                            </div>
                             <p class="text-[10px] text-gray-400" x-text="detail.causerEmail"></p>
+                            <p class="text-[10px] font-semibold mt-0.5" style="color:#6366f1" x-text="detail.causerRole"></p>
                         </div>
                         <div class="p-3 rounded-xl bg-gray-50 border border-gray-100">
                             <p class="text-[10px] text-gray-400 font-black uppercase">Data Terkait</p>
                             <p class="text-xs font-bold text-gray-800 mt-0.5" x-text="detail.subject"></p>
                         </div>
                     </div>
+
+                    {{-- Device Info Box --}}
+                    <div class="mt-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                        <p class="text-[10px] text-gray-400 font-black uppercase mb-2">Informasi Perangkat</p>
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                            <div>
+                                <p class="text-[10px] text-gray-400 font-semibold">Jenis Perangkat</p>
+                                <p class="font-bold text-gray-700" x-text="detail.deviceType ?? '—'"></p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-gray-400 font-semibold">Platform / OS</p>
+                                <p class="font-bold text-gray-700" x-text="detail.devicePlatform ?? '—'"></p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-gray-400 font-semibold">Browser</p>
+                                <p class="font-bold text-gray-700" x-text="detail.deviceBrowser ?? '—'"></p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-gray-400 font-semibold">Alamat IP</p>
+                                <p class="font-bold text-gray-700" x-text="detail.ip ?? '—'"></p>
+                            </div>
+                        </div>
+                        <template x-if="detail.userAgent">
+                            <div class="mt-2 pt-2 border-t border-slate-200">
+                                <p class="text-[10px] text-gray-400 font-semibold mb-0.5">User Agent</p>
+                                <p class="text-[10px] text-gray-500 break-all leading-relaxed" x-text="detail.userAgent"></p>
+                            </div>
+                        </template>
+                    </div>
+
                     <p class="text-[11px] text-gray-400 font-semibold mt-3">
                         <i class="fa-solid fa-clock mr-1"></i>
                         <span x-text="detail.time"></span> · <span x-text="detail.ago"></span>

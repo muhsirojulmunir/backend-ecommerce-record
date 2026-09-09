@@ -22,9 +22,9 @@ class AdminWebReportController extends Controller
     {
         [$from, $to, $preset] = $this->resolveRange($request);
 
-        // Semua angka omzet dihitung dari pesanan yang sudah LUNAS saja
-        $paid = fn () => Order::whereBetween('created_at', [$from, $to])->where('payment_status', 'paid');
-        $all  = fn () => Order::whereBetween('created_at', [$from, $to]);
+        // Semua angka omzet dihitung dari pesanan nyata yang sudah LUNAS saja (mengecualikan pesanan fiktif seeder)
+        $paid = fn () => Order::where('is_fake', false)->whereBetween('created_at', [$from, $to])->where('payment_status', 'paid');
+        $all  = fn () => Order::where('is_fake', false)->whereBetween('created_at', [$from, $to]);
 
         $revenue     = (float) $paid()->sum('grand_total');
         $paidCount   = $paid()->count();
@@ -37,7 +37,7 @@ class AdminWebReportController extends Controller
             'avg_order'     => $paidCount > 0 ? $revenue / $paidCount : 0.0,
             'items_sold'    => (int) $this->itemsQuery($from, $to, true)->sum('order_items.quantity'),
             'shipping'      => (float) $paid()->sum('shipping_cost'),
-            'new_customers' => User::customers()->whereBetween('created_at', [$from, $to])->count(),
+            'new_customers' => User::customers()->where('email', 'not like', '%fake%@mail.test')->whereBetween('created_at', [$from, $to])->count(),
         ];
 
         $previous = $this->previousPeriodSummary($from, $to);
@@ -142,7 +142,8 @@ class AdminWebReportController extends Controller
      */
     private function dailySeries(Carbon $from, Carbon $to): array
     {
-        $raw = Order::whereBetween('created_at', [$from, $to])
+        $raw = Order::where('is_fake', false)
+            ->whereBetween('created_at', [$from, $to])
             ->selectRaw('DATE(created_at) as d')
             ->selectRaw('COUNT(*) as orders')
             ->selectRaw("SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) as paid_orders")
@@ -196,10 +197,11 @@ class AdminWebReportController extends Controller
         $prevFrom = $prevTo->copy()->subSeconds($length);
 
         return [
-            'revenue' => (float) Order::whereBetween('created_at', [$prevFrom, $prevTo])
+            'revenue' => (float) Order::where('is_fake', false)
+                ->whereBetween('created_at', [$prevFrom, $prevTo])
                 ->where('payment_status', 'paid')
                 ->sum('grand_total'),
-            'orders'  => Order::whereBetween('created_at', [$prevFrom, $prevTo])->count(),
+            'orders'  => Order::where('is_fake', false)->whereBetween('created_at', [$prevFrom, $prevTo])->count(),
             'from'    => $prevFrom,
             'to'      => $prevTo,
         ];
@@ -217,7 +219,8 @@ class AdminWebReportController extends Controller
 
     private function statusBreakdown(Carbon $from, Carbon $to): array
     {
-        $counts = Order::whereBetween('created_at', [$from, $to])
+        $counts = Order::where('is_fake', false)
+            ->whereBetween('created_at', [$from, $to])
             ->selectRaw('status, COUNT(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status');
@@ -229,7 +232,8 @@ class AdminWebReportController extends Controller
 
     private function paymentMix(Carbon $from, Carbon $to)
     {
-        return Order::whereBetween('created_at', [$from, $to])
+        return Order::where('is_fake', false)
+            ->whereBetween('created_at', [$from, $to])
             ->where('payment_status', 'paid')
             ->selectRaw('payment_method, COUNT(*) as total, SUM(grand_total) as revenue')
             ->groupBy('payment_method')
@@ -245,6 +249,7 @@ class AdminWebReportController extends Controller
     {
         $query = Order::query()
             ->join('order_items', 'order_items.order_id', '=', 'orders.id')
+            ->where('orders.is_fake', false)
             ->whereBetween('orders.created_at', [$from, $to]);
 
         if ($paidOnly) {
@@ -284,6 +289,8 @@ class AdminWebReportController extends Controller
     {
         return Order::query()
             ->join('users', 'users.id', '=', 'orders.user_id')
+            ->where('orders.is_fake', false)
+            ->where('users.email', 'not like', '%fake%@mail.test')
             ->whereBetween('orders.created_at', [$from, $to])
             ->where('orders.payment_status', 'paid')
             ->selectRaw('users.id, users.name, users.email')
