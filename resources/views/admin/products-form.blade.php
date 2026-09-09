@@ -1127,6 +1127,9 @@
                 <!-- Editable: Stok -->
                 <td class="px-4 py-3">
                     <input type="number" name="variants[${idx}][stock]" value="${item.stock}" required
+                           min="-999999" max="999999"
+                           onfocus="this.dataset.lastValue = this.value"
+                           onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='z'){event.preventDefault();if(this.dataset.lastValue!==undefined){this.value=this.dataset.lastValue;updateVariantStock(${idx},this.value);}}"
                            onchange="updateVariantStock(${idx}, this.value)"
                            class="px-2 py-1.5 border border-gray-200 rounded-lg w-16 text-xs text-center font-semibold focus:ring-1 focus:ring-orange-400 focus:outline-none">
                 </td>
@@ -1290,8 +1293,13 @@
     }
 
     function updateVariantStock(idx, val) {
-        variants[idx].stock = parseInt(val) || 0;
-        document.getElementById('stock').value = variants.reduce((s, v) => s + (parseInt(v.stock) || 0), 0);
+        // parseInt biasa mengubah string kosong/tak valid menjadi NaN; fallback 0 hanya jika benar-benar bukan angka
+        const parsed = parseInt(val, 10);
+        variants[idx].stock = isNaN(parsed) ? 0 : parsed;
+        document.getElementById('stock').value = variants.reduce((s, v) => {
+            const n = parseInt(v.stock, 10);
+            return s + (isNaN(n) ? 0 : n);
+        }, 0);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
