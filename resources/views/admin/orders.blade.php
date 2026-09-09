@@ -441,6 +441,17 @@
                                     @endif
                                 </p>
 
+                                @if(!$isPaid && $order->status !== 'cancelled')
+                                    @php
+                                        $expiresAt = $order->created_at->copy()->addHours(24);
+                                        $secLeft = max(0, (int) now()->diffInSeconds($expiresAt, false));
+                                    @endphp
+                                    <div x-data="orderCountdown({{ $secLeft }})" class="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200/80 px-2 py-0.5 rounded-md" title="Batas waktu bayar: {{ $expiresAt->translatedFormat('d M Y, H:i') }} WIB">
+                                        <i class="fa-regular fa-clock text-[10px] text-rose-500 animate-pulse"></i>
+                                        <span x-text="countdownText"></span>
+                                    </div>
+                                @endif
+
                                 @php $retur = $order->returns->firstWhere('type', 'return'); @endphp
                                 @if($retur)
                                     <a href="{{ route('admin.returns.show', $retur->id) }}"
@@ -872,6 +883,39 @@ function orderBulk() {
             });
         }
     }
+}
+
+function orderCountdown(initialSeconds) {
+    return {
+        seconds: initialSeconds,
+        countdownText: '',
+        timer: null,
+        init() {
+            this.render();
+            if (this.seconds > 0) {
+                this.timer = setInterval(() => {
+                    if (this.seconds > 0) {
+                        this.seconds--;
+                        this.render();
+                    } else {
+                        clearInterval(this.timer);
+                        this.countdownText = 'Waktu Habis';
+                    }
+                }, 1000);
+            }
+        },
+        render() {
+            if (this.seconds <= 0) {
+                this.countdownText = 'Waktu Habis';
+                return;
+            }
+            const h = Math.floor(this.seconds / 3600);
+            const m = Math.floor((this.seconds % 3600) / 60);
+            const s = this.seconds % 60;
+            const pad = (n) => String(n).padStart(2, '0');
+            this.countdownText = `${pad(h)} jam ${pad(m)} mnt ${pad(s)} dtk`;
+        }
+    };
 }
 </script>
 @endsection

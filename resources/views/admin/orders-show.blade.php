@@ -69,6 +69,28 @@
                 </button>
             </form>
         </div>
+    @elseif($order->payment_status === 'unpaid' && $order->status !== 'cancelled')
+        @php
+            $expiresAt = $order->created_at->copy()->addHours(24);
+            $secLeft = max(0, (int) now()->diffInSeconds($expiresAt, false));
+        @endphp
+        <div x-data="orderCountdown({{ $secLeft }})" class="p-4 rounded-xl bg-gradient-to-r from-rose-50 to-amber-50 border-2 border-rose-200 text-slate-800 text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center text-lg shrink-0 shadow-sm">
+                    <i class="fa-regular fa-clock animate-pulse"></i>
+                </div>
+                <div>
+                    <strong class="text-rose-950 font-bold">Menunggu Pembayaran Customer (Batas 24 Jam)</strong><br>
+                    <span class="text-xs text-gray-600">
+                        Batas akhir: <strong class="text-slate-900">{{ $expiresAt->translatedFormat('d F Y, H:i') }} WIB</strong>. Jika tidak dibayar dalam batas waktu, pesanan akan otomatis dibatalkan dan stok dikembalikan.
+                    </span>
+                </div>
+            </div>
+            <div class="bg-white/90 border border-rose-200 px-3.5 py-2 rounded-xl text-right shrink-0 shadow-xs">
+                <span class="text-[10px] text-rose-600 font-bold uppercase tracking-wider block">Sisa Waktu Real-Time:</span>
+                <span class="font-mono font-black text-rose-700 text-sm" x-text="countdownText"></span>
+            </div>
+        </div>
     @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -500,6 +522,18 @@
                                     <span class="font-semibold text-slate-800">{{ $order->payment_proof_uploaded_at->translatedFormat('d M Y, H:i') }} WIB</span>
                                 </div>
                             @endif
+                            @if($order->payment_status === 'unpaid' && $order->status !== 'cancelled')
+                                @php
+                                    $expBca = $order->created_at->copy()->addHours(24);
+                                    $secLeftBca = max(0, (int) now()->diffInSeconds($expBca, false));
+                                @endphp
+                                <div x-data="orderCountdown({{ $secLeftBca }})" class="flex justify-between items-center border-t border-gray-100 pt-2 bg-rose-50/70 -mx-1 px-2.5 py-1.5 rounded-lg">
+                                    <span class="font-bold flex items-center gap-1.5 text-[11px] text-rose-700">
+                                        <i class="fa-regular fa-clock animate-pulse"></i> Batas Waktu Bayar:
+                                    </span>
+                                    <span class="font-mono font-black text-rose-700 text-xs" x-text="countdownText"></span>
+                                </div>
+                            @endif
                         </div>
 
                         {{-- Foto Bukti Transfer --}}
@@ -612,6 +646,18 @@
                                 </span>
                             @endif
                         </div>
+                        @if($order->payment_status === 'unpaid' && $order->status !== 'cancelled')
+                            @php
+                                $expMidtrans = $order->created_at->copy()->addHours(24);
+                                $secLeftMidtrans = max(0, (int) now()->diffInSeconds($expMidtrans, false));
+                            @endphp
+                            <div x-data="orderCountdown({{ $secLeftMidtrans }})" class="p-2.5 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-between text-xs">
+                                <span class="text-rose-700 font-bold flex items-center gap-1.5 text-[11px]">
+                                    <i class="fa-regular fa-clock animate-pulse"></i> Sisa Waktu Pembayaran:
+                                </span>
+                                <span class="font-mono font-black text-rose-700 text-xs" x-text="countdownText"></span>
+                            </div>
+                        @endif
                         <p class="text-[10px] text-gray-400 leading-tight">
                             @if($order->payment_status === 'paid')
                                 Pembayaran telah diverifikasi otomatis via Midtrans ({{ strtoupper($order->payment_method) }}).
@@ -727,5 +773,40 @@
         </div>
     </div>
 </div>
+
+<script>
+function orderCountdown(initialSeconds) {
+    return {
+        seconds: initialSeconds,
+        countdownText: '',
+        timer: null,
+        init() {
+            this.render();
+            if (this.seconds > 0) {
+                this.timer = setInterval(() => {
+                    if (this.seconds > 0) {
+                        this.seconds--;
+                        this.render();
+                    } else {
+                        clearInterval(this.timer);
+                        this.countdownText = 'Waktu Habis';
+                    }
+                }, 1000);
+            }
+        },
+        render() {
+            if (this.seconds <= 0) {
+                this.countdownText = 'Waktu Habis';
+                return;
+            }
+            const h = Math.floor(this.seconds / 3600);
+            const m = Math.floor((this.seconds % 3600) / 60);
+            const s = this.seconds % 60;
+            const pad = (n) => String(n).padStart(2, '0');
+            this.countdownText = `${pad(h)} jam ${pad(m)} mnt ${pad(s)} dtk`;
+        }
+    };
+}
+</script>
 @endsection
 
