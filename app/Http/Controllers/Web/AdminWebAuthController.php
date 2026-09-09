@@ -96,6 +96,22 @@ class AdminWebAuthController extends Controller
             if ($user->isAdmin()) {
                 $this->catatAman(fn () => RateLimiter::clear($kunci));
                 $request->session()->regenerate();
+
+                try {
+                    activity('auth')
+                        ->causedBy($user)
+                        ->event('login')
+                        ->withProperties([
+                            'action' => 'login',
+                            'role'   => $user->role,
+                            'email'  => $user->email,
+                            'name'   => $user->name,
+                        ])
+                        ->log("Administrator {$user->name} masuk (login) ke dashboard");
+                } catch (\Throwable $e) {
+                    Log::warning('Gagal mencatat log login admin: ' . $e->getMessage());
+                }
+
                 return redirect($this->redirectAfterLogin($user));
             }
 
@@ -135,6 +151,24 @@ class AdminWebAuthController extends Controller
 
     public function logout(Request $request)
     {
+        $user = Auth::user();
+        if ($user) {
+            try {
+                activity('auth')
+                    ->causedBy($user)
+                    ->event('logout')
+                    ->withProperties([
+                        'action' => 'logout',
+                        'role'   => $user->role,
+                        'email'  => $user->email,
+                        'name'   => $user->name,
+                    ])
+                    ->log("Administrator {$user->name} keluar (logout) dari dashboard");
+            } catch (\Throwable $e) {
+                Log::warning('Gagal mencatat log logout admin: ' . $e->getMessage());
+            }
+        }
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

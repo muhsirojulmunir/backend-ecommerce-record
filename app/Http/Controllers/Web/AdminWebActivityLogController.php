@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class AdminWebActivityLogController extends Controller
 {
     /** Log module yang berasal dari interaksi toko (frontend), bukan admin. */
-    private const SHOP_LOG_NAMES = ['pesanan', 'ulasan', 'pengembalian', 'checkout', 'keranjang', 'toko', 'rpay', 'rpaywithdrawal'];
+    private const SHOP_LOG_NAMES = ['pesanan', 'ulasan', 'pengembalian', 'checkout', 'keranjang', 'toko', 'rpay', 'rpaywithdrawal', 'produk', 'pencarian'];
 
     public function index(Request $request)
     {
@@ -56,6 +56,7 @@ class AdminWebActivityLogController extends Controller
             'logNames'   => Activity::select('log_name')->distinct()->orderBy('log_name')->pluck('log_name')->filter()->values(),
             'causers'    => $causers,
             'stats'      => $this->stats(),
+            'analytics'  => $this->analytics(),
             'tabCounts'  => [
                 'admin' => $adminCount,
                 'user'  => $userCount,
@@ -214,6 +215,110 @@ class AdminWebActivityLogController extends Controller
             'created' => Activity::where('event', 'created')->count(),
             'updated' => Activity::where('event', 'updated')->count(),
             'deleted' => Activity::where('event', 'deleted')->count(),
+        ];
+    }
+
+    /**
+     * Hitung analitik login, rasio perangkat, produk teratas, dan pencarian terpopuler.
+     */
+    private function analytics(): array
+    {
+        // 1. Statistik Login
+        $loginQuery = Activity::where('log_name', 'auth')->where('event', 'login');
+
+        $totalLogin    = (clone $loginQuery)->count();
+        $todayLogin    = (clone $loginQuery)->whereDate('created_at', today())->count();
+        $weekLogin     = (clone $loginQuery)->where('created_at', '>=', now()->subDays(7))->count();
+        $adminLogin    = (clone $loginQuery)->whereHas('causer', fn ($q) => $q->whereIn('role', ['admin', 'super_admin']))->count();
+        $customerLogin = (clone $loginQuery)->whereHas('causer', fn ($q) => $q->where('role', 'customer'))->count();
+
+        // 2. Evaluasi Proporsi Perangkat (Sample 500 log terbaru)
+        $recentLogs = Activity::latest('id')->limit(500)->get(['properties']);
+        $mobile = 0;
+        $desktop = 0;
+        $tablet = 0;
+
+        foreach ($recentLogs as $log) {
+            $props   = is_array($log->properties) ? $log->properties : ($log->properties?->toArray() ?? []);
+            $devType = $props['device']['device_type'] ?? $props['device_type'] ?? null;
+
+            if ($devType === 'Mobile') {
+                $mobile++;
+            } elseif ($devType === 'Desktop') {
+                $desktop++;
+            } elseif ($devType === 'Tablet') {
+                $tablet++;
+            }
+        }
+
+        $totalDevices = $mobile + $desktop + $tablet;
+        $mobilePct    = $totalDevices > 0 ? (int) round(($mobile / $totalDevices) * 100) : 0;
+        $desktopPct   = $totalDevices > 0 ? (int) round(($desktop / $totalDevices) * 100) : 0;
+        $tabletPct    = $totalDevices > 0 ? (int) round(($tablet / $totalDevices) * 100) : 0;
+
+        // 3. Top 3 Produk Paling Banyak Dilihat (7 Hari Terakhir)
+        $topViewedRaw = Activity::where('log_name', 'produk')
+            ->where('event', 'view')
+            ->where('created_at', '>=', now()->subDays(7))
+            ->whereNotNull('subject_id')
+            ->selectRaw('subject_id, COUNT(*) as views')
+            ->groupBy('subject_id')
+            ->orderByDesc('views')
+            ->limit(3)
+            ->get();
+
+        $topProducts = [];
+        if ($topViewedRaw->isNotEmpty()) {
+            $productModels = \App\Models\Product::whereIn('id', $topViewedRaw->pluck('subject_id'))->get()->keyBy('id');
+            foreach ($topViewedRaw as $row) {
+                $prod = $productModels->get($row->subject_id);
+                if ($prod) {
+                    $topProducts[] = [
+                        'id'    => $prod->id,
+                        'name'  => $prod->name,
+                        'views' => (int) $row->views,
+                    ];
+                }
+            }
+        }
+
+        // 4. Top 3 Kata Kunci Pencarian (7 Hari Terakhir)
+        $searchLogs = Activity::where('log_name', 'pencarian')
+            ->where('created_at', '>=', now()->subDays(7))
+            ->latest('id')
+            ->limit(150)
+            ->get(['properties']);
+
+        $searchFreq = [];
+        foreach ($searchLogs as $sLog) {
+            $props = is_array($sLog->properties) ? $sLog->properties : ($sLog->properties?->toArray() ?? []);
+            $kw    = strtolower(trim((string) ($props['keyword'] ?? '')));
+            if ($kw !== '') {
+                $searchFreq[$kw] = ($searchFreq[$kw] ?? 0) + 1;
+            }
+        }
+        arsort($searchFreq);
+        $topSearches = array_slice($searchFreq, 0, 3, true);
+
+        return [
+            'login' => [
+                'total'    => $totalLogin,
+                'today'    => $todayLogin,
+                'week'     => $weekLogin,
+                'admin'    => $adminLogin,
+                'customer' => $customerLogin,
+            ],
+            'devices' => [
+                'total'       => $totalDevices,
+                'mobile'      => $mobile,
+                'desktop'     => $desktop,
+                'tablet'      => $tablet,
+                'mobile_pct'  => $mobilePct,
+                'desktop_pct' => $desktopPct,
+                'tablet_pct'  => $tabletPct,
+            ],
+            'top_products' => $topProducts,
+            'top_searches' => $topSearches,
         ];
     }
 }
