@@ -246,6 +246,21 @@ class AdminWebOrderController extends Controller
                     $order->save();
                 } elseif (in_array($trxStatus, ['cancel', 'deny', 'expire'])) {
                     $order->payment_status = 'failed';
+                    if ($order->status === 'pending') {
+                        $order->status = 'cancelled';
+                        $order->cancellation_reason = 'Waktu pembayaran telah habis (' . ucfirst($trxStatus) . ')';
+                        $order->cancelled_at = now();
+
+                        // Kembalikan stok produk & varian
+                        foreach ($order->items as $item) {
+                            if ($item->variant) {
+                                $item->variant->increment('stock', $item->quantity);
+                            }
+                            if ($item->product) {
+                                $item->product->increment('stock', $item->quantity);
+                            }
+                        }
+                    }
                     $order->save();
                 }
             } catch (\Throwable $e) {
