@@ -262,8 +262,13 @@
 
                                                         <td class="px-4 py-3">
                                                             <div class="flex items-center gap-2">
-                                                                <input type="number" min="-999999" max="999999"
+                                                                <input type="number" min="0" max="999999"
                                                                        x-model.number="stok"
+                                                                       @focus="terakhir = stok"
+                                                                       @keydown="if(event.key === '-' || event.key === 'Subtract') { event.preventDefault(); return false; }"
+                                                                       @keydown.ctrl.z.prevent="undo()"
+                                                                       @keydown.meta.z.prevent="undo()"
+                                                                       @input="if(stok < 0 || isNaN(stok)) stok = 0; catatRiwayat()"
                                                                        @keydown.enter.prevent="simpan()"
                                                                        :disabled="menyimpan"
                                                                        class="w-20 rounded-lg border-gray-200 text-xs py-1.5 focus:border-orange-500 focus:ring-orange-500 disabled:bg-gray-100">
@@ -325,12 +330,33 @@
     document.addEventListener('alpine:init', () => {
         Alpine.data('barisVarian', (id, stokAwal) => ({
             id,
-            stok: stokAwal,
-            awal: stokAwal,
+            stok: Math.max(0, parseInt(stokAwal, 10) || 0),
+            awal: Math.max(0, parseInt(stokAwal, 10) || 0),
+            terakhir: Math.max(0, parseInt(stokAwal, 10) || 0),
+            riwayat: [Math.max(0, parseInt(stokAwal, 10) || 0)],
             menyimpan: false,
             pesan: '',
             galat: false,
             pewaktuPesan: null,
+
+            catatRiwayat() {
+                if (this.stok < 0 || isNaN(this.stok)) {
+                    this.stok = 0;
+                }
+                const val = Number(this.stok);
+                if (this.riwayat[this.riwayat.length - 1] !== val) {
+                    this.riwayat.push(val);
+                }
+            },
+
+            undo() {
+                if (this.riwayat.length > 1) {
+                    this.riwayat.pop();
+                    this.stok = this.riwayat[this.riwayat.length - 1];
+                } else {
+                    this.stok = this.awal;
+                }
+            },
 
             // Pesan selalu lewat sini supaya pewaktu penghapus dari pesan SEBELUMNYA dibatalkan lebih dulu.
             tampilkanPesan(teks, adaGalat) {
@@ -346,17 +372,21 @@
 
             kosongkan() {
                 this.stok = 0;
+                this.catatRiwayat();
                 this.simpan();
             },
 
             async simpan() {
                 if (this.menyimpan) return;
 
-                // Hanya bilangan bulat yang diterima (nilai negatif diizinkan untuk keperluan koreksi stok).
+                if (this.stok < 0 || isNaN(this.stok)) {
+                    this.stok = 0;
+                }
+
                 const nilai = Number(this.stok);
 
-                if (this.stok === '' || this.stok === null || !Number.isInteger(nilai) || nilai < -999999) {
-                    this.tampilkanPesan('Isi angka bulat yang valid.', true);
+                if (this.stok === '' || this.stok === null || !Number.isInteger(nilai) || nilai < 0) {
+                    this.tampilkanPesan('Isi angka 0 atau lebih.', true);
                     return;
                 }
 

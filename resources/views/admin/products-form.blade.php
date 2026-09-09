@@ -355,7 +355,10 @@
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Stok</label>
-                    <input type="number" id="bulk-stock" class="px-3 py-2 border border-gray-200 rounded-xl text-xs w-20 focus:ring-2 focus:ring-orange-500 focus:outline-none transition" placeholder="10">
+                    <input type="number" id="bulk-stock" min="0" max="999999"
+                           onkeydown="if(event.key === '-' || event.key === 'Subtract'){event.preventDefault();return false;}"
+                           oninput="if(parseInt(this.value, 10) < 0 || this.value < 0){this.value = '0';}"
+                           class="px-3 py-2 border border-gray-200 rounded-xl text-xs w-20 focus:ring-2 focus:ring-orange-500 focus:outline-none transition" placeholder="10">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-gray-600 uppercase mb-1">Prefix Kode SKU</label>
@@ -486,27 +489,27 @@
 
 <!-- ──────────────────────────── Sticky Bottom Bar ──────────────────────────── -->
 <div id="sticky-bar"
-     class="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm border-t border-gray-200 shadow-[0_-4px_24px_rgba(0,0,0,0.07)] transition-all">
+     class="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-gray-200 shadow-[0_-4px_24px_rgba(0,0,0,0.08)] transition-all">
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
 
         <!-- Indikator perubahan -->
-        <p id="bar-status" class="text-xs text-gray-400 hidden">
-            <i class="fa-solid fa-pencil text-orange-400 mr-1"></i>
+        <div id="bar-status" class="hidden items-center gap-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg shadow-sm">
+            <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
             <span id="bar-status-text">Ada perubahan belum disimpan</span>
-        </p>
+        </div>
         <div class="flex-1"></div>
 
         <!-- Batal -->
         <button type="button" id="btn-batal"
-                class="px-6 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition">
+                class="px-6 py-2.5 border border-gray-200 rounded-xl text-sm font-bold text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition shadow-sm">
             Batal
         </button>
 
         <!-- Simpan -->
         <button type="submit" form="product-form"
-                class="px-8 py-2.5 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-bold rounded-xl shadow-lg shadow-orange-500/20 active:scale-[0.98] text-sm transition">
-            <i class="fa-solid fa-floppy-disk mr-1.5"></i>
-            Simpan Produk
+                class="px-8 py-2.5 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-600 hover:to-rose-600 text-white font-bold rounded-xl shadow-lg shadow-orange-500/20 active:scale-[0.98] text-sm transition flex items-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Simpan Produk</span>
         </button>
     </div>
 </div>
@@ -514,26 +517,28 @@
 <!-- ──────────────────────────── Modal Konfirmasi Batal ──────────────────────────── -->
 <div id="modal-batal"
      class="fixed inset-0 z-[60] hidden items-center justify-center p-4"
-     style="background:rgba(0,0,0,0.45)">
+     style="background:rgba(0,0,0,0.5)">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
         <div class="flex items-start gap-3">
             <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
+                <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg"></i>
             </div>
-            <div>
-                <h3 class="font-bold text-gray-800">Batalkan perubahan?</h3>
-                <p class="text-sm text-gray-500 mt-1">Perubahan berikut akan hilang:</p>
-                <ul id="modal-batal-list" class="mt-2 space-y-1 text-sm text-gray-700 list-disc list-inside max-h-48 overflow-y-auto"></ul>
+            <div class="flex-1">
+                <h3 class="font-bold text-gray-800 text-base">Batalkan perubahan?</h3>
+                <p class="text-xs text-gray-500 mt-1">Anda yakin ingin membatalkan? Perubahan berikut belum disimpan dan akan hilang:</p>
+                <div class="mt-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                    <ul id="modal-batal-list" class="space-y-1.5 text-xs text-gray-700 max-h-48 overflow-y-auto"></ul>
+                </div>
             </div>
         </div>
-        <div class="flex justify-end gap-3 pt-2 border-t border-gray-100">
+        <div class="flex justify-end gap-2.5 pt-3 border-t border-gray-100">
             <button type="button" id="modal-batal-tetap"
-                    class="px-5 py-2 text-sm font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition">
+                    class="px-4 py-2 text-xs font-bold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-100 transition">
                 Tetap Edit
             </button>
             <a href="{{ route('admin.products') }}"
-               class="px-5 py-2 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl transition">
-                Ya, Batalkan
+               class="px-5 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition shadow-sm">
+                Ya, Batalkan Perubahan
             </a>
         </div>
     </div>
@@ -1174,11 +1179,11 @@
                 </td>
                 <!-- Editable: Stok -->
                 <td class="px-4 py-3">
-                    <input type="number" name="variants[${idx}][stock]" value="${item.stock}" required
+                    <input type="number" name="variants[${idx}][stock]" value="${item.stock < 0 ? 0 : item.stock}" required
                            min="0" max="999999"
-                           onfocus="this.dataset.lastValue = this.value"
-                           oninput="if(parseInt(this.value,10)<0||this.value==='-'){this.value='0';}updateVariantStock(${idx},this.value)"
-                           onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='z'){event.preventDefault();if(this.dataset.lastValue!==undefined){this.value=this.dataset.lastValue;updateVariantStock(${idx},this.value);}}"
+                           onfocus="if(!this._initialVal){this._initialVal = this.value;} this.dataset.lastValue = this.value;"
+                           onkeydown="if(event.key === '-' || event.key === 'Subtract'){event.preventDefault();return false;} if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='z'){event.preventDefault();let rev = this.dataset.lastValue !== undefined ? this.dataset.lastValue : (this._initialVal || '0'); this.value = rev; updateVariantStock(${idx}, rev);}"
+                           oninput="if(parseInt(this.value, 10) < 0 || this.value < 0 || this.value === '-'){this.value = '0';} updateVariantStock(${idx}, this.value);"
                            onchange="updateVariantStock(${idx}, this.value)"
                            class="px-2 py-1.5 border border-gray-200 rounded-lg w-16 text-xs text-center font-semibold focus:ring-1 focus:ring-orange-400 focus:outline-none">
                 </td>
@@ -1342,13 +1347,18 @@
     }
 
     function updateVariantStock(idx, val) {
-        // parseInt biasa mengubah string kosong/tak valid menjadi NaN; fallback 0 hanya jika benar-benar bukan angka
-        const parsed = parseInt(val, 10);
-        variants[idx].stock = isNaN(parsed) ? 0 : parsed;
+        let parsed = parseInt(val, 10);
+        if (isNaN(parsed) || parsed < 0) {
+            parsed = 0;
+        }
+        variants[idx].stock = parsed;
         document.getElementById('stock').value = variants.reduce((s, v) => {
             const n = parseInt(v.stock, 10);
-            return s + (isNaN(n) ? 0 : n);
+            return s + (isNaN(n) || n < 0 ? 0 : n);
         }, 0);
+        if (typeof _perbaruiStatusBar === 'function') {
+            _perbaruiStatusBar();
+        }
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -1365,7 +1375,7 @@
                 item.price = parseRupiah(bulkPriceVal);
             }
             if (bulkStockVal !== '') {
-                item.stock = parseInt(bulkStockVal) || 0;
+                item.stock = Math.max(0, parseInt(bulkStockVal, 10) || 0);
             }
             if (bulkSkuPrefix !== '') {
                 let rand = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -1375,6 +1385,9 @@
 
         recalculateBasePriceAndAdjustments();
         renderVariantsTable();
+        if (typeof _perbaruiStatusBar === 'function') {
+            _perbaruiStatusBar();
+        }
         alert('Perubahan massal berhasil diterapkan!');
     }
 
@@ -1385,48 +1398,75 @@
     // Snapshot nilai awal seluruh field form saat halaman pertama dimuat
     const _formAwal = {};
     const _namaField = {
-        name:        'Nama produk',
-        description: 'Deskripsi produk',
-        price:       'Harga dasar',
-        status:      'Status produk',
-        category_id: 'Kategori',
-        weight_gram:     'Berat paket',
-        package_length:  'Panjang paket',
-        package_width:   'Lebar paket',
-        package_height:  'Tinggi paket',
+        name:            'Nama produk',
+        description:     'Deskripsi produk',
+        price:           'Harga dasar',
+        status:          'Status produk',
+        category_id:     'Kategori produk',
+        weight_gram:     'Berat paket (gram)',
+        package_length:  'Panjang paket (cm)',
+        package_width:   'Lebar paket (cm)',
+        package_height:  'Tinggi paket (cm)',
     };
 
     function _ambilNilaiForm() {
         const hasil = {};
         const form  = document.getElementById('product-form');
         if (!form) return hasil;
-        // Simpan field teks/number/select yang namanya dikenali
+
+        // Simpan field teks/number/select
         Object.keys(_namaField).forEach(n => {
             const el = form.querySelector(`[name="${n}"]`);
             if (el) hasil[n] = el.value;
         });
-        // Simpan stok varian sebagai JSON string
-        hasil['__stok_varian'] = JSON.stringify(variants.map(v => v.stock));
+
+        // Kurir yang dipilih
+        hasil['__kurir'] = Array.from(form.querySelectorAll('input[name="courier_providers[]"]:checked'))
+            .map(el => el.value).sort().join(',');
+
+        // Varian (stok, harga, variasi)
+        hasil['__stok_varian'] = JSON.stringify(variants.map(v => Math.max(0, parseInt(v.stock, 10) || 0)));
+        hasil['__harga_varian'] = JSON.stringify(variants.map(v => parseInt(v.price, 10) || 0));
+        hasil['__daftar_varian'] = JSON.stringify(variants.map(v => `${v.color}-${v.size}-${v.sku}`));
+
+        // Jumlah berkas foto baru yang dipilih
+        hasil['__foto_baru'] = Array.from(form.querySelectorAll('input[type="file"]'))
+            .reduce((acc, inp) => acc + (inp.files ? inp.files.length : 0), 0);
+
         return hasil;
     }
 
     function _deteksiPerubahan() {
         const sekarang = _ambilNilaiForm();
         const daftar   = [];
+
         Object.keys(_namaField).forEach(n => {
             if (_formAwal[n] !== undefined && _formAwal[n] !== sekarang[n]) {
                 daftar.push(_namaField[n]);
             }
         });
-        if ((_formAwal['__stok_varian'] || '') !== (sekarang['__stok_varian'] || '')) {
-            daftar.push('Stok varian');
+
+        if (_formAwal['__kurir'] !== undefined && _formAwal['__kurir'] !== sekarang['__kurir']) {
+            daftar.push('Pilihan kurir pengiriman');
         }
+        if ((_formAwal['__stok_varian'] || '') !== (sekarang['__stok_varian'] || '')) {
+            daftar.push('Stok varian produk');
+        }
+        if ((_formAwal['__harga_varian'] || '') !== (sekarang['__harga_varian'] || '')) {
+            daftar.push('Harga varian produk');
+        }
+        if ((_formAwal['__daftar_varian'] || '') !== (sekarang['__daftar_varian'] || '')) {
+            daftar.push('Daftar / kombinasi variasi (warna & ukuran)');
+        }
+        if (sekarang['__foto_baru'] > 0) {
+            daftar.push('Unggahan foto produk baru (' + sekarang['__foto_baru'] + ' berkas)');
+        }
+
         return daftar;
     }
 
     // Inisialisasi snapshot setelah DOM & variant table siap
     document.addEventListener('DOMContentLoaded', function () {
-        // Beri jeda singkat agar renderVariantsTable() selesai
         setTimeout(function () {
             Object.assign(_formAwal, _ambilNilaiForm());
         }, 300);
@@ -1437,6 +1477,7 @@
             form.addEventListener('input', _perbaruiStatusBar);
             form.addEventListener('change', _perbaruiStatusBar);
         }
+
         // Tombol batal
         document.getElementById('btn-batal').addEventListener('click', function () {
             const perubahan = _deteksiPerubahan();
@@ -1447,17 +1488,24 @@
             }
             // Isi daftar perubahan di modal
             const ul = document.getElementById('modal-batal-list');
-            ul.innerHTML = perubahan.map(p => `<li>${p}</li>`).join('');
+            ul.innerHTML = perubahan.map(p => `
+                <li class="flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0"></span>
+                    <span class="font-medium">${p}</span>
+                </li>
+            `).join('');
             const modal = document.getElementById('modal-batal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
         });
+
         // Tombol "Tetap Edit" di modal
         document.getElementById('modal-batal-tetap').addEventListener('click', function () {
             const modal = document.getElementById('modal-batal');
             modal.classList.add('hidden');
             modal.classList.remove('flex');
         });
+
         // Tutup modal saat klik backdrop
         document.getElementById('modal-batal').addEventListener('click', function (e) {
             if (e.target === this) {
@@ -1474,8 +1522,10 @@
         if (perubahan.length > 0) {
             teks.textContent = perubahan.length + ' perubahan belum disimpan';
             status.classList.remove('hidden');
+            status.classList.add('flex');
         } else {
             status.classList.add('hidden');
+            status.classList.remove('flex');
         }
     }
 </script>
