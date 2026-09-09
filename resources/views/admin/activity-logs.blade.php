@@ -371,7 +371,7 @@
                         [$evLabel, $evIcon, $evBadge, $evDot] = $eventMeta[$log->event] ?? ['Aktivitas', 'fa-circle-info', 'bg-gray-100 text-gray-700', 'bg-gray-400'];
                         $moduleIcon = $moduleIcons[$log->log_name] ?? 'fa-circle-dot';
 
-                        $props      = is_array($log->properties) ? $log->properties : $log->properties->toArray();
+                        $props      = is_array($log->properties) ? $log->properties : (is_object($log->properties) && method_exists($log->properties, 'toArray') ? $log->properties->toArray() : []);
                         $attributes = $props['attributes'] ?? [];
                         $old        = $props['old'] ?? [];
                         $changeKeys = array_keys($attributes);
@@ -384,19 +384,19 @@
                             'description'   => $log->description,
                             'module'        => ucfirst($log->log_name),
                             'event'         => $evLabel,
-                            'causer'        => $actorInfo['name'],
-                            'causerEmail'   => $actorInfo['email'],
-                            'causerRole'    => $actorInfo['role_label'],
-                            'isGuest'       => $actorInfo['is_guest'],
+                            'causer'        => $actorInfo['name'] ?? 'Sistem',
+                            'causerEmail'   => $actorInfo['email'] ?? '—',
+                            'causerRole'    => $actorInfo['role_label'] ?? 'Sistem',
+                            'isGuest'       => $actorInfo['is_guest'] ?? false,
                             'subject'       => class_basename($log->subject_type ?? '') . ($log->subject_id ? ' #' . $log->subject_id : ''),
                             'time'          => $log->created_at?->translatedFormat('l, d F Y · H:i:s'),
                             'ago'           => $log->created_at?->diffForHumans(),
                             'attributes'    => $attributes,
                             'old'           => $old,
-                            'deviceType'    => $device['device_type'],
-                            'deviceLabel'   => $device['formatted'],
-                            'devicePlatform'=> $device['platform'],
-                            'deviceBrowser' => $device['browser'],
+                            'deviceType'    => $device['device_type'] ?? 'Desktop',
+                            'deviceLabel'   => $device['formatted'] ?? ($device['device_type'] ?? 'Desktop'),
+                            'devicePlatform'=> $device['platform'] ?? '-',
+                            'deviceBrowser' => $device['browser'] ?? '-',
                             'ip'            => $props['ip'] ?? null,
                             'userAgent'     => $props['user_agent'] ?? null,
                             'props'         => $props,
@@ -466,24 +466,24 @@
                             {{-- Actor + Device + Time row --}}
                             <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5">
                                 {{-- Actor badge --}}
-                                <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full {{ $actorInfo['badge_class'] }}">
-                                    <i class="fa-solid {{ $actorInfo['icon'] }} text-[9px]"></i>
-                                    {{ $actorInfo['name'] }}
-                                    @if($actorInfo['is_guest'])
+                                <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full {{ $actorInfo['badge_class'] ?? 'bg-gray-100 text-gray-700' }}">
+                                    <i class="fa-solid {{ $actorInfo['icon'] ?? 'fa-user' }} text-[9px]"></i>
+                                    {{ $actorInfo['name'] ?? 'Sistem' }}
+                                    @if(!empty($actorInfo['is_guest']))
                                         <span class="opacity-70">· Tamu</span>
                                     @endif
                                 </span>
                                 {{-- Device badge --}}
-                                <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full {{ $device['badge_class'] }} border">
-                                    <i class="fa-solid {{ $device['icon'] }} text-[9px]"></i>
-                                    {{ $device['device_type'] }}
+                                <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full {{ $device['badge_class'] ?? 'bg-slate-100 text-slate-700 border-slate-200' }} border">
+                                    <i class="fa-solid {{ $device['icon'] ?? 'fa-desktop' }} text-[9px]"></i>
+                                    {{ $device['device_type'] ?? 'Perangkat' }}
                                     @if(!empty($props['ip']))
                                         <span class="opacity-60">· {{ $props['ip'] }}</span>
                                     @endif
                                 </span>
                                 {{-- Browser & Platform --}}
                                 <span class="text-[10px] text-gray-400 font-semibold">
-                                    {{ $device['platform'] }} · {{ $device['browser'] }}
+                                    {{ $device['platform'] ?? '-' }} · {{ $device['browser'] ?? '-' }}
                                 </span>
                                 {{-- Time --}}
                                 <span class="text-[10px] text-gray-400 font-semibold ml-auto" title="{{ $log->created_at }}">

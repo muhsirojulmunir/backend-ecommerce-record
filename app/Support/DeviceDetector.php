@@ -160,7 +160,35 @@ class DeviceDetector
 
         // 1. Sudah tersimpan di properties['device']
         if (!empty($props['device']) && is_array($props['device'])) {
-            return $props['device'];
+            $dev = $props['device'];
+            $devType = $dev['device_type'] ?? 'Desktop';
+            $icon = match ($devType) {
+                'Mobile' => 'fa-mobile-screen',
+                'Tablet' => 'fa-tablet-screen-button',
+                'Bot'    => 'fa-robot',
+                'Sistem' => 'fa-server',
+                default  => 'fa-desktop',
+            };
+            $badge = match ($devType) {
+                'Mobile' => 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+                'Tablet' => 'bg-amber-50 text-amber-700 border border-amber-200',
+                'Bot'    => 'bg-zinc-100 text-zinc-600 border border-zinc-200',
+                'Sistem' => 'bg-slate-100 text-slate-700 border border-slate-200',
+                default  => 'bg-sky-50 text-sky-700 border border-sky-200',
+            };
+
+            return [
+                'device_type'  => $devType,
+                'device_label' => $dev['device_label'] ?? $devType,
+                'platform'     => $dev['platform'] ?? 'Unknown OS',
+                'browser'      => $dev['browser'] ?? 'Web Browser',
+                'is_mobile'    => $dev['is_mobile'] ?? ($devType === 'Mobile'),
+                'is_tablet'    => $dev['is_tablet'] ?? ($devType === 'Tablet'),
+                'is_desktop'   => $dev['is_desktop'] ?? ($devType === 'Desktop'),
+                'icon'         => $dev['icon'] ?? $icon,
+                'badge_class'  => $dev['badge_class'] ?? $badge,
+                'formatted'    => $dev['formatted'] ?? "{$devType}",
+            ];
         }
 
         // 2. Ada properties['user_agent']
@@ -202,7 +230,7 @@ class DeviceDetector
 
         // 5. Tamu (Guest) checkout / aksi toko tanpa login
         if (empty($activity->causer_id)) {
-            $isShopAction = in_array($activity->log_name, ['pesanan', 'ulasan', 'pengembalian', 'checkout', 'keranjang', 'toko', 'rpay']);
+            $isShopAction = in_array($activity->log_name, ['pesanan', 'ulasan', 'pengembalian', 'checkout', 'keranjang', 'toko', 'rpay', 'produk', 'pencarian']);
             if ($isShopAction) {
                 return [
                     'device_type'  => 'Desktop / Mobile',
@@ -278,7 +306,7 @@ class DeviceDetector
         }
 
         // Causer is null
-        $isGuestStoreAction = in_array($activity->log_name, ['pesanan', 'ulasan', 'pengembalian', 'checkout', 'keranjang', 'toko', 'rpay']);
+        $isGuestStoreAction = in_array($activity->log_name, ['pesanan', 'ulasan', 'pengembalian', 'checkout', 'keranjang', 'toko', 'rpay', 'produk', 'pencarian']);
 
         if ($isGuestStoreAction) {
             return [
