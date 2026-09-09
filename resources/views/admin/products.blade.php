@@ -150,7 +150,15 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 font-semibold text-gray-700">
-                                    <span data-stok-produk="{{ $product->id }}">{{ number_format($product->stock) }}</span>
+                                    @php
+                                        $stokTampil = $product->variants->isNotEmpty()
+                                            ? $product->variants->sum('stock')
+                                            : $product->stock;
+                                    @endphp
+                                    <span data-stok-produk="{{ $product->id }}"
+                                          class="{{ $stokTampil <= 0 ? 'text-red-600' : 'text-gray-700' }}">
+                                        {{ number_format($stokTampil) }}
+                                    </span>
                                 </td>
                                 <td class="px-6 py-4">
                                     @if($product->status === 'active')
@@ -254,7 +262,7 @@
 
                                                         <td class="px-4 py-3">
                                                             <div class="flex items-center gap-2">
-                                                                <input type="number" min="0" max="999999"
+                                                                <input type="number" min="-999999" max="999999"
                                                                        x-model.number="stok"
                                                                        @keydown.enter.prevent="simpan()"
                                                                        :disabled="menyimpan"
@@ -344,11 +352,11 @@
             async simpan() {
                 if (this.menyimpan) return;
 
-                // Nilai kosong atau minus ditolak sebelum dikirim.
+                // Hanya bilangan bulat yang diterima (nilai negatif diizinkan untuk keperluan koreksi stok).
                 const nilai = Number(this.stok);
 
-                if (this.stok === '' || this.stok === null || !Number.isInteger(nilai) || nilai < 0) {
-                    this.tampilkanPesan('Isi angka 0 atau lebih.', true);
+                if (this.stok === '' || this.stok === null || !Number.isInteger(nilai) || nilai < -999999) {
+                    this.tampilkanPesan('Isi angka bulat yang valid.', true);
                     return;
                 }
 
@@ -377,9 +385,12 @@
                     this.awal = data.stock;
                     this.tampilkanPesan(data.pesan, false);
 
-                    // Angka stok di baris produk induk ikut disegarkan supaya tidak bertentangan dengan rincian di bawa...
+                    // Angka stok di baris produk induk ikut disegarkan supaya tidak bertentangan dengan rincian di bawahnya.
                     const sel = document.querySelector('[data-stok-produk="' + data.produk_id + '"]');
-                    if (sel) sel.textContent = new Intl.NumberFormat('id-ID').format(data.stok_produk);
+                    if (sel) {
+                        sel.textContent = new Intl.NumberFormat('id-ID').format(data.stok_produk);
+                        sel.className = data.stok_produk <= 0 ? 'text-red-600' : 'text-gray-700';
+                    }
                 } catch (e) {
                     this.tampilkanPesan(e.message, true);
                 } finally {

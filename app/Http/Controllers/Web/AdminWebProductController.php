@@ -128,11 +128,10 @@ class AdminWebProductController extends Controller
         $varian = \App\Models\ProductVariant::findOrFail($id);
 
         $data = $request->validate([
-            'stock' => ['required', 'integer', 'min:0', 'max:999999'],
+            'stock' => ['required', 'integer', 'min:-999999', 'max:999999'],
         ], [
             'stock.required' => 'Jumlah stok wajib diisi.',
             'stock.integer'  => 'Stok harus berupa angka bulat.',
-            'stock.min'      => 'Stok tidak boleh kurang dari 0.',
             'stock.max'      => 'Stok terlalu besar.',
         ]);
 
@@ -166,7 +165,9 @@ class AdminWebProductController extends Controller
             'stok_produk'   => $totalVarian,
             'pesan'         => (int) $varian->stock === 0
                 ? 'Stok dikosongkan.'
-                : 'Stok disimpan.',
+                : ((int) $varian->stock < 0
+                    ? 'Stok disimpan (nilai negatif).'
+                    : 'Stok disimpan.'),
         ]);
     }
 
