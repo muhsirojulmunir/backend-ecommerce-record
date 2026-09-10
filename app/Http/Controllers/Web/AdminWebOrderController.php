@@ -19,6 +19,9 @@ class AdminWebOrderController extends Controller
      */
     public function index(Request $request)
     {
+        // 0. Otomatis batalkan pesanan pending yang belum dibayar melebihi batas waktu (24 jam) & kembalikan stok
+        $this->autoCancelExpiredOrders();
+
         // Kecualikan pesanan fiktif (dari FakeReviewSeeder) — hanya tampilkan pesanan nyata.
         $query = Order::with(['user', 'items.product', 'returns'])->where('is_fake', false);
 
@@ -169,7 +172,7 @@ class AdminWebOrderController extends Controller
         $counts = [
             'all'       => (clone $realOrders)->count(),
             'ready'     => (clone $realOrders)->where('payment_status', 'paid')->whereIn('status', ['pending', 'processing'])->count(),
-            'unpaid'    => (clone $realOrders)->whereIn('payment_status', ['unpaid', 'pending_verification'])->count(),
+            'unpaid'    => (clone $realOrders)->whereIn('payment_status', ['unpaid', 'pending_verification'])->where('status', '!=', 'cancelled')->count(),
             'shipped'   => (clone $realOrders)->where('status', 'shipped')->count(),
             'completed' => (clone $realOrders)->where('status', 'completed')->count(),
             'cancelled' => (clone $realOrders)->where(function ($q) {
@@ -273,6 +276,60 @@ class AdminWebOrderController extends Controller
     }
 
     /**
+     * Otomatis membatalkan pesanan pending yang belum dibayar melebihi batas waktu (24 jam) dan kembalikan stok.
+     */
+    private function autoCancelExpiredOrders(): void
+    {
+        try {
+            $batasWaktu = Carbon::now()->subHours(24);
+
+            $orders = Order::with(['items.product', 'items.productVariant', 'items.variant'])
+                ->where('status', 'pending')
+                ->where('is_fake', false)
+                ->where('created_at', '<=', $batasWaktu)
+                ->where(function ($q) {
+                    $q->whereIn('payment_status', ['unpaid', 'failed'])
+                      ->orWhere(function ($q2) {
+                          $q2->where('payment_status', 'unpaid')
+                             ->whereNull('payment_proof');
+                      });
+                })
+                ->where('payment_status', '!=', 'pending_verification')
+                ->get();
+
+            if ($orders->isEmpty()) {
+                return;
+            }
+
+            foreach ($orders as $order) {
+                DB::transaction(function () use ($order) {
+                    $order->update([
+                        'status'              => 'cancelled',
+                        'cancellation_reason' => 'Waktu pembayaran telah habis (Kedaluwarsa)',
+                        'cancellation_note'   => 'Sistem otomatis membatalkan pesanan karena telah melewati batas waktu pembayaran 24 jam.',
+                        'cancelled_at'        => Carbon::now(),
+                    ]);
+
+                    // Kembalikan stok produk & varian
+                    foreach ($order->items as $item) {
+                        $variant = $item->productVariant ?: ($item->variant ?? null);
+                        if ($variant) {
+                            $variant->increment('stock', $item->quantity);
+                        }
+                        if ($item->product) {
+                            $item->product->increment('stock', $item->quantity);
+                        }
+                    }
+                });
+
+                \Illuminate\Support\Facades\Log::info('Pesanan #' . $order->order_number . ' otomatis dibatalkan karena batas waktu pembayaran 24 jam telah habis.');
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Auto-cancel expired orders error: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Tampilkan detail pesanan untuk dikelola oleh admin.
      */
     public function show(Request $request, $id)
@@ -286,6 +343,29 @@ class AdminWebOrderController extends Controller
                 }
             })
             ->firstOrFail();
+
+        // Periksa apakah pesanan ini sudah melewati batas waktu pembayaran 24 jam
+        if ($order->status === 'pending' && $order->payment_status === 'unpaid' && empty($order->payment_proof) && $order->created_at->addHours(24)->isPast()) {
+            DB::transaction(function () use ($order) {
+                $order->update([
+                    'status'              => 'cancelled',
+                    'cancellation_reason' => 'Waktu pembayaran telah habis (Kedaluwarsa)',
+                    'cancellation_note'   => 'Sistem otomatis membatalkan pesanan karena telah melewati batas waktu pembayaran 24 jam.',
+                    'cancelled_at'        => Carbon::now(),
+                ]);
+
+                foreach ($order->items as $item) {
+                    $variant = $item->productVariant ?: ($item->variant ?? null);
+                    if ($variant) {
+                        $variant->increment('stock', $item->quantity);
+                    }
+                    if ($item->product) {
+                        $item->product->increment('stock', $item->quantity);
+                    }
+                }
+            });
+            $order->refresh();
+        }
 
         // Mode cetak resi: tampilkan halaman print tanpa layout admin
         if ($request->boolean('print')) {
@@ -1017,8 +1097,9 @@ class AdminWebOrderController extends Controller
                 $query->where('payment_status', 'paid')->whereIn('status', ['pending', 'processing']);
                 break;
             case 'unpaid':
-                // Belum bayar
-                $query->whereIn('payment_status', ['unpaid', 'pending_verification']);
+                // Belum bayar (hanya pesanan aktif yang belum dibatalkan)
+                $query->whereIn('payment_status', ['unpaid', 'pending_verification'])
+                      ->where('status', '!=', 'cancelled');
                 break;
             case 'shipped':
                 // Sedang dikirim

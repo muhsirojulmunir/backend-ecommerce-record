@@ -790,6 +790,7 @@ function orderCountdown(initialSeconds) {
                     } else {
                         clearInterval(this.timer);
                         this.countdownText = 'Waktu Habis';
+                        setTimeout(() => window.location.reload(), 1500);
                     }
                 }, 1000);
             }
