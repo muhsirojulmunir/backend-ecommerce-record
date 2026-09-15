@@ -20,6 +20,7 @@
         'add_to_cart'      => ['Keranjang',   'fa-cart-plus',          'bg-amber-100 text-amber-700',     'bg-amber-500'],
         'remove_from_cart' => ['Hapus Item',  'fa-cart-arrow-down',    'bg-red-100 text-red-700',         'bg-red-400'],
         'checkout_view'    => ['Buka Kasir',  'fa-cash-register',      'bg-violet-100 text-violet-700',   'bg-violet-500'],
+        'dwell'            => ['Dwell Time',  'fa-stopwatch',          'bg-amber-100 text-amber-700',     'bg-amber-500'],
     ];
     $moduleIcons = [
         'produk'         => 'fa-box-open',
@@ -37,6 +38,7 @@
         'pengembalian'   => 'fa-rotate-left',
         'rpay'           => 'fa-wallet',
         'rpaywithdrawal' => 'fa-money-bill-transfer',
+        'evaluasi_web'  => 'fa-stopwatch',
     ];
     $hasFilter = collect($filters)->filter(fn($v) => $v !== '')->isNotEmpty();
     $currentTab = $tab ?? 'admin';
@@ -167,7 +169,50 @@
                     @endforelse
                 </div>
             </div>
-        </div>
+            {{-- Card 5 - Full Width: Dwell Time Seksi Website --}}
+            @if(!empty($analytics['dwell_sections']))
+            <div class="md:col-span-2 lg:col-span-4 bg-white rounded-2xl p-4 shadow-sm border border-amber-100">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-bold text-gray-500 flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-stopwatch"></i>
+                        </span>
+                        Evaluasi Atensi Seksi Website <span class="text-[10px] text-gray-400 font-normal">(30 hari terakhir)</span>
+                    </span>
+                    <span class="text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                        {{ gmdate('H:i:s', $analytics['dwell_total_secs']) }} total dwell
+                    </span>
+                </div>
+                <div class="space-y-2">
+                    @foreach($analytics['dwell_sections'] as $dw)
+                    @php
+                        $dwMins = intdiv($dw['avg_seconds'], 60);
+                        $dwSecs = $dw['avg_seconds'] % 60;
+                        $avgFmt = ($dwMins > 0 ? $dwMins . 'm ' : '') . $dwSecs . 'd';
+                        $barColor = match(true) {
+                            $dw['pct'] >= 30 => 'bg-amber-500',
+                            $dw['pct'] >= 15 => 'bg-orange-400',
+                            default          => 'bg-amber-300',
+                        };
+                    @endphp
+                    <div class="flex items-center gap-3">
+                        <div class="w-36 text-[10px] font-bold text-gray-600 truncate shrink-0" title="{{ $dw['label'] }}">
+                            {{ $dw['label'] }}
+                        </div>
+                        <div class="flex-1 flex items-center gap-2">
+                            <div class="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                                <div class="{{ $barColor }} h-2 rounded-full" style="width: {{ min(100, $dw['pct']) }}%"></div>
+                            </div>
+                            <span class="text-[10px] font-black text-amber-700 w-10 text-right shrink-0">{{ $dw['pct'] }}%</span>
+                        </div>
+                        <div class="text-[10px] text-gray-400 w-24 text-right shrink-0">
+                            ⌀ {{ $avgFmt }} · {{ $dw['views'] }}x
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif        </div>
     @endif
 
     {{-- ── Statistik Umum ── --}}
@@ -227,7 +272,50 @@
                     <li>{{ $error }}</li>
                 @endforeach
             </ul>
-        </div>
+            {{-- Card 5 - Full Width: Dwell Time Seksi Website --}}
+            @if(!empty($analytics['dwell_sections']))
+            <div class="md:col-span-2 lg:col-span-4 bg-white rounded-2xl p-4 shadow-sm border border-amber-100">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-bold text-gray-500 flex items-center gap-2">
+                        <span class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-stopwatch"></i>
+                        </span>
+                        Evaluasi Atensi Seksi Website <span class="text-[10px] text-gray-400 font-normal">(30 hari terakhir)</span>
+                    </span>
+                    <span class="text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                        {{ gmdate('H:i:s', $analytics['dwell_total_secs']) }} total dwell
+                    </span>
+                </div>
+                <div class="space-y-2">
+                    @foreach($analytics['dwell_sections'] as $dw)
+                    @php
+                        $dwMins = intdiv($dw['avg_seconds'], 60);
+                        $dwSecs = $dw['avg_seconds'] % 60;
+                        $avgFmt = ($dwMins > 0 ? $dwMins . 'm ' : '') . $dwSecs . 'd';
+                        $barColor = match(true) {
+                            $dw['pct'] >= 30 => 'bg-amber-500',
+                            $dw['pct'] >= 15 => 'bg-orange-400',
+                            default          => 'bg-amber-300',
+                        };
+                    @endphp
+                    <div class="flex items-center gap-3">
+                        <div class="w-36 text-[10px] font-bold text-gray-600 truncate shrink-0" title="{{ $dw['label'] }}">
+                            {{ $dw['label'] }}
+                        </div>
+                        <div class="flex-1 flex items-center gap-2">
+                            <div class="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                                <div class="{{ $barColor }} h-2 rounded-full" style="width: {{ min(100, $dw['pct']) }}%"></div>
+                            </div>
+                            <span class="text-[10px] font-black text-amber-700 w-10 text-right shrink-0">{{ $dw['pct'] }}%</span>
+                        </div>
+                        <div class="text-[10px] text-gray-400 w-24 text-right shrink-0">
+                            ⌀ {{ $avgFmt }} · {{ $dw['views'] }}x
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif        </div>
     @endif
 
     {{-- ── Tab Navigasi Pill ── --}}
@@ -649,6 +737,30 @@
                                 <div>
                                     <p class="text-[10px] text-gray-400 font-semibold">Jumlah (Qty)</p>
                                     <p class="font-bold text-amber-700" x-text="detail.props.quantity + ' item'"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    {{-- Detail Khusus Dwell Time (Evaluasi Web) --}}
+                    <template x-if="detail.props && detail.props.section && detail.props.seconds">
+                        <div class="mt-3 p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/70">
+                            <p class="text-[10px] text-amber-800 font-black uppercase flex items-center gap-1.5 mb-2">
+                                <i class="fa-solid fa-stopwatch"></i> Evaluasi Atensi Seksi Website
+                            </p>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <div>
+                                    <p class="text-[10px] text-gray-400 font-semibold">Seksi</p>
+                                    <p class="font-bold text-gray-800 truncate" x-text="detail.props.label || detail.props.section"></p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-gray-400 font-semibold">Halaman</p>
+                                    <p class="font-bold text-gray-800" x-text="detail.props.page || '—'"></p>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-gray-400 font-semibold">Durasi Dwell</p>
+                                    <p class="font-bold text-amber-700"
+                                        x-text="Math.floor(detail.props.seconds/60) + 'm ' + (detail.props.seconds % 60) + 'd'"></p>
                                 </div>
                             </div>
                         </div>

@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class AdminWebActivityLogController extends Controller
 {
     /** Log module yang berasal dari interaksi toko (frontend), bukan admin. */
-    private const SHOP_LOG_NAMES = ['pesanan', 'ulasan', 'pengembalian', 'checkout', 'keranjang', 'toko', 'rpay', 'rpaywithdrawal', 'produk', 'pencarian'];
+    private const SHOP_LOG_NAMES = ['pesanan', 'ulasan', 'pengembalian', 'checkout', 'keranjang', 'toko', 'rpay', 'rpaywithdrawal', 'produk', 'pencarian', 'evaluasi_web'];
 
     public function index(Request $request)
     {
@@ -300,6 +300,50 @@ class AdminWebActivityLogController extends Controller
         arsort($searchFreq);
         $topSearches = array_slice($searchFreq, 0, 3, true);
 
+        // 5. Dwell Time Analytics — Top 10 seksi berdasarkan total detik dilihat
+        $dwellLogs = Activity::where('log_name', 'evaluasi_web')
+            ->where('event', 'dwell')
+            ->where('created_at', '>=', now()->subDays(30))
+            ->get(['description', 'properties']);
+
+        $dwellAgg = []; // section_key => [label, total_seconds, views]
+
+        foreach ($dwellLogs as $dl) {
+            $props = is_array($dl->properties) ? $dl->properties : ($dl->properties?->toArray() ?? []);
+            $key   = (string) ($props['section'] ?? '');
+            $lbl   = (string) ($props['label']   ?? $key);
+            $secs  = (int)    ($props['seconds']  ?? 0);
+
+            if ($key === '' || $secs <= 0) continue;
+
+            if (!isset($dwellAgg[$key])) {
+                $dwellAgg[$key] = ['label' => $lbl, 'total_seconds' => 0, 'views' => 0];
+            }
+
+            $dwellAgg[$key]['total_seconds'] += $secs;
+            $dwellAgg[$key]['views']         += 1;
+        }
+
+        // Urutkan berdasarkan total detik tertinggi
+        uasort($dwellAgg, fn ($a, $b) => $b['total_seconds'] <=> $a['total_seconds']);
+
+        $totalDwellSecs = array_sum(array_column($dwellAgg, 'total_seconds'));
+
+        $topDwellSections = [];
+        foreach (array_slice($dwellAgg, 0, 10, true) as $sectionKey => $d) {
+            $avgSecs = $d['views'] > 0 ? (int) round($d['total_seconds'] / $d['views']) : 0;
+            $pct     = $totalDwellSecs > 0 ? round(($d['total_seconds'] / $totalDwellSecs) * 100, 1) : 0;
+
+            $topDwellSections[] = [
+                'section'       => $sectionKey,
+                'label'         => $d['label'],
+                'total_seconds' => $d['total_seconds'],
+                'avg_seconds'   => $avgSecs,
+                'views'         => $d['views'],
+                'pct'           => $pct,
+            ];
+        }
+
         return [
             'login' => [
                 'total'    => $totalLogin,
@@ -317,8 +361,10 @@ class AdminWebActivityLogController extends Controller
                 'desktop_pct' => $desktopPct,
                 'tablet_pct'  => $tabletPct,
             ],
-            'top_products' => $topProducts,
-            'top_searches' => $topSearches,
+            'top_products'      => $topProducts,
+            'top_searches'      => $topSearches,
+            'dwell_sections'    => $topDwellSections,
+            'dwell_total_secs'  => $totalDwellSecs,
         ];
     }
 }
