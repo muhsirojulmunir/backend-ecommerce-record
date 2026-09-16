@@ -707,18 +707,27 @@
                                         <span class="opacity-70">· Tamu</span>
                                     @endif
                                 </span>
-                                {{-- Device badge --}}
-                                <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full {{ $device['badge_class'] ?? 'bg-slate-100 text-slate-700 border-slate-200' }} border">
+                                {{-- Device badge: icon + brand + device type --}}
+                                <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full {{ $device['badge_class'] ?? 'bg-slate-100 text-slate-700 border-slate-200' }} border"
+                                      title="{{ $device['formatted'] ?? $device['device_type'] ?? 'Perangkat' }}">
                                     <i class="fa-solid {{ $device['icon'] ?? 'fa-desktop' }} text-[9px]"></i>
-                                    {{ $device['device_type'] ?? 'Perangkat' }}
-                                    @if(!empty($props['ip']))
-                                        <span class="opacity-60">· {{ $props['ip'] }}</span>
+                                    @if(!empty($device['brand']))
+                                        {{ $device['brand'] }}
+                                    @else
+                                        {{ $device['device_type'] ?? 'Perangkat' }}
                                     @endif
                                 </span>
-                                {{-- Browser & Platform --}}
+                                {{-- Platform + Browser --}}
                                 <span class="text-[10px] text-gray-400 font-semibold">
                                     {{ $device['platform'] ?? '-' }} · {{ $device['browser'] ?? '-' }}
                                 </span>
+                                {{-- IP Address --}}
+                                @if(!empty($props['ip']))
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
+                                        <i class="fa-solid fa-network-wired text-[8px]"></i>
+                                        {{ $props['ip'] }}
+                                    </span>
+                                @endif
                                 {{-- Time --}}
                                 <span class="text-[10px] text-gray-400 font-semibold ml-auto" title="{{ $log->created_at }}">
                                     <i class="fa-solid fa-clock mr-1"></i>{{ $log->created_at?->translatedFormat('d M Y H:i') }} · {{ $log->created_at?->diffForHumans() }}
