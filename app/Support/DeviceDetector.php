@@ -231,9 +231,14 @@ class DeviceDetector
                 default  => 'bg-sky-50 text-sky-700 border border-sky-200',
             };
 
-            $brand    = $dev['brand'] ?? null;
-            if ($brand === null && !empty($props['user_agent'])) {
-                $brand = self::detectBrand($props['user_agent']);
+            // Prioritas brand: 1) Client Hints (device_brand), 2) tersimpan di device array, 3) detect dari UA
+            $brand = null;
+            if (!empty($props['device_brand'])) {
+                $brand = $props['device_brand'];         // dari Client Hints JS (paling akurat)
+            } elseif (!empty($dev['brand'])) {
+                $brand = $dev['brand'];                  // sudah ada di array device
+            } elseif (!empty($props['user_agent'])) {
+                $brand = self::detectBrand($props['user_agent']); // fallback UA parsing
             }
 
             $platform  = $dev['platform'] ?? 'Unknown OS';
@@ -255,8 +260,19 @@ class DeviceDetector
             ];
         }
 
+        // Ada user_agent — detect device lalu override brand dengan Client Hints jika ada
         if (!empty($props['user_agent'])) {
-            return self::detect($props['user_agent']);
+            $detected = self::detect($props['user_agent']);
+            // Override brand dengan data Client Hints yang lebih akurat jika tersedia
+            if (!empty($props['device_brand'])) {
+                $detected['brand']     = $props['device_brand'];
+                $detected['formatted'] = self::buildFormatted(
+                    $props['device_brand'],
+                    $detected['platform'],
+                    $detected['browser']
+                );
+            }
+            return $detected;
         }
 
         if ($activity->causer && in_array($activity->causer->role, ['admin', 'super_admin'])) {
