@@ -310,9 +310,9 @@ class AdminWebActivityLogController extends Controller
 
         foreach ($dwellLogs as $dl) {
             $props = is_array($dl->properties) ? $dl->properties : ($dl->properties?->toArray() ?? []);
-            $key   = (string) ($props['section'] ?? '');
-            $lbl   = (string) ($props['label']   ?? $key);
-            $secs  = (int)    ($props['seconds']  ?? 0);
+            $key   = (string) ($props['section'] ?? $props['section_id'] ?? '');
+            $lbl   = (string) ($props['label']   ?? $props['section_label'] ?? $key);
+            $secs  = (int)    ($props['seconds'] ?? $props['duration_seconds'] ?? 0);
 
             if ($key === '' || $secs <= 0) continue;
 

@@ -170,7 +170,6 @@
                 </div>
             </div>
             {{-- Card 5 - Full Width: Dwell Time Seksi Website --}}
-            @if(!empty($analytics['dwell_sections']))
             <div class="md:col-span-2 lg:col-span-4 bg-white rounded-2xl p-4 shadow-sm border border-amber-100">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-bold text-gray-500 flex items-center gap-2">
@@ -179,10 +178,13 @@
                         </span>
                         Evaluasi Atensi Seksi Website <span class="text-[10px] text-gray-400 font-normal">(30 hari terakhir)</span>
                     </span>
+                    @if(!empty($analytics['dwell_sections']))
                     <span class="text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
                         {{ gmdate('H:i:s', $analytics['dwell_total_secs']) }} total dwell
                     </span>
+                    @endif
                 </div>
+                @if(!empty($analytics['dwell_sections']))
                 <div class="space-y-2">
                     @foreach($analytics['dwell_sections'] as $dw)
                     @php
@@ -211,8 +213,18 @@
                     </div>
                     @endforeach
                 </div>
+                @else
+                <div class="py-3 px-4 rounded-xl bg-amber-50/50 border border-dashed border-amber-200 text-center">
+                    <p class="text-xs font-bold text-amber-800 flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-hourglass-start"></i> Belum ada data atensi seksi yang terekam
+                    </p>
+                    <p class="text-[11px] text-gray-500 mt-1 max-w-lg mx-auto leading-relaxed">
+                        Sistem pelacak dwell time aktif otomatis di frontend (Banner, Produk, Affiliate, Keranjang, Checkout). Begitu pengunjung melihat seksi minimal 3 detik, grafik durasi atensi akan otomatis terisi di sini.
+                    </p>
+                </div>
+                @endif
             </div>
-            @endif        </div>
+        </div>
     @endif
 
     {{-- ── Statistik Umum ── --}}
@@ -537,6 +549,27 @@
                                     <i class="fa-solid fa-magnifying-glass text-sky-600"></i>
                                     <span>Kata Kunci: <strong>"{{ $props['keyword'] }}"</strong> ({{ $props['results_count'] ?? 0 }} hasil)</span>
                                 </div>
+                            {{-- Inline Preview: Evaluasi Web (Dwell) --}}
+                            @elseif($log->log_name === 'evaluasi_web')
+                                @php
+                                    $dwellLabel = $props['label'] ?? $props['section_label'] ?? $props['section'] ?? $props['section_id'] ?? 'Seksi';
+                                    $dwellSecs = (int)($props['seconds'] ?? $props['duration_seconds'] ?? 0);
+                                    $dwellPage = $props['page'] ?? $props['page_url'] ?? $props['page_name'] ?? '';
+                                    if ($dwellSecs < 60) {
+                                        $dwellFmt = $dwellSecs . ' detik';
+                                    } else {
+                                        $dwM = intdiv($dwellSecs, 60);
+                                        $dwS = $dwellSecs % 60;
+                                        $dwellFmt = ($dwM > 0 ? $dwM . 'm ' : '') . ($dwS > 0 ? $dwS . 'd' : '');
+                                    }
+                                @endphp
+                                <div class="inline-flex items-center gap-2 mt-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-900">
+                                    <span><i class="fa-solid fa-stopwatch mr-1 text-amber-600"></i>{{ $dwellLabel }}</span>
+                                    @if(!empty($dwellPage))
+                                        <span class="opacity-60 text-[11px]">· {{ $dwellPage }}</span>
+                                    @endif
+                                    <span class="font-bold text-amber-800 bg-amber-100/80 px-2 py-0.2 rounded-md">· {{ $dwellFmt }}</span>
+                                </div>
                             @endif
 
                             {{-- Changed fields --}}
@@ -743,7 +776,7 @@
                     </template>
 
                     {{-- Detail Khusus Dwell Time (Evaluasi Web) --}}
-                    <template x-if="detail.props && detail.props.section && detail.props.seconds">
+                    <template x-if="detail.props && (detail.props.section || detail.props.section_id)">
                         <div class="mt-3 p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/70">
                             <p class="text-[10px] text-amber-800 font-black uppercase flex items-center gap-1.5 mb-2">
                                 <i class="fa-solid fa-stopwatch"></i> Evaluasi Atensi Seksi Website
@@ -751,16 +784,16 @@
                             <div class="grid grid-cols-3 gap-2 text-xs">
                                 <div>
                                     <p class="text-[10px] text-gray-400 font-semibold">Seksi</p>
-                                    <p class="font-bold text-gray-800 truncate" x-text="detail.props.label || detail.props.section"></p>
+                                    <p class="font-bold text-gray-800 truncate" x-text="detail.props.label || detail.props.section_label || detail.props.section || detail.props.section_id"></p>
                                 </div>
                                 <div>
                                     <p class="text-[10px] text-gray-400 font-semibold">Halaman</p>
-                                    <p class="font-bold text-gray-800" x-text="detail.props.page || '—'"></p>
+                                    <p class="font-bold text-gray-800" x-text="detail.props.page || detail.props.page_url || detail.props.page_name || '—'"></p>
                                 </div>
                                 <div>
-                                    <p class="text-[10px] text-gray-400 font-semibold">Durasi Dwell</p>
+                                    <p class="text-[10px] text-gray-400 font-semibold">Durasi Atensi</p>
                                     <p class="font-bold text-amber-700"
-                                        x-text="Math.floor(detail.props.seconds/60) + 'm ' + (detail.props.seconds % 60) + 'd'"></p>
+                                        x-text="detail.props.duration_formatted || (Math.floor((detail.props.seconds || detail.props.duration_seconds || 0)/60) + 'm ' + ((detail.props.seconds || detail.props.duration_seconds || 0) % 60) + 'd')"></p>
                                 </div>
                             </div>
                         </div>
