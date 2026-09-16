@@ -236,6 +236,17 @@
                 {{-- Collapsible Content: Hanya terbuka saat showDwell == true --}}
                 <div x-show="showDwell" x-transition.opacity.duration.200ms x-cloak class="mt-4 pt-3 border-t border-amber-50">
                     @if(!empty($analytics['dwell_sections']))
+                    {{-- Header Kolom Data (Lurus & Presisi) --}}
+                    <div class="hidden sm:flex items-center justify-between px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 mb-1.5">
+                        <div class="flex-1 min-w-0 pr-6">Seksi & Distribusi Atensi</div>
+                        <div class="w-[330px] shrink-0 flex items-center gap-3">
+                            <div class="w-[76px] shrink-0 text-center">Total Durasi</div>
+                            <div class="w-[64px] shrink-0 text-right">Rata-Rata</div>
+                            <div class="w-[40px] shrink-0 text-right">Tayang</div>
+                            <div class="w-[114px] shrink-0 text-center">Pengunjung</div>
+                        </div>
+                    </div>
+
                     <div class="space-y-2">
                         @foreach($analytics['dwell_sections'] as $dw)
                         @php
@@ -254,93 +265,107 @@
                             };
                         @endphp
                         <div class="p-2.5 rounded-xl bg-slate-50/70 hover:bg-amber-50/40 border border-gray-100 hover:border-amber-200 transition-all">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                {{-- Kolom Seksi & Progress Bar --}}
-                                <div class="flex-1 min-w-0 pr-0 sm:pr-4">
-                                    <div class="flex items-center justify-between gap-2 mb-1">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                {{-- Kolom Kiri: Seksi, Halaman, Persentase & Progress Bar --}}
+                                <div class="flex-1 min-w-0 sm:pr-6">
+                                    <div class="flex items-center justify-between gap-2 mb-1.5">
                                         <div class="flex items-center gap-2 min-w-0">
                                             <span class="text-xs font-bold text-gray-800 truncate" title="{{ $dw['label'] }}">
                                                 {{ $dw['label'] }}
                                             </span>
                                             @if(!empty($dw['pages']))
-                                                <span class="text-[9px] font-medium text-gray-400 bg-white px-1.5 py-0.2 rounded border border-gray-200 truncate max-w-[130px]">
+                                                <span class="text-[9px] font-medium text-gray-400 bg-white px-1.5 py-0.5 rounded border border-gray-200 truncate max-w-[140px]">
                                                     {{ implode(', ', array_slice($dw['pages'], 0, 2)) }}
                                                 </span>
                                             @endif
                                         </div>
-                                        <span class="text-[11px] font-black text-amber-700 shrink-0">{{ $dw['pct'] }}%</span>
+                                        <span class="text-[11px] font-black text-amber-700 shrink-0 w-12 text-right tabular-nums">{{ $dw['pct'] }}%</span>
                                     </div>
                                     <div class="h-1.5 w-full rounded-full bg-gray-200/70 overflow-hidden shadow-inner">
                                         <div class="{{ $barColor }} h-1.5 rounded-full transition-all duration-500" style="width: {{ min(100, $dw['pct']) }}%"></div>
                                     </div>
                                 </div>
 
-                                {{-- Kolom Metrik & Pengunjung Popover --}}
-                                <div class="flex items-center gap-2.5 text-[11px] font-bold shrink-0 self-end sm:self-center">
-                                    <span class="text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded-md border border-amber-200/60" title="Total Durasi Diperhatikan">
-                                        {{ $totFmt }}
-                                    </span>
-                                    <span class="text-gray-500 text-[10px]" title="Rata-rata Durasi per Tayang">
+                                {{-- Kolom Kanan: Metrik dengan Lebar Tetap (Lurus & Presisi) --}}
+                                <div class="w-full sm:w-[330px] shrink-0 flex items-center justify-between sm:justify-start gap-3">
+                                    {{-- 1. Total Durasi (Fixed 76px) --}}
+                                    <div class="w-[76px] shrink-0 text-center">
+                                        <span class="inline-block w-full text-amber-800 bg-amber-100/70 py-0.5 rounded-md border border-amber-200/60 font-bold text-[10.5px] tabular-nums" title="Total Durasi Diperhatikan">
+                                            {{ $totFmt }}
+                                        </span>
+                                    </div>
+
+                                    {{-- 2. Rata-rata (Fixed 64px) --}}
+                                    <div class="w-[64px] shrink-0 text-right text-gray-500 font-bold text-[10.5px] tabular-nums" title="Rata-rata Durasi per Tayang">
                                         ⌀ {{ $avgFmt }}
-                                    </span>
-                                    <span class="text-gray-400 text-[10px]">
+                                    </div>
+
+                                    {{-- 3. Tayang (Fixed 40px) --}}
+                                    <div class="w-[40px] shrink-0 text-right text-gray-400 font-bold text-[10.5px] tabular-nums" title="Total Tayang">
                                         {{ $dw['views'] }}x
-                                    </span>
+                                    </div>
 
-                                    {{-- Interactive Popover Pengunjung --}}
-                                    @if(!empty($dw['viewers']))
-                                        <div class="relative" x-data="{ openViewers: false }">
-                                            <button type="button" @click="openViewers = !openViewers"
-                                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/70 transition-colors cursor-pointer">
-                                                <i class="fa-solid fa-users text-[9px]"></i>
-                                                <span>{{ $dw['unique_viewers_count'] }} pengunjung</span>
-                                                <i class="fa-solid fa-caret-down text-[8px] opacity-70"></i>
-                                            </button>
+                                    {{-- 4. Pengunjung (Fixed 114px) --}}
+                                    <div class="w-[114px] shrink-0">
+                                        @if(!empty($dw['viewers']))
+                                            <div class="relative" x-data="{ openViewers: false }">
+                                                <button type="button" @click="openViewers = !openViewers"
+                                                        class="w-full inline-flex items-center justify-between px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/70 transition-colors cursor-pointer"
+                                                        title="Klik untuk rincian pengunjung">
+                                                    <span class="flex items-center gap-1 min-w-0 truncate">
+                                                        <i class="fa-solid fa-users text-[9px] shrink-0"></i>
+                                                        <span class="truncate">{{ $dw['unique_viewers_count'] }} pengunjung</span>
+                                                    </span>
+                                                    <i class="fa-solid fa-caret-down text-[8px] opacity-70 shrink-0 ml-1"></i>
+                                                </button>
 
-                                            {{-- Dropdown Floating Popover --}}
-                                            <div x-show="openViewers" @click.outside="openViewers = false" x-cloak
-                                                 class="absolute right-0 top-full mt-1.5 w-72 p-2.5 bg-white rounded-xl shadow-xl border border-gray-100 z-30 text-left">
-                                                <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-gray-100">
-                                                    <span class="text-[10px] font-black text-gray-500 uppercase tracking-wider">
-                                                        <i class="fa-solid fa-user-clock mr-1 text-indigo-500"></i> Pengunjung Seksi
-                                                    </span>
-                                                    <span class="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded">
-                                                        {{ $dw['unique_viewers_count'] }} total
-                                                    </span>
-                                                </div>
-                                                <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                                                    @foreach($dw['viewers'] as $v)
-                                                    @php
-                                                        $vMins = intdiv($v['seconds'], 60);
-                                                        $vSecs = $v['seconds'] % 60;
-                                                        $vFmt = ($vMins > 0 ? $vMins . 'm ' : '') . $vSecs . 'd';
-                                                    @endphp
-                                                    <div class="flex items-center justify-between text-[10px] py-0.5">
-                                                        <div class="flex items-center gap-1.5 min-w-0 pr-2">
-                                                            <i class="fa-solid {{ $v['icon'] ?? 'fa-user' }} text-[9px] text-gray-400"></i>
-                                                            <div class="truncate">
-                                                                <p class="font-semibold text-gray-800 truncate">{{ $v['name'] }}</p>
-                                                                <p class="text-[8px] text-gray-400 truncate">{{ $v['sub'] }} · {{ $v['count'] }}x</p>
-                                                            </div>
-                                                        </div>
-                                                        <span class="font-bold text-amber-700 shrink-0 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
-                                                            {{ $vFmt }}
+                                                {{-- Dropdown Floating Popover --}}
+                                                <div x-show="openViewers" @click.outside="openViewers = false" x-cloak
+                                                     class="absolute right-0 top-full mt-1.5 w-72 p-2.5 bg-white rounded-xl shadow-xl border border-gray-100 z-30 text-left">
+                                                    <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-gray-100">
+                                                        <span class="text-[10px] font-black text-gray-500 uppercase tracking-wider">
+                                                            <i class="fa-solid fa-user-clock mr-1 text-indigo-500"></i> Pengunjung Seksi
+                                                        </span>
+                                                        <span class="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded">
+                                                            {{ $dw['unique_viewers_count'] }} total
                                                         </span>
                                                     </div>
-                                                    @endforeach
+                                                    <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                                        @foreach($dw['viewers'] as $v)
+                                                        @php
+                                                            $vMins = intdiv($v['seconds'], 60);
+                                                            $vSecs = $v['seconds'] % 60;
+                                                            $vFmt = ($vMins > 0 ? $vMins . 'm ' : '') . $vSecs . 'd';
+                                                        @endphp
+                                                        <div class="flex items-center justify-between text-[10px] py-0.5">
+                                                            <div class="flex items-center gap-1.5 min-w-0 pr-2">
+                                                                <i class="fa-solid {{ $v['icon'] ?? 'fa-user' }} text-[9px] text-gray-400"></i>
+                                                                <div class="truncate">
+                                                                    <p class="font-semibold text-gray-800 truncate">{{ $v['name'] }}</p>
+                                                                    <p class="text-[8px] text-gray-400 truncate">{{ $v['sub'] }} · {{ $v['count'] }}x</p>
+                                                                </div>
+                                                            </div>
+                                                            <span class="font-bold text-amber-700 shrink-0 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 tabular-nums">
+                                                                {{ $vFmt }}
+                                                            </span>
+                                                        </div>
+                                                        @endforeach
+                                                    </div>
+                                                    @if($dw['unique_viewers_count'] > count($dw['viewers']))
+                                                        <p class="text-[9px] text-gray-400 text-center pt-1.5 mt-1 border-t border-gray-100">
+                                                            +{{ $dw['unique_viewers_count'] - count($dw['viewers']) }} pengunjung lainnya
+                                                        </p>
+                                                    @endif
                                                 </div>
-                                                @if($dw['unique_viewers_count'] > count($dw['viewers']))
-                                                    <p class="text-[9px] text-gray-400 text-center pt-1.5 mt-1 border-t border-gray-100">
-                                                        +{{ $dw['unique_viewers_count'] - count($dw['viewers']) }} pengunjung lainnya
-                                                    </p>
-                                                @endif
                                             </div>
-                                        </div>
-                                    @else
-                                        <span class="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 text-[10px]">
-                                            <i class="fa-solid fa-users mr-1 text-[9px]"></i>{{ $dw['unique_viewers_count'] }}
-                                        </span>
-                                    @endif
+                                        @else
+                                            <div class="w-full text-center">
+                                                <span class="inline-block w-full text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 text-[10px] font-bold">
+                                                    <i class="fa-solid fa-users mr-1 text-[9px]"></i>{{ $dw['unique_viewers_count'] }} pengunjung
+                                                </span>
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         </div>
