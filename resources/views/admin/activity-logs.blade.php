@@ -169,138 +169,190 @@
                     @endforelse
                 </div>
             </div>
-            {{-- Card 5 - Full Width: Dwell Time Seksi Website --}}
-            <div class="md:col-span-2 lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-amber-100/80">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-amber-50">
+            {{-- Card 5 - Full Width: Dwell Time Seksi Website (Collapsible & Compact) --}}
+            @php
+                $topDwell = !empty($analytics['dwell_sections']) ? $analytics['dwell_sections'][0] : null;
+            @endphp
+            <div class="md:col-span-2 lg:col-span-4 bg-white rounded-2xl p-4 shadow-sm border border-amber-100/80 transition-all"
+                 x-data="{ showDwell: localStorage.getItem('admin_dwell_open') === '1' }">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
-                        <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm shadow-sm border border-amber-200/50">
+                        <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm shadow-sm border border-amber-200/50 shrink-0">
                             <i class="fa-solid fa-stopwatch"></i>
                         </span>
                         <div>
-                            <h4 class="text-xs font-black text-gray-800 uppercase tracking-wide flex items-center gap-2">
-                                Evaluasi Atensi Seksi Website
+                            <div class="flex flex-wrap items-center gap-2">
+                                <h4 class="text-xs font-black text-gray-800 uppercase tracking-wide">
+                                    Evaluasi Atensi Seksi Website
+                                </h4>
                                 @if(!empty($analytics['dwell_total_secs']))
                                     <span class="text-[10px] font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full border border-amber-200">
-                                        ⏱️ {{ gmdate('H:i:s', $analytics['dwell_total_secs']) }} total atensi
+                                        ⏱️ {{ gmdate('H:i:s', $analytics['dwell_total_secs']) }} total
                                     </span>
                                 @endif
-                            </h4>
-                            <p class="text-[11px] text-gray-400 font-medium">Seksi yang paling sering & paling lama diperhatikan oleh pengunjung toko</p>
+                                @if($topDwell)
+                                    <span class="hidden sm:inline-flex items-center gap-1 text-[10px] font-semibold text-gray-500 bg-amber-50/60 px-2 py-0.5 rounded-md border border-amber-100">
+                                        <i class="fa-solid fa-fire text-amber-500 text-[9px]"></i> Teratas: <strong class="text-gray-800">{{ $topDwell['label'] }}</strong> ({{ $topDwell['pct'] }}%)
+                                    </span>
+                                @endif
+                            </div>
+                            <p class="text-[11px] text-gray-400 font-medium">Seksi yang paling sering & paling lama diperhatikan pengunjung toko</p>
                         </div>
                     </div>
 
-                    {{-- Quick Period Filter Pills --}}
-                    <div class="flex items-center gap-1 bg-amber-50/60 p-1 rounded-xl border border-amber-100">
+                    {{-- Actions: Period Filter + Collapse Toggle --}}
+                    <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
+                        {{-- Quick Period Filter Pills --}}
+                        <div class="flex items-center gap-1 bg-amber-50/60 p-1 rounded-xl border border-amber-100">
+                            @php
+                                $currentDwellPeriod = $dwellPeriod ?? '30d';
+                                $periodOptions = [
+                                    'today' => 'Hari Ini',
+                                    '7d'    => '7 Hari',
+                                    '30d'   => '30 Hari',
+                                    'all'   => 'Semua',
+                                ];
+                            @endphp
+                            @foreach($periodOptions as $pKey => $pLabel)
+                                <a href="{{ request()->fullUrlWithQuery(['dwell_period' => $pKey]) }}"
+                                   class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all {{ $currentDwellPeriod === $pKey ? 'bg-amber-500 text-white shadow-sm' : 'text-amber-900/70 hover:text-amber-900 hover:bg-amber-100/60' }}">
+                                    {{ $pLabel }}
+                                </a>
+                            @endforeach
+                        </div>
+
+                        {{-- Toggle Button Accordion --}}
+                        <button type="button"
+                                @click="showDwell = !showDwell; localStorage.setItem('admin_dwell_open', showDwell ? '1' : '0')"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                                :class="showDwell ? 'bg-amber-500 text-white shadow-sm hover:bg-amber-600' : 'bg-amber-100/80 hover:bg-amber-200 text-amber-900 border border-amber-200/80'">
+                            <i class="fa-solid fa-chart-simple text-[10px]"></i>
+                            <span x-text="showDwell ? 'Tutup Rincian' : 'Rincian Atensi'"></span>
+                            <i class="fa-solid text-[9px] transition-transform duration-200" :class="showDwell ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Collapsible Content: Hanya terbuka saat showDwell == true --}}
+                <div x-show="showDwell" x-transition.opacity.duration.200ms x-cloak class="mt-4 pt-3 border-t border-amber-50">
+                    @if(!empty($analytics['dwell_sections']))
+                    <div class="space-y-2">
+                        @foreach($analytics['dwell_sections'] as $dw)
                         @php
-                            $currentDwellPeriod = $dwellPeriod ?? '30d';
-                            $periodOptions = [
-                                'today' => 'Hari Ini',
-                                '7d'    => '7 Hari',
-                                '30d'   => '30 Hari (Default)',
-                                'all'   => 'Semua Waktu',
-                            ];
+                            $dwTotMins = intdiv($dw['total_seconds'], 60);
+                            $dwTotSecs = $dw['total_seconds'] % 60;
+                            $totFmt = ($dwTotMins > 0 ? $dwTotMins . 'm ' : '') . $dwTotSecs . 'd';
+
+                            $dwMins = intdiv($dw['avg_seconds'], 60);
+                            $dwSecs = $dw['avg_seconds'] % 60;
+                            $avgFmt = ($dwMins > 0 ? $dwMins . 'm ' : '') . $dwSecs . 'd';
+
+                            $barColor = match(true) {
+                                $dw['pct'] >= 30 => 'bg-gradient-to-r from-amber-500 to-orange-500',
+                                $dw['pct'] >= 15 => 'bg-gradient-to-r from-amber-400 to-amber-500',
+                                default          => 'bg-gradient-to-r from-amber-300 to-amber-400',
+                            };
                         @endphp
-                        @foreach($periodOptions as $pKey => $pLabel)
-                            <a href="{{ request()->fullUrlWithQuery(['dwell_period' => $pKey]) }}"
-                               class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all {{ $currentDwellPeriod === $pKey ? 'bg-amber-500 text-white shadow-sm' : 'text-amber-900/70 hover:text-amber-900 hover:bg-amber-100/60' }}">
-                                {{ $pLabel }}
-                            </a>
+                        <div class="p-2.5 rounded-xl bg-slate-50/70 hover:bg-amber-50/40 border border-gray-100 hover:border-amber-200 transition-all">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                {{-- Kolom Seksi & Progress Bar --}}
+                                <div class="flex-1 min-w-0 pr-0 sm:pr-4">
+                                    <div class="flex items-center justify-between gap-2 mb-1">
+                                        <div class="flex items-center gap-2 min-w-0">
+                                            <span class="text-xs font-bold text-gray-800 truncate" title="{{ $dw['label'] }}">
+                                                {{ $dw['label'] }}
+                                            </span>
+                                            @if(!empty($dw['pages']))
+                                                <span class="text-[9px] font-medium text-gray-400 bg-white px-1.5 py-0.2 rounded border border-gray-200 truncate max-w-[130px]">
+                                                    {{ implode(', ', array_slice($dw['pages'], 0, 2)) }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <span class="text-[11px] font-black text-amber-700 shrink-0">{{ $dw['pct'] }}%</span>
+                                    </div>
+                                    <div class="h-1.5 w-full rounded-full bg-gray-200/70 overflow-hidden shadow-inner">
+                                        <div class="{{ $barColor }} h-1.5 rounded-full transition-all duration-500" style="width: {{ min(100, $dw['pct']) }}%"></div>
+                                    </div>
+                                </div>
+
+                                {{-- Kolom Metrik & Pengunjung Popover --}}
+                                <div class="flex items-center gap-2.5 text-[11px] font-bold shrink-0 self-end sm:self-center">
+                                    <span class="text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded-md border border-amber-200/60" title="Total Durasi Diperhatikan">
+                                        {{ $totFmt }}
+                                    </span>
+                                    <span class="text-gray-500 text-[10px]" title="Rata-rata Durasi per Tayang">
+                                        ⌀ {{ $avgFmt }}
+                                    </span>
+                                    <span class="text-gray-400 text-[10px]">
+                                        {{ $dw['views'] }}x
+                                    </span>
+
+                                    {{-- Interactive Popover Pengunjung --}}
+                                    @if(!empty($dw['viewers']))
+                                        <div class="relative" x-data="{ openViewers: false }">
+                                            <button type="button" @click="openViewers = !openViewers"
+                                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/70 transition-colors cursor-pointer">
+                                                <i class="fa-solid fa-users text-[9px]"></i>
+                                                <span>{{ $dw['unique_viewers_count'] }} pengunjung</span>
+                                                <i class="fa-solid fa-caret-down text-[8px] opacity-70"></i>
+                                            </button>
+
+                                            {{-- Dropdown Floating Popover --}}
+                                            <div x-show="openViewers" @click.outside="openViewers = false" x-cloak
+                                                 class="absolute right-0 top-full mt-1.5 w-72 p-2.5 bg-white rounded-xl shadow-xl border border-gray-100 z-30 text-left">
+                                                <div class="flex items-center justify-between pb-1.5 mb-1.5 border-b border-gray-100">
+                                                    <span class="text-[10px] font-black text-gray-500 uppercase tracking-wider">
+                                                        <i class="fa-solid fa-user-clock mr-1 text-indigo-500"></i> Pengunjung Seksi
+                                                    </span>
+                                                    <span class="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded">
+                                                        {{ $dw['unique_viewers_count'] }} total
+                                                    </span>
+                                                </div>
+                                                <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                                                    @foreach($dw['viewers'] as $v)
+                                                    @php
+                                                        $vMins = intdiv($v['seconds'], 60);
+                                                        $vSecs = $v['seconds'] % 60;
+                                                        $vFmt = ($vMins > 0 ? $vMins . 'm ' : '') . $vSecs . 'd';
+                                                    @endphp
+                                                    <div class="flex items-center justify-between text-[10px] py-0.5">
+                                                        <div class="flex items-center gap-1.5 min-w-0 pr-2">
+                                                            <i class="fa-solid {{ $v['icon'] ?? 'fa-user' }} text-[9px] text-gray-400"></i>
+                                                            <div class="truncate">
+                                                                <p class="font-semibold text-gray-800 truncate">{{ $v['name'] }}</p>
+                                                                <p class="text-[8px] text-gray-400 truncate">{{ $v['sub'] }} · {{ $v['count'] }}x</p>
+                                                            </div>
+                                                        </div>
+                                                        <span class="font-bold text-amber-700 shrink-0 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                                                            {{ $vFmt }}
+                                                        </span>
+                                                    </div>
+                                                    @endforeach
+                                                </div>
+                                                @if($dw['unique_viewers_count'] > count($dw['viewers']))
+                                                    <p class="text-[9px] text-gray-400 text-center pt-1.5 mt-1 border-t border-gray-100">
+                                                        +{{ $dw['unique_viewers_count'] - count($dw['viewers']) }} pengunjung lainnya
+                                                    </p>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @else
+                                        <span class="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 text-[10px]">
+                                            <i class="fa-solid fa-users mr-1 text-[9px]"></i>{{ $dw['unique_viewers_count'] }}
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
                         @endforeach
                     </div>
-                </div>
-
-                @if(!empty($analytics['dwell_sections']))
-                <div class="space-y-3.5">
-                    @foreach($analytics['dwell_sections'] as $dw)
-                    @php
-                        $dwTotMins = intdiv($dw['total_seconds'], 60);
-                        $dwTotSecs = $dw['total_seconds'] % 60;
-                        $totFmt = ($dwTotMins > 0 ? $dwTotMins . 'm ' : '') . $dwTotSecs . 'd';
-
-                        $dwMins = intdiv($dw['avg_seconds'], 60);
-                        $dwSecs = $dw['avg_seconds'] % 60;
-                        $avgFmt = ($dwMins > 0 ? $dwMins . 'm ' : '') . $dwSecs . 'd';
-
-                        $barColor = match(true) {
-                            $dw['pct'] >= 30 => 'bg-gradient-to-r from-amber-500 to-orange-500',
-                            $dw['pct'] >= 15 => 'bg-gradient-to-r from-amber-400 to-amber-500',
-                            default          => 'bg-gradient-to-r from-amber-300 to-amber-400',
-                        };
-                    @endphp
-                    <div class="p-3 rounded-xl bg-slate-50/60 hover:bg-amber-50/40 border border-gray-100 hover:border-amber-200 transition-colors">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1.5">
-                            <div class="flex items-center gap-2 min-w-0">
-                                <span class="text-xs font-black text-gray-800 truncate" title="{{ $dw['label'] }}">
-                                    {{ $dw['label'] }}
-                                </span>
-                                @if(!empty($dw['pages']))
-                                    <span class="text-[10px] font-medium text-gray-400 bg-white px-2 py-0.5 rounded border border-gray-200 truncate max-w-[150px]">
-                                        {{ implode(', ', array_slice($dw['pages'], 0, 2)) }}
-                                    </span>
-                                @endif
-                            </div>
-                            <div class="flex items-center gap-3 text-[11px] shrink-0 font-bold">
-                                <span class="text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded-md border border-amber-200/60">
-                                    Total: {{ $totFmt }}
-                                </span>
-                                <span class="text-gray-500">
-                                    ⌀ Rata-rata: <strong class="text-gray-700">{{ $avgFmt }}</strong>
-                                </span>
-                                <span class="text-gray-400">
-                                    {{ $dw['views'] }}x tayang
-                                </span>
-                                <span class="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
-                                    <i class="fa-solid fa-users mr-1 text-[10px]"></i>{{ $dw['unique_viewers_count'] }} pengunjung
-                                </span>
-                            </div>
-                        </div>
-
-                        {{-- Progress Bar --}}
-                        <div class="flex items-center gap-2.5 mb-2">
-                            <div class="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden shadow-inner">
-                                <div class="{{ $barColor }} h-2 rounded-full transition-all duration-500" style="width: {{ min(100, $dw['pct']) }}%"></div>
-                            </div>
-                            <span class="text-[11px] font-black text-amber-700 w-12 text-right shrink-0">{{ $dw['pct'] }}%</span>
-                        </div>
-
-                        {{-- Rincian Orang yang Melihat (Viewer breakdown) --}}
-                        @if(!empty($dw['viewers']))
-                        <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-gray-100/80">
-                            <span class="text-[9px] font-black text-gray-400 uppercase tracking-wider mr-1">
-                                <i class="fa-solid fa-user-clock mr-0.5"></i> Pengunjung:
-                            </span>
-                            @foreach($dw['viewers'] as $v)
-                            @php
-                                $vMins = intdiv($v['seconds'], 60);
-                                $vSecs = $v['seconds'] % 60;
-                                $vFmt = ($vMins > 0 ? $vMins . 'm ' : '') . $vSecs . 'd';
-                            @endphp
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold {{ $v['badge_class'] ?? 'bg-gray-100 text-gray-700' }}"
-                                  title="{{ $v['sub'] }} · {{ $v['count'] }}x tayang">
-                                <i class="fa-solid {{ $v['icon'] ?? 'fa-user' }} text-[9px]"></i>
-                                <span>{{ $v['name'] }}</span>
-                                <span class="opacity-75 font-normal">({{ $vFmt }})</span>
-                            </span>
-                            @endforeach
-                            @if($dw['unique_viewers_count'] > count($dw['viewers']))
-                            <span class="text-[10px] text-gray-400 font-semibold">+{{ $dw['unique_viewers_count'] - count($dw['viewers']) }} lainnya</span>
-                            @endif
-                        </div>
-                        @endif
+                    @else
+                    <div class="py-4 px-4 rounded-xl bg-amber-50/40 border border-dashed border-amber-200 text-center">
+                        <p class="text-xs font-bold text-amber-900">Belum ada data atensi seksi pada periode ini</p>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Data direkam otomatis saat pengunjung melihat seksi minimal 3 detik.</p>
                     </div>
-                    @endforeach
+                    @endif
                 </div>
-                @else
-                <div class="py-6 px-4 rounded-xl bg-amber-50/40 border border-dashed border-amber-200 text-center">
-                    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-2 text-base">
-                        <i class="fa-solid fa-hourglass-start"></i>
-                    </div>
-                    <p class="text-xs font-bold text-amber-900">Belum ada data atensi seksi pada periode ini</p>
-                    <p class="text-[11px] text-gray-500 mt-1 max-w-lg mx-auto leading-relaxed">
-                        Sistem pelacak otomatis merekam saat pengunjung melihat seksi (Banner, Produk, Affiliate, Keranjang, Kasir) minimal 3 detik tanpa batas maksimal. Data akan langsung terupdate di sini.
-                    </p>
-                </div>
-                @endif
             </div>
         </div>
     @endif
@@ -362,50 +414,7 @@
                     <li>{{ $error }}</li>
                 @endforeach
             </ul>
-            {{-- Card 5 - Full Width: Dwell Time Seksi Website --}}
-            @if(!empty($analytics['dwell_sections']))
-            <div class="md:col-span-2 lg:col-span-4 bg-white rounded-2xl p-4 shadow-sm border border-amber-100">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-bold text-gray-500 flex items-center gap-2">
-                        <span class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs">
-                            <i class="fa-solid fa-stopwatch"></i>
-                        </span>
-                        Evaluasi Atensi Seksi Website <span class="text-[10px] text-gray-400 font-normal">(30 hari terakhir)</span>
-                    </span>
-                    <span class="text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                        {{ gmdate('H:i:s', $analytics['dwell_total_secs']) }} total dwell
-                    </span>
-                </div>
-                <div class="space-y-2">
-                    @foreach($analytics['dwell_sections'] as $dw)
-                    @php
-                        $dwMins = intdiv($dw['avg_seconds'], 60);
-                        $dwSecs = $dw['avg_seconds'] % 60;
-                        $avgFmt = ($dwMins > 0 ? $dwMins . 'm ' : '') . $dwSecs . 'd';
-                        $barColor = match(true) {
-                            $dw['pct'] >= 30 => 'bg-amber-500',
-                            $dw['pct'] >= 15 => 'bg-orange-400',
-                            default          => 'bg-amber-300',
-                        };
-                    @endphp
-                    <div class="flex items-center gap-3">
-                        <div class="w-36 text-[10px] font-bold text-gray-600 truncate shrink-0" title="{{ $dw['label'] }}">
-                            {{ $dw['label'] }}
-                        </div>
-                        <div class="flex-1 flex items-center gap-2">
-                            <div class="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-                                <div class="{{ $barColor }} h-2 rounded-full" style="width: {{ min(100, $dw['pct']) }}%"></div>
-                            </div>
-                            <span class="text-[10px] font-black text-amber-700 w-10 text-right shrink-0">{{ $dw['pct'] }}%</span>
-                        </div>
-                        <div class="text-[10px] text-gray-400 w-24 text-right shrink-0">
-                            ⌀ {{ $avgFmt }} · {{ $dw['views'] }}x
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-            </div>
-            @endif        </div>
+        </div>
     @endif
 
     {{-- ── Tab Navigasi Pill ── --}}
