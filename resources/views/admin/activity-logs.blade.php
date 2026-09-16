@@ -707,19 +707,21 @@
                                         <span class="opacity-70">· Tamu</span>
                                     @endif
                                 </span>
-                                {{-- Device badge: icon + brand + device type --}}
+                                {{-- Device badge: brand (mobile) atau platform+browser (desktop) --}}
                                 <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full {{ $device['badge_class'] ?? 'bg-slate-100 text-slate-700 border-slate-200' }} border"
-                                      title="{{ $device['formatted'] ?? $device['device_type'] ?? 'Perangkat' }}">
+                                      title="{{ $device['formatted'] ?? '' }}">
                                     <i class="fa-solid {{ $device['icon'] ?? 'fa-desktop' }} text-[9px]"></i>
                                     @if(!empty($device['brand']))
+                                        {{-- Mobile/Tablet: tampilkan brand --}}
                                         {{ $device['brand'] }}
+                                        <span class="opacity-60 font-normal">· {{ $device['platform'] ?? '' }}</span>
                                     @else
-                                        {{ $device['device_type'] ?? 'Perangkat' }}
+                                        {{-- Desktop: platform + browser digabung --}}
+                                        {{ $device['platform'] ?? $device['device_type'] ?? 'Desktop' }}
+                                        @if(!empty($device['browser']) && $device['browser'] !== 'Browser')
+                                            <span class="opacity-60 font-normal">· {{ $device['browser'] }}</span>
+                                        @endif
                                     @endif
-                                </span>
-                                {{-- Platform + Browser --}}
-                                <span class="text-[10px] text-gray-400 font-semibold">
-                                    {{ $device['platform'] ?? '-' }} · {{ $device['browser'] ?? '-' }}
                                 </span>
                                 {{-- IP Address --}}
                                 @if(!empty($props['ip']))
