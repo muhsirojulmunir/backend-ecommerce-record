@@ -442,7 +442,7 @@ class AdminWebActivityLogController extends Controller
             ],
             'top_products'      => $topProducts,
             'top_searches'      => $topSearches,
-            'dwell_sections'    => $topDwellSections,
+            'dwell_sections'    => $dwellSections,
             'dwell_total_secs'  => $totalDwellSecs,
         ];
     }
