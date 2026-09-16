@@ -42,22 +42,30 @@ class AdminWebActivityLogController extends Controller
         // Causers dropdown: disesuaikan per tab
         $causers = $this->caUsers($tab);
 
+        // Filter periode untuk evaluasi seksi website (default: 30d)
+        $dwellPeriod = $request->get('dwell_period', '30d');
+        if (! in_array($dwellPeriod, ['today', '7d', '30d', 'all'], true)) {
+            $dwellPeriod = '30d';
+        }
+
         return view('admin.activity-logs', [
-            'tab'        => $tab,
-            'logs'       => $logs,
-            'filters'    => [
-                'log_name' => $request->get('log_name', ''),
-                'event'    => $request->get('event', ''),
-                'causer'   => $request->get('causer', ''),
-                'from'     => $request->get('from', ''),
-                'to'       => $request->get('to', ''),
-                'search'   => $request->get('search', ''),
+            'tab'          => $tab,
+            'logs'         => $logs,
+            'filters'      => [
+                'log_name'     => $request->get('log_name', ''),
+                'event'        => $request->get('event', ''),
+                'causer'       => $request->get('causer', ''),
+                'from'         => $request->get('from', ''),
+                'to'           => $request->get('to', ''),
+                'search'       => $request->get('search', ''),
+                'dwell_period' => $dwellPeriod,
             ],
-            'logNames'   => Activity::select('log_name')->distinct()->orderBy('log_name')->pluck('log_name')->filter()->values(),
-            'causers'    => $causers,
-            'stats'      => $this->stats(),
-            'analytics'  => $this->analytics(),
-            'tabCounts'  => [
+            'dwellPeriod'  => $dwellPeriod,
+            'logNames'     => Activity::select('log_name')->distinct()->orderBy('log_name')->pluck('log_name')->filter()->values(),
+            'causers'      => $causers,
+            'stats'        => $this->stats(),
+            'analytics'    => $this->analytics($dwellPeriod, $request),
+            'tabCounts'    => [
                 'admin' => $adminCount,
                 'user'  => $userCount,
                 'all'   => $allCount,
@@ -221,7 +229,7 @@ class AdminWebActivityLogController extends Controller
     /**
      * Hitung analitik login, rasio perangkat, produk teratas, dan pencarian terpopuler.
      */
-    private function analytics(): array
+    private function analytics(?string $dwellPeriod = '30d', ?Request $request = null): array
     {
         // 1. Statistik Login
         $loginQuery = Activity::where('log_name', 'auth')->where('event', 'login');
@@ -300,47 +308,118 @@ class AdminWebActivityLogController extends Controller
         arsort($searchFreq);
         $topSearches = array_slice($searchFreq, 0, 3, true);
 
-        // 5. Dwell Time Analytics — Top 10 seksi berdasarkan total detik dilihat
-        $dwellLogs = Activity::where('log_name', 'evaluasi_web')
+        // 5. Dwell Time Analytics — Evaluasi Seksi Website berdasarkan filter periode
+        $dwellQuery = Activity::where('log_name', 'evaluasi_web')
             ->where('event', 'dwell')
-            ->where('created_at', '>=', now()->subDays(30))
-            ->get(['description', 'properties']);
+            ->with('causer');
 
-        $dwellAgg = []; // section_key => [label, total_seconds, views]
+        // Filter rentang tanggal
+        if ($request && filled($request->get('from'))) {
+            $dwellQuery->whereDate('created_at', '>=', $request->get('from'));
+        } elseif ($dwellPeriod === 'today') {
+            $dwellQuery->where('created_at', '>=', now()->startOfDay());
+        } elseif ($dwellPeriod === '7d') {
+            $dwellQuery->where('created_at', '>=', now()->subDays(7));
+        } elseif ($dwellPeriod === 'all') {
+            // semua waktu tanpa batasan awal
+        } else { // default '30d'
+            $dwellQuery->where('created_at', '>=', now()->subDays(30));
+        }
+
+        if ($request && filled($request->get('to'))) {
+            $dwellQuery->whereDate('created_at', '<=', $request->get('to'));
+        }
+
+        $dwellLogs = $dwellQuery->latest('id')->get();
+
+        $dwellAgg = []; // section_key => [label, total_seconds, views, pages => [...], viewers => [...]]
 
         foreach ($dwellLogs as $dl) {
             $props = is_array($dl->properties) ? $dl->properties : ($dl->properties?->toArray() ?? []);
             $key   = (string) ($props['section'] ?? $props['section_id'] ?? '');
             $lbl   = (string) ($props['label']   ?? $props['section_label'] ?? $key);
             $secs  = (int)    ($props['seconds'] ?? $props['duration_seconds'] ?? 0);
+            $page  = (string) ($props['page']    ?? $props['page_url'] ?? $props['page_name'] ?? '');
 
             if ($key === '' || $secs <= 0) continue;
 
             if (!isset($dwellAgg[$key])) {
-                $dwellAgg[$key] = ['label' => $lbl, 'total_seconds' => 0, 'views' => 0];
+                $dwellAgg[$key] = [
+                    'label'         => $lbl,
+                    'total_seconds' => 0,
+                    'views'         => 0,
+                    'pages'         => [],
+                    'viewers'       => [],
+                ];
             }
 
             $dwellAgg[$key]['total_seconds'] += $secs;
             $dwellAgg[$key]['views']         += 1;
+
+            if ($page !== '') {
+                $dwellAgg[$key]['pages'][$page] = ($dwellAgg[$key]['pages'][$page] ?? 0) + 1;
+            }
+
+            // Identifikasi siapa orangnya (Pelaku)
+            $actor  = DeviceDetector::actorInfo($dl);
+            $device = DeviceDetector::fromActivity($dl);
+            $ip     = $props['ip'] ?? '';
+
+            if (!$actor['is_guest'] && $dl->causer) {
+                $viewerKey   = 'u_' . $dl->causer_id;
+                $viewerName  = $actor['name'];
+                $viewerSub   = 'Customer' . ($actor['email'] ? ' · ' . $actor['email'] : '');
+                $viewerType  = 'customer';
+                $badgeClass  = 'bg-emerald-100 text-emerald-800 border-emerald-200';
+                $icon        = 'fa-user-check';
+            } else {
+                $viewerKey   = 'g_' . ($ip ?: 'guest_' . $dl->id);
+                $deviceShort = ($device['platform'] ?? 'Tamu') . ($device['browser'] ? ' · ' . $device['browser'] : '');
+                $viewerName  = 'Pengunjung Tamu';
+                $viewerSub   = $deviceShort . ($ip ? " [{$ip}]" : '');
+                $viewerType  = 'guest';
+                $badgeClass  = 'bg-amber-100 text-amber-800 border-amber-200';
+                $icon        = 'fa-user-secret';
+            }
+
+            if (!isset($dwellAgg[$key]['viewers'][$viewerKey])) {
+                $dwellAgg[$key]['viewers'][$viewerKey] = [
+                    'name'        => $viewerName,
+                    'sub'         => $viewerSub,
+                    'type'        => $viewerType,
+                    'badge_class' => $badgeClass,
+                    'icon'        => $icon,
+                    'count'       => 0,
+                    'seconds'     => 0,
+                ];
+            }
+            $dwellAgg[$key]['viewers'][$viewerKey]['count']   += 1;
+            $dwellAgg[$key]['viewers'][$viewerKey]['seconds'] += $secs;
         }
 
-        // Urutkan berdasarkan total detik tertinggi
+        // Urutkan seksi berdasarkan total detik tertinggi (tanpa dibatasi 10 saja)
         uasort($dwellAgg, fn ($a, $b) => $b['total_seconds'] <=> $a['total_seconds']);
 
         $totalDwellSecs = array_sum(array_column($dwellAgg, 'total_seconds'));
 
-        $topDwellSections = [];
-        foreach (array_slice($dwellAgg, 0, 10, true) as $sectionKey => $d) {
+        $dwellSections = [];
+        foreach ($dwellAgg as $sectionKey => $d) {
             $avgSecs = $d['views'] > 0 ? (int) round($d['total_seconds'] / $d['views']) : 0;
             $pct     = $totalDwellSecs > 0 ? round(($d['total_seconds'] / $totalDwellSecs) * 100, 1) : 0;
 
-            $topDwellSections[] = [
-                'section'       => $sectionKey,
-                'label'         => $d['label'],
-                'total_seconds' => $d['total_seconds'],
-                'avg_seconds'   => $avgSecs,
-                'views'         => $d['views'],
-                'pct'           => $pct,
+            // Urutkan rincian viewers dari detik terbanyak
+            uasort($d['viewers'], fn ($a, $b) => $b['seconds'] <=> $a['seconds']);
+
+            $dwellSections[] = [
+                'section'              => $sectionKey,
+                'label'                => $d['label'],
+                'total_seconds'        => $d['total_seconds'],
+                'avg_seconds'          => $avgSecs,
+                'views'                => $d['views'],
+                'pct'                  => $pct,
+                'pages'                => array_keys($d['pages']),
+                'unique_viewers_count' => count($d['viewers']),
+                'viewers'              => array_values(array_slice($d['viewers'], 0, 8)), // daftar pengunjung teratas
             ];
         }
 

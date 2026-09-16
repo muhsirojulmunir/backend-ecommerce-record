@@ -306,7 +306,7 @@ class DeviceDetector
         }
 
         // Causer is null
-        $isGuestStoreAction = in_array($activity->log_name, ['pesanan', 'ulasan', 'pengembalian', 'checkout', 'keranjang', 'toko', 'rpay', 'produk', 'pencarian']);
+        $isGuestStoreAction = in_array($activity->log_name, ['pesanan', 'ulasan', 'pengembalian', 'checkout', 'keranjang', 'toko', 'rpay', 'produk', 'pencarian', 'evaluasi_web']);
 
         if ($isGuestStoreAction) {
             return [

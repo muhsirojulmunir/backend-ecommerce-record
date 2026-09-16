@@ -170,56 +170,134 @@
                 </div>
             </div>
             {{-- Card 5 - Full Width: Dwell Time Seksi Website --}}
-            <div class="md:col-span-2 lg:col-span-4 bg-white rounded-2xl p-4 shadow-sm border border-amber-100">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-bold text-gray-500 flex items-center gap-2">
-                        <span class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs">
+            <div class="md:col-span-2 lg:col-span-4 bg-white rounded-2xl p-5 shadow-sm border border-amber-100/80">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-amber-50">
+                    <div class="flex items-center gap-3">
+                        <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm shadow-sm border border-amber-200/50">
                             <i class="fa-solid fa-stopwatch"></i>
                         </span>
-                        Evaluasi Atensi Seksi Website <span class="text-[10px] text-gray-400 font-normal">(30 hari terakhir)</span>
-                    </span>
-                    @if(!empty($analytics['dwell_sections']))
-                    <span class="text-[10px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                        {{ gmdate('H:i:s', $analytics['dwell_total_secs']) }} total dwell
-                    </span>
-                    @endif
+                        <div>
+                            <h4 class="text-xs font-black text-gray-800 uppercase tracking-wide flex items-center gap-2">
+                                Evaluasi Atensi Seksi Website
+                                @if(!empty($analytics['dwell_total_secs']))
+                                    <span class="text-[10px] font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full border border-amber-200">
+                                        ⏱️ {{ gmdate('H:i:s', $analytics['dwell_total_secs']) }} total atensi
+                                    </span>
+                                @endif
+                            </h4>
+                            <p class="text-[11px] text-gray-400 font-medium">Seksi yang paling sering & paling lama diperhatikan oleh pengunjung toko</p>
+                        </div>
+                    </div>
+
+                    {{-- Quick Period Filter Pills --}}
+                    <div class="flex items-center gap-1 bg-amber-50/60 p-1 rounded-xl border border-amber-100">
+                        @php
+                            $currentDwellPeriod = $dwellPeriod ?? '30d';
+                            $periodOptions = [
+                                'today' => 'Hari Ini',
+                                '7d'    => '7 Hari',
+                                '30d'   => '30 Hari (Default)',
+                                'all'   => 'Semua Waktu',
+                            ];
+                        @endphp
+                        @foreach($periodOptions as $pKey => $pLabel)
+                            <a href="{{ request()->fullUrlWithQuery(['dwell_period' => $pKey]) }}"
+                               class="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all {{ $currentDwellPeriod === $pKey ? 'bg-amber-500 text-white shadow-sm' : 'text-amber-900/70 hover:text-amber-900 hover:bg-amber-100/60' }}">
+                                {{ $pLabel }}
+                            </a>
+                        @endforeach
+                    </div>
                 </div>
+
                 @if(!empty($analytics['dwell_sections']))
-                <div class="space-y-2">
+                <div class="space-y-3.5">
                     @foreach($analytics['dwell_sections'] as $dw)
                     @php
+                        $dwTotMins = intdiv($dw['total_seconds'], 60);
+                        $dwTotSecs = $dw['total_seconds'] % 60;
+                        $totFmt = ($dwTotMins > 0 ? $dwTotMins . 'm ' : '') . $dwTotSecs . 'd';
+
                         $dwMins = intdiv($dw['avg_seconds'], 60);
                         $dwSecs = $dw['avg_seconds'] % 60;
                         $avgFmt = ($dwMins > 0 ? $dwMins . 'm ' : '') . $dwSecs . 'd';
+
                         $barColor = match(true) {
-                            $dw['pct'] >= 30 => 'bg-amber-500',
-                            $dw['pct'] >= 15 => 'bg-orange-400',
-                            default          => 'bg-amber-300',
+                            $dw['pct'] >= 30 => 'bg-gradient-to-r from-amber-500 to-orange-500',
+                            $dw['pct'] >= 15 => 'bg-gradient-to-r from-amber-400 to-amber-500',
+                            default          => 'bg-gradient-to-r from-amber-300 to-amber-400',
                         };
                     @endphp
-                    <div class="flex items-center gap-3">
-                        <div class="w-36 text-[10px] font-bold text-gray-600 truncate shrink-0" title="{{ $dw['label'] }}">
-                            {{ $dw['label'] }}
-                        </div>
-                        <div class="flex-1 flex items-center gap-2">
-                            <div class="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-                                <div class="{{ $barColor }} h-2 rounded-full" style="width: {{ min(100, $dw['pct']) }}%"></div>
+                    <div class="p-3 rounded-xl bg-slate-50/60 hover:bg-amber-50/40 border border-gray-100 hover:border-amber-200 transition-colors">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1.5">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="text-xs font-black text-gray-800 truncate" title="{{ $dw['label'] }}">
+                                    {{ $dw['label'] }}
+                                </span>
+                                @if(!empty($dw['pages']))
+                                    <span class="text-[10px] font-medium text-gray-400 bg-white px-2 py-0.5 rounded border border-gray-200 truncate max-w-[150px]">
+                                        {{ implode(', ', array_slice($dw['pages'], 0, 2)) }}
+                                    </span>
+                                @endif
                             </div>
-                            <span class="text-[10px] font-black text-amber-700 w-10 text-right shrink-0">{{ $dw['pct'] }}%</span>
+                            <div class="flex items-center gap-3 text-[11px] shrink-0 font-bold">
+                                <span class="text-amber-800 bg-amber-100/70 px-2 py-0.5 rounded-md border border-amber-200/60">
+                                    Total: {{ $totFmt }}
+                                </span>
+                                <span class="text-gray-500">
+                                    ⌀ Rata-rata: <strong class="text-gray-700">{{ $avgFmt }}</strong>
+                                </span>
+                                <span class="text-gray-400">
+                                    {{ $dw['views'] }}x tayang
+                                </span>
+                                <span class="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                                    <i class="fa-solid fa-users mr-1 text-[10px]"></i>{{ $dw['unique_viewers_count'] }} pengunjung
+                                </span>
+                            </div>
                         </div>
-                        <div class="text-[10px] text-gray-400 w-24 text-right shrink-0">
-                            ⌀ {{ $avgFmt }} · {{ $dw['views'] }}x
+
+                        {{-- Progress Bar --}}
+                        <div class="flex items-center gap-2.5 mb-2">
+                            <div class="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden shadow-inner">
+                                <div class="{{ $barColor }} h-2 rounded-full transition-all duration-500" style="width: {{ min(100, $dw['pct']) }}%"></div>
+                            </div>
+                            <span class="text-[11px] font-black text-amber-700 w-12 text-right shrink-0">{{ $dw['pct'] }}%</span>
                         </div>
+
+                        {{-- Rincian Orang yang Melihat (Viewer breakdown) --}}
+                        @if(!empty($dw['viewers']))
+                        <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-gray-100/80">
+                            <span class="text-[9px] font-black text-gray-400 uppercase tracking-wider mr-1">
+                                <i class="fa-solid fa-user-clock mr-0.5"></i> Pengunjung:
+                            </span>
+                            @foreach($dw['viewers'] as $v)
+                            @php
+                                $vMins = intdiv($v['seconds'], 60);
+                                $vSecs = $v['seconds'] % 60;
+                                $vFmt = ($vMins > 0 ? $vMins . 'm ' : '') . $vSecs . 'd';
+                            @endphp
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold {{ $v['badge_class'] ?? 'bg-gray-100 text-gray-700' }}"
+                                  title="{{ $v['sub'] }} · {{ $v['count'] }}x tayang">
+                                <i class="fa-solid {{ $v['icon'] ?? 'fa-user' }} text-[9px]"></i>
+                                <span>{{ $v['name'] }}</span>
+                                <span class="opacity-75 font-normal">({{ $vFmt }})</span>
+                            </span>
+                            @endforeach
+                            @if($dw['unique_viewers_count'] > count($dw['viewers']))
+                            <span class="text-[10px] text-gray-400 font-semibold">+{{ $dw['unique_viewers_count'] - count($dw['viewers']) }} lainnya</span>
+                            @endif
+                        </div>
+                        @endif
                     </div>
                     @endforeach
                 </div>
                 @else
-                <div class="py-3 px-4 rounded-xl bg-amber-50/50 border border-dashed border-amber-200 text-center">
-                    <p class="text-xs font-bold text-amber-800 flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-hourglass-start"></i> Belum ada data atensi seksi yang terekam
-                    </p>
+                <div class="py-6 px-4 rounded-xl bg-amber-50/40 border border-dashed border-amber-200 text-center">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-2 text-base">
+                        <i class="fa-solid fa-hourglass-start"></i>
+                    </div>
+                    <p class="text-xs font-bold text-amber-900">Belum ada data atensi seksi pada periode ini</p>
                     <p class="text-[11px] text-gray-500 mt-1 max-w-lg mx-auto leading-relaxed">
-                        Sistem pelacak dwell time aktif otomatis di frontend (Banner, Produk, Affiliate, Keranjang, Checkout). Begitu pengunjung melihat seksi minimal 3 detik, grafik durasi atensi akan otomatis terisi di sini.
+                        Sistem pelacak otomatis merekam saat pengunjung melihat seksi (Banner, Produk, Affiliate, Keranjang, Kasir) minimal 3 detik tanpa batas maksimal. Data akan langsung terupdate di sini.
                     </p>
                 </div>
                 @endif
@@ -425,28 +503,63 @@
             <div class="flex gap-2">
                 <div class="flex-1">
                     <label class="block text-[10px] font-black text-gray-500 uppercase mb-1.5">Dari</label>
-                    <input type="date" name="from" value="{{ $filters['from'] }}"
+                    <input type="date" name="from" x-ref="fromInput" value="{{ $filters['from'] }}"
                            class="w-full border border-gray-200 rounded-xl py-2 px-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500">
                 </div>
                 <div class="flex-1">
                     <label class="block text-[10px] font-black text-gray-500 uppercase mb-1.5">Sampai</label>
-                    <input type="date" name="to" value="{{ $filters['to'] }}"
+                    <input type="date" name="to" x-ref="toInput" value="{{ $filters['to'] }}"
                            class="w-full border border-gray-200 rounded-xl py-2 px-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500">
                 </div>
             </div>
         </div>
 
-        <div class="flex items-center gap-2 mt-3 pt-3 border-t border-gray-50">
-            <button type="submit" class="bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold px-5 py-2 rounded-xl transition">
-                <i class="fa-solid fa-filter mr-1.5"></i>Terapkan Filter
-            </button>
-            @if($hasFilter)
-                <a href="{{ route('admin.activity-logs', ['tab' => $currentTab]) }}"
-                   class="text-xs font-bold px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition">
-                    <i class="fa-solid fa-xmark mr-1"></i>Reset
-                </a>
-            @endif
-            <span class="text-[11px] text-gray-400 font-semibold ml-auto">{{ number_format($logs->total()) }} catatan</span>
+        <div class="flex flex-wrap items-center justify-between gap-3 mt-4 pt-3.5 border-t border-gray-100">
+            <div class="flex items-center gap-2">
+                <button type="submit" class="bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm hover:shadow transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-filter text-xs"></i>Terapkan Filter
+                </button>
+                @if($hasFilter)
+                    <a href="{{ route('admin.activity-logs', ['tab' => $currentTab]) }}"
+                       class="text-xs font-bold px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-rotate-left text-xs"></i>Reset Filter
+                    </a>
+                @endif
+            </div>
+
+            {{-- Quick Date Range Buttons --}}
+            <div class="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-xl border border-gray-100">
+                <span class="text-[10px] font-black text-gray-400 uppercase mr-1">Filter Cepat:</span>
+                <button type="button" @click="
+                    const t = new Date();
+                    const fmt = d => d.toISOString().split('T')[0];
+                    $refs.fromInput.value = fmt(t);
+                    $refs.toInput.value = fmt(t);
+                    $el.closest('form').submit();
+                " class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-orange-500 hover:text-white border border-gray-200 text-gray-700 transition">Hari Ini</button>
+
+                <button type="button" @click="
+                    const t = new Date();
+                    const fmt = d => d.toISOString().split('T')[0];
+                    $refs.toInput.value = fmt(t);
+                    const f = new Date(); f.setDate(f.getDate() - 7);
+                    $refs.fromInput.value = fmt(f);
+                    $el.closest('form').submit();
+                " class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-orange-500 hover:text-white border border-gray-200 text-gray-700 transition">7 Hari</button>
+
+                <button type="button" @click="
+                    const t = new Date();
+                    const fmt = d => d.toISOString().split('T')[0];
+                    $refs.toInput.value = fmt(t);
+                    const f = new Date(); f.setDate(f.getDate() - 30);
+                    $refs.fromInput.value = fmt(f);
+                    $el.closest('form').submit();
+                " class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-orange-500 hover:text-white border border-gray-200 text-gray-700 transition">30 Hari</button>
+            </div>
+
+            <span class="text-xs text-gray-500 font-bold ml-auto bg-slate-50 px-3 py-1.5 rounded-xl border border-gray-100">
+                <span class="text-gray-900 font-black">{{ number_format($logs->total()) }}</span> catatan ditemukan
+            </span>
         </div>
     </form>
 
