@@ -200,12 +200,13 @@
                         </div>
                     </div>
 
-                    {{-- Actions: Period Filter + Collapse Toggle --}}
-                    <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
-                        {{-- Quick Period Filter Pills --}}
+                    {{-- Actions: Period Filter + Rentang Tanggal + Collapse Toggle --}}
+                    <div class="flex flex-wrap items-center gap-2 self-end sm:self-center shrink-0">
+                        {{-- Quick Period Filter Pills + Date Range Picker --}}
                         <div class="flex items-center gap-1 bg-amber-50/60 p-1 rounded-xl border border-amber-100">
                             @php
                                 $currentDwellPeriod = $dwellPeriod ?? '30d';
+                                $hasCustomDwell = !empty($dwellFrom) || !empty($dwellTo) || $currentDwellPeriod === 'custom';
                                 $periodOptions = [
                                     'today' => 'Hari Ini',
                                     '7d'    => '7 Hari',
@@ -214,11 +215,123 @@
                                 ];
                             @endphp
                             @foreach($periodOptions as $pKey => $pLabel)
-                                <a href="{{ request()->fullUrlWithQuery(['dwell_period' => $pKey]) }}"
-                                   class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all {{ $currentDwellPeriod === $pKey ? 'bg-amber-500 text-white shadow-sm' : 'text-amber-900/70 hover:text-amber-900 hover:bg-amber-100/60' }}">
+                                <a href="{{ request()->fullUrlWithQuery(['dwell_period' => $pKey, 'dwell_from' => null, 'dwell_to' => null]) }}"
+                                   @click="localStorage.setItem('admin_dwell_open', '1')"
+                                   class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all {{ ($currentDwellPeriod === $pKey && !$hasCustomDwell) ? 'bg-amber-500 text-white shadow-sm' : 'text-amber-900/70 hover:text-amber-900 hover:bg-amber-100/60' }}">
                                     {{ $pLabel }}
                                 </a>
                             @endforeach
+
+                            {{-- Divider vertikal tipis --}}
+                            <div class="h-3.5 w-[1px] bg-amber-200/80 mx-0.5"></div>
+
+                            {{-- Date Range Picker Evaluasi Atensi --}}
+                            <div class="relative" x-data="dwellDateRangePicker('{{ $dwellFrom ?? '' }}', '{{ $dwellTo ?? '' }}')">
+                                <button type="button"
+                                        @click="togglePicker()"
+                                        class="px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1.5 cursor-pointer {{ $hasCustomDwell ? 'bg-amber-500 text-white shadow-sm' : 'text-amber-900/70 hover:text-amber-900 hover:bg-amber-100/60' }}">
+                                    <i class="fa-regular fa-calendar text-[10px] {{ $hasCustomDwell ? 'text-amber-100' : 'text-amber-600' }}"></i>
+                                    <span x-text="displayLabel"></span>
+                                    <template x-if="from || to">
+                                        <span @click.stop="clearAndReload()" title="Hapus rentang tanggal" class="hover:text-amber-200 ml-0.5 p-0.5">
+                                            <i class="fa-solid fa-xmark text-[9px]"></i>
+                                        </span>
+                                    </template>
+                                </button>
+
+                                {{-- Popover Kalender Rentang Tanggal Evaluasi Atensi --}}
+                                <div x-show="open"
+                                     @click.outside="open = false"
+                                     x-cloak
+                                     class="absolute right-0 top-full mt-2 w-[285px] bg-white rounded-2xl shadow-2xl border border-amber-100/80 p-4 z-50 select-none animate-in fade-in duration-150 text-left">
+
+                                    {{-- Header Navigasi Kalender: << < September 2026 > >> --}}
+                                    <div class="flex items-center justify-between mb-3 px-1">
+                                        <div class="flex items-center gap-0.5">
+                                            <button type="button" @click="changeYear(-1)" title="Tahun Sebelumnya"
+                                                    class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition">
+                                                <i class="fa-solid fa-angles-left text-xs"></i>
+                                            </button>
+                                            <button type="button" @click="changeMonth(-1)" title="Bulan Sebelumnya"
+                                                    class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition">
+                                                <i class="fa-solid fa-angle-left text-xs"></i>
+                                            </button>
+                                        </div>
+
+                                        <span class="font-bold text-gray-800 text-sm tracking-tight" x-text="monthYearTitle"></span>
+
+                                        <div class="flex items-center gap-0.5">
+                                            <button type="button" @click="changeMonth(1)" :disabled="isCurrentMonthAndYear"
+                                                    :class="isCurrentMonthAndYear ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'"
+                                                    title="Bulan Berikutnya"
+                                                    class="w-7 h-7 flex items-center justify-center rounded-lg transition">
+                                                <i class="fa-solid fa-angle-right text-xs"></i>
+                                            </button>
+                                            <button type="button" @click="changeYear(1)" :disabled="isCurrentYear"
+                                                    :class="isCurrentYear ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'"
+                                                    title="Tahun Berikutnya"
+                                                    class="w-7 h-7 flex items-center justify-center rounded-lg transition">
+                                                <i class="fa-solid fa-angles-right text-xs"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {{-- Baris Singkatan Hari: M S S R K J S --}}
+                                    <div class="grid grid-cols-7 mb-2 text-center text-xs font-semibold text-gray-500">
+                                        <div>M</div>
+                                        <div>S</div>
+                                        <div>S</div>
+                                        <div>R</div>
+                                        <div>K</div>
+                                        <div>J</div>
+                                        <div>S</div>
+                                    </div>
+
+                                    {{-- Grid Tanggal --}}
+                                    <div class="grid grid-cols-7 gap-y-1.5 text-xs" @mouseleave="hoverDate = null">
+                                        <template x-for="blank in blanks" :key="'blank-dwell-' + blank">
+                                            <div class="h-8"></div>
+                                        </template>
+
+                                        <template x-for="day in daysInMonth" :key="'day-dwell-' + day">
+                                            <button type="button"
+                                                    @click="selectDate(day)"
+                                                    @mouseenter="onHoverDay(day)"
+                                                    :disabled="getDayState(day) === 'disabled'"
+                                                    class="h-8 flex items-center justify-center text-xs transition-colors duration-75 relative select-none"
+                                                    :class="{
+                                                        'bg-amber-500 text-white font-bold rounded-lg shadow-sm z-10': getDayState(day) === 'single',
+                                                        'bg-amber-500 text-white font-bold rounded-l-lg shadow-sm z-10': getDayState(day) === 'range-start',
+                                                        'bg-amber-500 text-white font-bold rounded-r-lg shadow-sm z-10': getDayState(day) === 'range-end',
+                                                        'bg-amber-100/70 text-amber-950 font-semibold rounded-none': getDayState(day) === 'in-range',
+                                                        'text-gray-300 cursor-not-allowed': getDayState(day) === 'disabled',
+                                                        'text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-lg cursor-pointer font-medium': getDayState(day) === 'available'
+                                                    }">
+                                                <span x-text="day"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+
+                                    {{-- Footer Popover: Hapus / Tutup / Terapkan --}}
+                                    <div class="flex items-center justify-between pt-3 mt-3 border-t border-gray-100 text-[11px]">
+                                        <button type="button" @click="clearAndReload()"
+                                                class="text-gray-400 hover:text-red-500 font-semibold transition">
+                                            Hapus
+                                        </button>
+                                        <div class="flex items-center gap-1.5">
+                                            <button type="button" @click="open = false"
+                                                    class="px-2.5 py-1 text-gray-500 hover:bg-gray-100 rounded-lg font-bold transition">
+                                                Tutup
+                                            </button>
+                                            <button type="button" @click="applySelection()"
+                                                    class="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold shadow-sm transition">
+                                                Terapkan
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
                         </div>
 
                         {{-- Toggle Button Accordion --}}
@@ -1220,7 +1333,7 @@ function activityLogDateRangePicker(initialFrom, initialTo) {
         ],
 
         get monthYearTitle() {
-            return this.monthNames[this.currentMonth] + this.currentYear;
+            return this.monthNames[this.currentMonth] + ' ' + this.currentYear;
         },
 
         get isCurrentMonthAndYear() {
@@ -1387,6 +1500,246 @@ function activityLogDateRangePicker(initialFrom, initialTo) {
         get displayLabel() {
             if (!this.from && !this.to) {
                 return 'Pilih Tanggal';
+            }
+            if (this.from && !this.to) {
+                return `${this.formatDisplayDate(this.from)} - ...`;
+            }
+            if (this.from === this.to) {
+                return this.formatDisplayDate(this.from);
+            }
+            const fromParts = this.from.split('-');
+            const toParts = this.to.split('-');
+            if (fromParts.length === 3 && toParts.length === 3) {
+                const fy = fromParts[0], fm = parseInt(fromParts[1], 10) - 1, fd = parseInt(fromParts[2], 10);
+                const ty = toParts[0], tm = parseInt(toParts[1], 10) - 1, td = parseInt(toParts[2], 10);
+                if (fy === ty && fm === tm) {
+                    return `${fd} - ${td} ${this.shortMonthNames[tm]} ${ty}`;
+                }
+            }
+            return `${this.formatDisplayDate(this.from)} - ${this.formatDisplayDate(this.to)}`;
+        }
+    };
+}
+
+function dwellDateRangePicker(initialFrom, initialTo) {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
+
+    let initYear = today.getFullYear();
+    let initMonth = today.getMonth();
+    if (initialFrom) {
+        const parts = initialFrom.split('-');
+        if (parts.length === 3) {
+            initYear = parseInt(parts[0], 10);
+            initMonth = parseInt(parts[1], 10) - 1;
+        }
+    }
+
+    return {
+        open: false,
+        from: initialFrom || '',
+        to: initialTo || '',
+        hoverDate: null,
+        currentYear: initYear,
+        currentMonth: initMonth,
+        todayStr: todayStr,
+
+        monthNames: [
+            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ],
+        shortMonthNames: [
+            'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+            'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+        ],
+
+        get monthYearTitle() {
+            return this.monthNames[this.currentMonth] + ' ' + this.currentYear;
+        },
+
+        get isCurrentMonthAndYear() {
+            return this.currentYear === today.getFullYear() && this.currentMonth === today.getMonth();
+        },
+
+        get isCurrentYear() {
+            return this.currentYear >= today.getFullYear();
+        },
+
+        get blanks() {
+            const firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
+            return Array.from({ length: firstDay }, (_, i) => i);
+        },
+
+        get daysInMonth() {
+            const totalDays = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+            return Array.from({ length: totalDays }, (_, i) => i + 1);
+        },
+
+        formatDateStr(day) {
+            const yr = this.currentYear;
+            const mo = String(this.currentMonth + 1).padStart(2, '0');
+            const dy = String(day).padStart(2, '0');
+            return `${yr}-${mo}-${dy}`;
+        },
+
+        changeMonth(step) {
+            let nextM = this.currentMonth + step;
+            let nextY = this.currentYear;
+            if (nextM < 0) {
+                nextM = 11;
+                nextY -= 1;
+            } else if (nextM > 11) {
+                nextM = 0;
+                nextY += 1;
+            }
+            if (nextY > today.getFullYear() || (nextY === today.getFullYear() && nextM > today.getMonth())) {
+                return;
+            }
+            this.currentMonth = nextM;
+            this.currentYear = nextY;
+        },
+
+        changeYear(step) {
+            let nextY = this.currentYear + step;
+            if (nextY > today.getFullYear()) {
+                return;
+            }
+            if (nextY === today.getFullYear() && this.currentMonth > today.getMonth()) {
+                this.currentMonth = today.getMonth();
+            }
+            this.currentYear = nextY;
+        },
+
+        togglePicker() {
+            this.open = !this.open;
+            if (this.open) {
+                this.hoverDate = null;
+                if (this.from) {
+                    const parts = this.from.split('-');
+                    if (parts.length === 3) {
+                        this.currentYear = parseInt(parts[0], 10);
+                        this.currentMonth = parseInt(parts[1], 10) - 1;
+                    }
+                }
+            }
+        },
+
+        selectDate(day) {
+            const dateStr = this.formatDateStr(day);
+            if (dateStr > this.todayStr) return;
+
+            if (!this.from || (this.from && this.to)) {
+                this.from = dateStr;
+                this.to = '';
+                this.hoverDate = null;
+            } else if (this.from && !this.to) {
+                if (dateStr < this.from) {
+                    this.to = this.from;
+                    this.from = dateStr;
+                } else {
+                    this.to = dateStr;
+                }
+                this.hoverDate = null;
+                this.applySelection();
+            }
+        },
+
+        onHoverDay(day) {
+            if (this.from && !this.to) {
+                const dateStr = this.formatDateStr(day);
+                if (dateStr <= this.todayStr) {
+                    this.hoverDate = dateStr;
+                }
+            }
+        },
+
+        applySelection() {
+            if (this.from && !this.to) {
+                this.to = this.from;
+            }
+            if (!this.from) {
+                this.open = false;
+                return;
+            }
+            this.open = false;
+            localStorage.setItem('admin_dwell_open', '1');
+            const url = new URL(window.location.href);
+            url.searchParams.set('dwell_period', 'custom');
+            url.searchParams.set('dwell_from', this.from);
+            url.searchParams.set('dwell_to', this.to);
+            window.location.href = url.toString();
+        },
+
+        clearAndReload() {
+            this.from = '';
+            this.to = '';
+            this.hoverDate = null;
+            this.open = false;
+            localStorage.setItem('admin_dwell_open', '1');
+            const url = new URL(window.location.href);
+            url.searchParams.delete('dwell_from');
+            url.searchParams.delete('dwell_to');
+            url.searchParams.set('dwell_period', '30d');
+            window.location.href = url.toString();
+        },
+
+        getDayState(day) {
+            const dateStr = this.formatDateStr(day);
+            if (dateStr > this.todayStr) {
+                return 'disabled';
+            }
+
+            let start = this.from;
+            let end = this.to;
+
+            if (this.from && !this.to && this.hoverDate) {
+                if (this.hoverDate >= this.from) {
+                    start = this.from;
+                    end = this.hoverDate;
+                } else {
+                    start = this.hoverDate;
+                    end = this.from;
+                }
+            }
+
+            if (start && end) {
+                if (dateStr === start && dateStr === end) {
+                    return 'single';
+                }
+                if (dateStr === start) {
+                    return 'range-start';
+                }
+                if (dateStr === end) {
+                    return 'range-end';
+                }
+                if (dateStr > start && dateStr < end) {
+                    return 'in-range';
+                }
+            } else if (start && !end) {
+                if (dateStr === start) {
+                    return 'single';
+                }
+            }
+
+            return 'available';
+        },
+
+        formatDisplayDate(dStr) {
+            if (!dStr) return '';
+            const parts = dStr.split('-');
+            if (parts.length !== 3) return dStr;
+            const yr = parts[0];
+            const mo = parseInt(parts[1], 10) - 1;
+            const dy = parseInt(parts[2], 10);
+            return `${dy} ${this.shortMonthNames[mo]} ${yr}`;
+        },
+
+        get displayLabel() {
+            if (!this.from && !this.to) {
+                return 'Rentang Tanggal';
             }
             if (this.from && !this.to) {
                 return `${this.formatDisplayDate(this.from)} - ...`;

@@ -44,7 +44,12 @@ class AdminWebActivityLogController extends Controller
 
         // Filter periode untuk evaluasi seksi website (default: 30d)
         $dwellPeriod = $request->get('dwell_period', '30d');
-        if (! in_array($dwellPeriod, ['today', '7d', '30d', 'all'], true)) {
+        $dwellFrom   = $request->get('dwell_from');
+        $dwellTo     = $request->get('dwell_to');
+
+        if (filled($dwellFrom) || filled($dwellTo)) {
+            $dwellPeriod = 'custom';
+        } elseif (! in_array($dwellPeriod, ['today', '7d', '30d', 'all', 'custom'], true)) {
             $dwellPeriod = '30d';
         }
 
@@ -59,12 +64,16 @@ class AdminWebActivityLogController extends Controller
                 'to'           => $request->get('to', ''),
                 'search'       => $request->get('search', ''),
                 'dwell_period' => $dwellPeriod,
+                'dwell_from'   => $dwellFrom,
+                'dwell_to'     => $dwellTo,
             ],
             'dwellPeriod'  => $dwellPeriod,
+            'dwellFrom'    => $dwellFrom,
+            'dwellTo'      => $dwellTo,
             'logNames'     => Activity::select('log_name')->distinct()->orderBy('log_name')->pluck('log_name')->filter()->values(),
             'causers'      => $causers,
             'stats'        => $this->stats(),
-            'analytics'    => $this->analytics($dwellPeriod, $request),
+            'analytics'    => $this->analytics($dwellPeriod, $request, $dwellFrom, $dwellTo),
             'tabCounts'    => [
                 'admin' => $adminCount,
                 'user'  => $userCount,
@@ -229,7 +238,7 @@ class AdminWebActivityLogController extends Controller
     /**
      * Hitung analitik login, rasio perangkat, produk teratas, dan pencarian terpopuler.
      */
-    private function analytics(?string $dwellPeriod = '30d', ?Request $request = null): array
+    private function analytics(?string $dwellPeriod = '30d', ?Request $request = null, ?string $dwellFrom = null, ?string $dwellTo = null): array
     {
         // 1. Statistik Login
         $loginQuery = Activity::where('log_name', 'auth')->where('event', 'login');
@@ -314,20 +323,28 @@ class AdminWebActivityLogController extends Controller
             ->with('causer');
 
         // Filter rentang tanggal
-        if ($request && filled($request->get('from'))) {
-            $dwellQuery->whereDate('created_at', '>=', $request->get('from'));
+        if (filled($dwellFrom) || filled($dwellTo)) {
+            if (filled($dwellFrom)) {
+                $dwellQuery->whereDate('created_at', '>=', $dwellFrom);
+            }
+            if (filled($dwellTo)) {
+                $dwellQuery->whereDate('created_at', '<=', $dwellTo);
+            }
         } elseif ($dwellPeriod === 'today') {
             $dwellQuery->where('created_at', '>=', now()->startOfDay());
         } elseif ($dwellPeriod === '7d') {
             $dwellQuery->where('created_at', '>=', now()->subDays(7));
         } elseif ($dwellPeriod === 'all') {
             // semua waktu tanpa batasan awal
+        } elseif ($request && (filled($request->get('from')) || filled($request->get('to')))) {
+            if (filled($request->get('from'))) {
+                $dwellQuery->whereDate('created_at', '>=', $request->get('from'));
+            }
+            if (filled($request->get('to'))) {
+                $dwellQuery->whereDate('created_at', '<=', $request->get('to'));
+            }
         } else { // default '30d'
             $dwellQuery->where('created_at', '>=', now()->subDays(30));
-        }
-
-        if ($request && filled($request->get('to'))) {
-            $dwellQuery->whereDate('created_at', '<=', $request->get('to'));
         }
 
         $dwellLogs = $dwellQuery->latest('id')->get();
