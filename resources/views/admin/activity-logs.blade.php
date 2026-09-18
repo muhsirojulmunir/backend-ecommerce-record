@@ -534,16 +534,126 @@
                 </select>
             </div>
 
-            <div class="flex gap-2">
-                <div class="flex-1">
-                    <label class="block text-[10px] font-black text-gray-500 uppercase mb-1.5">Dari</label>
-                    <input type="date" name="from" x-ref="fromInput" value="{{ $filters['from'] }}"
-                           class="w-full border border-gray-200 rounded-xl py-2 px-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500">
-                </div>
-                <div class="flex-1">
-                    <label class="block text-[10px] font-black text-gray-500 uppercase mb-1.5">Sampai</label>
-                    <input type="date" name="to" x-ref="toInput" value="{{ $filters['to'] }}"
-                           class="w-full border border-gray-200 rounded-xl py-2 px-2 text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500">
+            <div class="relative" x-data="activityLogDateRangePicker('{{ $filters['from'] }}', '{{ $filters['to'] }}')">
+                <label class="block text-[10px] font-black text-gray-500 uppercase mb-1.5">Rentang Tanggal</label>
+
+                {{-- Input tersembunyi yang dikirimkan form ke controller --}}
+                <input type="hidden" name="from" :value="from" x-ref="fromInput">
+                <input type="hidden" name="to" :value="to" x-ref="toInput">
+
+                {{-- Trigger Input Kalender --}}
+                <button type="button"
+                        @click="togglePicker()"
+                        class="w-full border border-gray-200 rounded-xl py-2 px-3 text-xs bg-white flex items-center justify-between text-left focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition shadow-sm hover:border-gray-300">
+                    <span class="truncate pr-1"
+                          :class="(from || to) ? 'text-gray-900 font-bold' : 'text-gray-400 font-medium'"
+                          x-text="displayLabel">
+                    </span>
+                    <div class="flex items-center gap-1.5 text-gray-400 shrink-0">
+                        <template x-if="from || to">
+                            <span @click.stop="clearDate()"
+                                  title="Hapus filter tanggal"
+                                  class="hover:text-red-500 p-0.5 rounded cursor-pointer transition">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </span>
+                        </template>
+                        <i class="fa-regular fa-calendar text-xs text-orange-500"></i>
+                    </div>
+                </button>
+
+                {{-- Popover Kalender Rentang Tanggal (Gaya Shopee Seller Center) --}}
+                <div x-show="open"
+                     @click.outside="open = false"
+                     x-cloak
+                     class="absolute right-0 top-full mt-2 w-[285px] bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 z-50 select-none animate-in fade-in duration-150">
+
+                    {{-- Header Navigasi Kalender: << < September2026 > >> --}}
+                    <div class="flex items-center justify-between mb-3 px-1">
+                        <div class="flex items-center gap-0.5">
+                            <button type="button" @click="changeYear(-1)" title="Tahun Sebelumnya"
+                                    class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition">
+                                <i class="fa-solid fa-angles-left text-xs"></i>
+                            </button>
+                            <button type="button" @click="changeMonth(-1)" title="Bulan Sebelumnya"
+                                    class="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition">
+                                <i class="fa-solid fa-angle-left text-xs"></i>
+                            </button>
+                        </div>
+
+                        <span class="font-bold text-gray-800 text-sm tracking-tight" x-text="monthYearTitle"></span>
+
+                        <div class="flex items-center gap-0.5">
+                            <button type="button" @click="changeMonth(1)" :disabled="isCurrentMonthAndYear"
+                                    :class="isCurrentMonthAndYear ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'"
+                                    title="Bulan Berikutnya"
+                                    class="w-7 h-7 flex items-center justify-center rounded-lg transition">
+                                <i class="fa-solid fa-angle-right text-xs"></i>
+                            </button>
+                            <button type="button" @click="changeYear(1)" :disabled="isCurrentYear"
+                                    :class="isCurrentYear ? 'text-gray-200 cursor-not-allowed' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'"
+                                    title="Tahun Berikutnya"
+                                    class="w-7 h-7 flex items-center justify-center rounded-lg transition">
+                                <i class="fa-solid fa-angles-right text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Baris Singkatan Hari: M S S R K J S --}}
+                    <div class="grid grid-cols-7 mb-2 text-center text-xs font-semibold text-gray-500">
+                        <div>M</div>
+                        <div>S</div>
+                        <div>S</div>
+                        <div>R</div>
+                        <div>K</div>
+                        <div>J</div>
+                        <div>S</div>
+                    </div>
+
+                    {{-- Grid Tanggal --}}
+                    <div class="grid grid-cols-7 gap-y-1.5 text-xs" @mouseleave="hoverDate = null">
+                        {{-- Slot Kosong Hari Sebelum Tanggal 1 --}}
+                        <template x-for="blank in blanks" :key="'blank-' + blank">
+                            <div class="h-8"></div>
+                        </template>
+
+                        {{-- Hari dalam Bulan --}}
+                        <template x-for="day in daysInMonth" :key="'day-' + day">
+                            <button type="button"
+                                    @click="selectDate(day)"
+                                    @mouseenter="onHoverDay(day)"
+                                    :disabled="getDayState(day) === 'disabled'"
+                                    class="h-8 flex items-center justify-center text-xs transition-colors duration-75 relative select-none"
+                                    :class="{
+                                        'bg-[#EE4D2D] text-white font-bold rounded-lg shadow-sm z-10': getDayState(day) === 'single',
+                                        'bg-[#EE4D2D] text-white font-bold rounded-l-lg shadow-sm z-10': getDayState(day) === 'range-start',
+                                        'bg-[#EE4D2D] text-white font-bold rounded-r-lg shadow-sm z-10': getDayState(day) === 'range-end',
+                                        'bg-[#FFF0ED] text-gray-800 font-semibold rounded-none': getDayState(day) === 'in-range',
+                                        'text-gray-300 cursor-not-allowed': getDayState(day) === 'disabled',
+                                        'text-gray-700 hover:bg-orange-50 hover:text-[#EE4D2D] rounded-lg cursor-pointer font-medium': getDayState(day) === 'available'
+                                    }">
+                                <span x-text="day"></span>
+                            </button>
+                        </template>
+                    </div>
+
+                    {{-- Footer Popover: Hapus / Tutup / Terapkan --}}
+                    <div class="flex items-center justify-between pt-3 mt-3 border-t border-gray-100 text-[11px]">
+                        <button type="button" @click="clearDate(); open = false"
+                                class="text-gray-400 hover:text-red-500 font-semibold transition">
+                            Hapus
+                        </button>
+                        <div class="flex items-center gap-1.5">
+                            <button type="button" @click="open = false"
+                                    class="px-2.5 py-1 text-gray-500 hover:bg-gray-100 rounded-lg font-bold transition">
+                                Tutup
+                            </button>
+                            <button type="button" @click="applySelection()"
+                                    class="px-3 py-1 bg-[#EE4D2D] hover:bg-[#D73211] text-white rounded-lg font-bold shadow-sm transition">
+                                Terapkan
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -565,29 +675,47 @@
             <div class="flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-xl border border-gray-100">
                 <span class="text-[10px] font-black text-gray-400 uppercase mr-1">Filter Cepat:</span>
                 <button type="button" @click="
+                    const fmt = d => {
+                        const y = d.getFullYear();
+                        const m = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        return `${y}-${m}-${day}`;
+                    };
                     const t = new Date();
-                    const fmt = d => d.toISOString().split('T')[0];
-                    $refs.fromInput.value = fmt(t);
-                    $refs.toInput.value = fmt(t);
-                    $el.closest('form').submit();
+                    const f = $el.closest('form');
+                    f.querySelector('input[name=from]').value = fmt(t);
+                    f.querySelector('input[name=to]').value = fmt(t);
+                    f.submit();
                 " class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-orange-500 hover:text-white border border-gray-200 text-gray-700 transition">Hari Ini</button>
 
                 <button type="button" @click="
+                    const fmt = d => {
+                        const y = d.getFullYear();
+                        const m = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        return `${y}-${m}-${day}`;
+                    };
                     const t = new Date();
-                    const fmt = d => d.toISOString().split('T')[0];
-                    $refs.toInput.value = fmt(t);
-                    const f = new Date(); f.setDate(f.getDate() - 7);
-                    $refs.fromInput.value = fmt(f);
-                    $el.closest('form').submit();
+                    const d = new Date(); d.setDate(d.getDate() - 7);
+                    const f = $el.closest('form');
+                    f.querySelector('input[name=from]').value = fmt(d);
+                    f.querySelector('input[name=to]').value = fmt(t);
+                    f.submit();
                 " class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-orange-500 hover:text-white border border-gray-200 text-gray-700 transition">7 Hari</button>
 
                 <button type="button" @click="
+                    const fmt = d => {
+                        const y = d.getFullYear();
+                        const m = String(d.getMonth() + 1).padStart(2, '0');
+                        const day = String(d.getDate()).padStart(2, '0');
+                        return `${y}-${m}-${day}`;
+                    };
                     const t = new Date();
-                    const fmt = d => d.toISOString().split('T')[0];
-                    $refs.toInput.value = fmt(t);
-                    const f = new Date(); f.setDate(f.getDate() - 30);
-                    $refs.fromInput.value = fmt(f);
-                    $el.closest('form').submit();
+                    const d = new Date(); d.setDate(d.getDate() - 30);
+                    const f = $el.closest('form');
+                    f.querySelector('input[name=from]').value = fmt(d);
+                    f.querySelector('input[name=to]').value = fmt(t);
+                    f.submit();
                 " class="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-white hover:bg-orange-500 hover:text-white border border-gray-200 text-gray-700 transition">30 Hari</button>
             </div>
 
@@ -1053,4 +1181,231 @@
     </div>
 
 </div>
+
+{{-- Skrip Komponen Alpine.js untuk Kalender Rentang Tanggal --}}
+<script>
+function activityLogDateRangePicker(initialFrom, initialTo) {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${y}-${m}-${d}`;
+
+    let initYear = today.getFullYear();
+    let initMonth = today.getMonth();
+    if (initialFrom) {
+        const parts = initialFrom.split('-');
+        if (parts.length === 3) {
+            initYear = parseInt(parts[0], 10);
+            initMonth = parseInt(parts[1], 10) - 1;
+        }
+    }
+
+    return {
+        open: false,
+        from: initialFrom || '',
+        to: initialTo || '',
+        hoverDate: null,
+        currentYear: initYear,
+        currentMonth: initMonth,
+        todayStr: todayStr,
+
+        monthNames: [
+            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ],
+        shortMonthNames: [
+            'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+            'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+        ],
+
+        get monthYearTitle() {
+            return this.monthNames[this.currentMonth] + this.currentYear;
+        },
+
+        get isCurrentMonthAndYear() {
+            return this.currentYear === today.getFullYear() && this.currentMonth === today.getMonth();
+        },
+
+        get isCurrentYear() {
+            return this.currentYear >= today.getFullYear();
+        },
+
+        get blanks() {
+            const firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
+            return Array.from({ length: firstDay }, (_, i) => i);
+        },
+
+        get daysInMonth() {
+            const totalDays = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+            return Array.from({ length: totalDays }, (_, i) => i + 1);
+        },
+
+        formatDateStr(day) {
+            const yr = this.currentYear;
+            const mo = String(this.currentMonth + 1).padStart(2, '0');
+            const dy = String(day).padStart(2, '0');
+            return `${yr}-${mo}-${dy}`;
+        },
+
+        changeMonth(step) {
+            let nextM = this.currentMonth + step;
+            let nextY = this.currentYear;
+            if (nextM < 0) {
+                nextM = 11;
+                nextY -= 1;
+            } else if (nextM > 11) {
+                nextM = 0;
+                nextY += 1;
+            }
+            if (nextY > today.getFullYear() || (nextY === today.getFullYear() && nextM > today.getMonth())) {
+                return;
+            }
+            this.currentMonth = nextM;
+            this.currentYear = nextY;
+        },
+
+        changeYear(step) {
+            let nextY = this.currentYear + step;
+            if (nextY > today.getFullYear()) {
+                return;
+            }
+            if (nextY === today.getFullYear() && this.currentMonth > today.getMonth()) {
+                this.currentMonth = today.getMonth();
+            }
+            this.currentYear = nextY;
+        },
+
+        togglePicker() {
+            this.open = !this.open;
+            if (this.open) {
+                this.hoverDate = null;
+                if (this.from) {
+                    const parts = this.from.split('-');
+                    if (parts.length === 3) {
+                        this.currentYear = parseInt(parts[0], 10);
+                        this.currentMonth = parseInt(parts[1], 10) - 1;
+                    }
+                }
+            }
+        },
+
+        selectDate(day) {
+            const dateStr = this.formatDateStr(day);
+            if (dateStr > this.todayStr) return;
+
+            if (!this.from || (this.from && this.to)) {
+                this.from = dateStr;
+                this.to = '';
+                this.hoverDate = null;
+            } else if (this.from && !this.to) {
+                if (dateStr < this.from) {
+                    this.to = this.from;
+                    this.from = dateStr;
+                } else {
+                    this.to = dateStr;
+                }
+                this.hoverDate = null;
+                this.open = false;
+            }
+        },
+
+        onHoverDay(day) {
+            if (this.from && !this.to) {
+                const dateStr = this.formatDateStr(day);
+                if (dateStr <= this.todayStr) {
+                    this.hoverDate = dateStr;
+                }
+            }
+        },
+
+        clearDate() {
+            this.from = '';
+            this.to = '';
+            this.hoverDate = null;
+        },
+
+        applySelection() {
+            if (this.from && !this.to) {
+                this.to = this.from;
+            }
+            this.open = false;
+            this.$el.closest('form').submit();
+        },
+
+        getDayState(day) {
+            const dateStr = this.formatDateStr(day);
+            if (dateStr > this.todayStr) {
+                return 'disabled';
+            }
+
+            let start = this.from;
+            let end = this.to;
+
+            if (this.from && !this.to && this.hoverDate) {
+                if (this.hoverDate >= this.from) {
+                    start = this.from;
+                    end = this.hoverDate;
+                } else {
+                    start = this.hoverDate;
+                    end = this.from;
+                }
+            }
+
+            if (start && end) {
+                if (dateStr === start && dateStr === end) {
+                    return 'single';
+                }
+                if (dateStr === start) {
+                    return 'range-start';
+                }
+                if (dateStr === end) {
+                    return 'range-end';
+                }
+                if (dateStr > start && dateStr < end) {
+                    return 'in-range';
+                }
+            } else if (start && !end) {
+                if (dateStr === start) {
+                    return 'single';
+                }
+            }
+
+            return 'available';
+        },
+
+        formatDisplayDate(dStr) {
+            if (!dStr) return '';
+            const parts = dStr.split('-');
+            if (parts.length !== 3) return dStr;
+            const yr = parts[0];
+            const mo = parseInt(parts[1], 10) - 1;
+            const dy = parseInt(parts[2], 10);
+            return `${dy} ${this.shortMonthNames[mo]} ${yr}`;
+        },
+
+        get displayLabel() {
+            if (!this.from && !this.to) {
+                return 'Pilih Tanggal';
+            }
+            if (this.from && !this.to) {
+                return `${this.formatDisplayDate(this.from)} - ...`;
+            }
+            if (this.from === this.to) {
+                return this.formatDisplayDate(this.from);
+            }
+            const fromParts = this.from.split('-');
+            const toParts = this.to.split('-');
+            if (fromParts.length === 3 && toParts.length === 3) {
+                const fy = fromParts[0], fm = parseInt(fromParts[1], 10) - 1, fd = parseInt(fromParts[2], 10);
+                const ty = toParts[0], tm = parseInt(toParts[1], 10) - 1, td = parseInt(toParts[2], 10);
+                if (fy === ty && fm === tm) {
+                    return `${fd} - ${td} ${this.shortMonthNames[tm]} ${ty}`;
+                }
+            }
+            return `${this.formatDisplayDate(this.from)} - ${this.formatDisplayDate(this.to)}`;
+        }
+    };
+}
+</script>
 @endsection
