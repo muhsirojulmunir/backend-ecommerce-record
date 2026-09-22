@@ -174,7 +174,7 @@
                 $topDwell = !empty($analytics['dwell_sections']) ? $analytics['dwell_sections'][0] : null;
             @endphp
             <div class="md:col-span-2 lg:col-span-4 bg-white rounded-2xl p-4 shadow-sm border border-amber-100/80 transition-all"
-                 x-data="{ showDwell: localStorage.getItem('admin_dwell_open') === '1', dwellSubTab: localStorage.getItem('admin_dwell_subtab') || 'comparison' }">
+                 x-data="{ showDwell: localStorage.getItem('admin_dwell_open') === '1', dwellSubTab: 'summary' }">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
                         <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm shadow-sm border border-amber-200/50 shrink-0">
@@ -348,11 +348,18 @@
 
                 {{-- Collapsible Content: Hanya terbuka saat showDwell == true --}}
                 <div x-show="showDwell" x-transition.opacity.duration.200ms x-cloak class="mt-4 pt-3 border-t border-amber-50 space-y-4">
-                    {{-- Sub-Tab Switcher: Perbandingan Harian (DoD) vs Ringkasan Seksi --}}
+                    {{-- Sub-Tab Switcher: Ringkasan Seksi (Default) vs Perbandingan Harian (DoD) --}}
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
                         <div class="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl w-fit">
                             <button type="button"
-                                    @click="dwellSubTab = 'comparison'; localStorage.setItem('admin_dwell_subtab', 'comparison')"
+                                    @click="dwellSubTab = 'summary'"
+                                    :class="dwellSubTab === 'summary' ? 'bg-white text-gray-900 font-black shadow-xs' : 'text-gray-500 hover:text-gray-800 font-bold'"
+                                    class="px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-bars-progress text-[11px] text-blue-500"></i>
+                                <span>Ringkasan & Progres Seksi</span>
+                            </button>
+                            <button type="button"
+                                    @click="dwellSubTab = 'comparison'"
                                     :class="dwellSubTab === 'comparison' ? 'bg-white text-gray-900 font-black shadow-xs' : 'text-gray-500 hover:text-gray-800 font-bold'"
                                     class="px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 cursor-pointer">
                                 <i class="fa-solid fa-calendar-days text-[11px] text-amber-500"></i>
@@ -361,304 +368,26 @@
                                     <span class="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.2 rounded-full">H vs H-1</span>
                                 @endif
                             </button>
-                            <button type="button"
-                                    @click="dwellSubTab = 'summary'; localStorage.setItem('admin_dwell_subtab', 'summary')"
-                                    :class="dwellSubTab === 'summary' ? 'bg-white text-gray-900 font-black shadow-xs' : 'text-gray-500 hover:text-gray-800 font-bold'"
-                                    class="px-3 py-1.5 rounded-lg text-xs transition-all flex items-center gap-1.5 cursor-pointer">
-                                <i class="fa-solid fa-bars-progress text-[11px] text-blue-500"></i>
-                                <span>Ringkasan & Progres Seksi</span>
-                            </button>
                         </div>
 
                         {{-- Keterangan Singkat Mode --}}
                         <div class="text-[11px] text-gray-400 font-medium flex items-center gap-2">
-                            <template x-if="dwellSubTab === 'comparison'">
-                                <span class="flex items-center gap-1">
-                                    <i class="fa-solid fa-circle-info text-amber-500"></i>
-                                    Menampilkan fluktuasi atensi dari hari ke hari & selisih pertumbuhan (DoD)
-                                </span>
-                            </template>
                             <template x-if="dwellSubTab === 'summary'">
                                 <span class="flex items-center gap-1">
                                     <i class="fa-solid fa-circle-info text-blue-500"></i>
                                     Menampilkan akumulasi total durasi dan pembagian persentase seksi
                                 </span>
                             </template>
+                            <template x-if="dwellSubTab === 'comparison'">
+                                <span class="flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-info text-amber-500"></i>
+                                    Menampilkan fluktuasi atensi dari hari ke hari & selisih pertumbuhan (DoD)
+                                </span>
+                            </template>
                         </div>
                     </div>
 
-                    {{-- ═══ TAB 1: PERBANDINGAN HARIAN (DAY-OVER-DAY MATRIX) ═══ --}}
-                    <div x-show="dwellSubTab === 'comparison'" x-transition.opacity.duration.150ms class="space-y-4">
-                        @php
-                            $comp         = $analytics['dwell_comparison'] ?? [];
-                            $compDates    = $comp['dates'] ?? [];
-                            $compSections = $comp['sections'] ?? [];
-                            $dailyTotals  = $comp['daily_totals'] ?? [];
-                            $topPerformer = $comp['top_performer'] ?? null;
-                            $topGainer    = $comp['top_gainer'] ?? null;
-                            $latestTotal  = $comp['latest_total'] ?? null;
-                            $isSingleDate = $comp['single_date_mode'] ?? false;
-                        @endphp
-
-                        @if(!empty($compSections))
-                            {{-- 3 Kartu Ringkasan Cepat (Executive Summary) --}}
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                {{-- Card A: Atensi Teratas --}}
-                                <div class="bg-gradient-to-br from-amber-500/10 via-amber-50/50 to-white rounded-xl p-3.5 border border-amber-200/70 shadow-xs flex items-center justify-between">
-                                    <div class="space-y-1 min-w-0 pr-2">
-                                        <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-900/70">
-                                            <i class="fa-solid fa-crown text-amber-500 text-xs"></i>
-                                            <span>Atensi Teratas (Hari Terakhir)</span>
-                                        </div>
-                                        @if($topPerformer)
-                                            <p class="text-sm font-black text-gray-800 truncate" title="{{ $topPerformer['label'] }}">
-                                                {{ $topPerformer['label'] }}
-                                            </p>
-                                            <p class="text-[11px] font-bold text-amber-800 flex items-center gap-1">
-                                                <span>⏱️ {{ $topPerformer['formatted'] }}</span>
-                                                <span class="text-[10px] text-gray-400 font-normal">diperhatikan</span>
-                                            </p>
-                                        @else
-                                            <p class="text-xs text-gray-400 font-medium">-</p>
-                                        @endif
-                                    </div>
-                                    <div class="w-9 h-9 rounded-lg bg-amber-500 text-white flex items-center justify-center text-sm shadow-xs shrink-0">
-                                        <i class="fa-solid fa-fire"></i>
-                                    </div>
-                                </div>
-
-                                {{-- Card B: Lonjakan Tertinggi (Top Gainer) --}}
-                                <div class="bg-gradient-to-br from-emerald-500/10 via-emerald-50/50 to-white rounded-xl p-3.5 border border-emerald-200/70 shadow-xs flex items-center justify-between">
-                                    <div class="space-y-1 min-w-0 pr-2">
-                                        <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-900/70">
-                                            <i class="fa-solid fa-arrow-trend-up text-emerald-600 text-xs"></i>
-                                            <span>Lonjakan Tertinggi (DoD)</span>
-                                        </div>
-                                        @if($topGainer)
-                                            <p class="text-sm font-black text-gray-800 truncate" title="{{ $topGainer['label'] }}">
-                                                {{ $topGainer['label'] }}
-                                            </p>
-                                            <p class="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
-                                                <span class="bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full text-[10px] font-black">+{{ $topGainer['delta_pct'] }}% ↗️</span>
-                                                <span class="text-[10px] text-gray-400 font-normal">({{ $topGainer['formatted'] }})</span>
-                                            </p>
-                                        @else
-                                            <p class="text-xs text-gray-400 font-medium">Belum ada lonjakan</p>
-                                            <p class="text-[10px] text-gray-400">Atensi stabil dibanding hari sebelumnya</p>
-                                        @endif
-                                    </div>
-                                    <div class="w-9 h-9 rounded-lg bg-emerald-500 text-white flex items-center justify-center text-sm shadow-xs shrink-0">
-                                        <i class="fa-solid fa-rocket"></i>
-                                    </div>
-                                </div>
-
-                                {{-- Card C: Total Atensi Toko Hari Terakhir vs Kemarin --}}
-                                <div class="bg-gradient-to-br from-blue-500/10 via-blue-50/50 to-white rounded-xl p-3.5 border border-blue-200/70 shadow-xs flex items-center justify-between">
-                                    <div class="space-y-1 min-w-0 pr-2">
-                                        <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-900/70">
-                                            <i class="fa-solid fa-chart-line text-blue-600 text-xs"></i>
-                                            <span>Total Atensi Website (DoD)</span>
-                                        </div>
-                                        @if($latestTotal)
-                                            <div class="flex items-baseline gap-2">
-                                                <p class="text-sm font-black text-gray-800">
-                                                    {{ $latestTotal['formatted'] }}
-                                                </p>
-                                                @if($latestTotal['delta_pct'] !== null)
-                                                    @if($latestTotal['trend'] === 'up')
-                                                        <span class="text-[10px] font-black text-emerald-700 bg-emerald-100/80 px-1.5 py-0.2 rounded-full">
-                                                            +{{ $latestTotal['delta_pct'] }}% ↗️
-                                                        </span>
-                                                    @elseif($latestTotal['trend'] === 'down')
-                                                        <span class="text-[10px] font-black text-rose-700 bg-rose-100/80 px-1.5 py-0.2 rounded-full">
-                                                            {{ $latestTotal['delta_pct'] }}% ↘️
-                                                        </span>
-                                                    @else
-                                                        <span class="text-[10px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.2 rounded-full">
-                                                            0%
-                                                        </span>
-                                                    @endif
-                                                @endif
-                                            </div>
-                                            <p class="text-[10px] text-gray-400">
-                                                {{ $isSingleDate ? 'Dibandingkan dengan H-1 kemarin' : 'Pertumbuhan dibanding hari sebelumnya' }}
-                                            </p>
-                                        @else
-                                            <p class="text-xs text-gray-400 font-medium">-</p>
-                                        @endif
-                                    </div>
-                                    <div class="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm shadow-xs shrink-0">
-                                        <i class="fa-solid fa-stopwatch"></i>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- Tabel Matriks Perbandingan Hari ke Hari --}}
-                            <div class="bg-white rounded-xl border border-gray-200/80 overflow-hidden shadow-xs">
-                                <div class="overflow-x-auto max-w-full">
-                                    <table class="w-full text-left border-collapse text-xs">
-                                        <thead>
-                                            <tr class="bg-slate-50 border-b border-gray-200 text-gray-600 text-[10.5px] uppercase tracking-wider font-bold">
-                                                {{-- Kolom Seksi (Sticky Left) --}}
-                                                <th scope="col" class="py-3 px-4 min-w-[200px] sticky left-0 bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] border-r border-gray-200/70">
-                                                    Seksi Website
-                                                </th>
-
-                                                {{-- Kolom-kolom Tanggal --}}
-                                                @foreach($compDates as $dKey => $dh)
-                                                    <th scope="col" class="py-3 px-3.5 min-w-[120px] text-center border-r border-gray-100 {{ $dh['is_today'] ? 'bg-amber-50/70 text-amber-950 font-black' : '' }} {{ $dh['is_baseline'] ? 'bg-slate-100/80 text-slate-700' : '' }}">
-                                                        <div class="flex flex-col items-center gap-0.5">
-                                                            <span>{{ $dh['formatted'] }}</span>
-                                                            @if(!empty($dh['badge']))
-                                                                <span class="text-[8.5px] font-extrabold px-1.5 py-0.2 rounded-full uppercase tracking-tight {{ $dh['is_today'] ? 'bg-amber-500 text-white' : ($dh['is_baseline'] ? 'bg-gray-200 text-gray-700' : 'bg-slate-200 text-slate-700') }}">
-                                                                    {{ $dh['badge'] }}
-                                                                </span>
-                                                            @endif
-                                                        </div>
-                                                    </th>
-                                                @endforeach
-
-                                                {{-- Kolom Total Periode --}}
-                                                <th scope="col" class="py-3 px-3.5 min-w-[100px] text-center bg-slate-50 text-gray-700">
-                                                    Total
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="divide-y divide-gray-100">
-                                            @foreach($compSections as $cSec)
-                                            <tr class="hover:bg-amber-50/20 transition-colors group">
-                                                {{-- Sticky Seksi Info --}}
-                                                <td class="py-2.5 px-4 sticky left-0 bg-white group-hover:bg-slate-50/90 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] border-r border-gray-200/70">
-                                                    <div class="flex items-center gap-2 min-w-0">
-                                                        <span class="w-6 h-6 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center text-[10px] shrink-0 border border-amber-200/50">
-                                                            <i class="fa-solid fa-layer-group"></i>
-                                                        </span>
-                                                        <div class="min-w-0">
-                                                            <p class="font-bold text-gray-800 text-xs truncate" title="{{ $cSec['label'] }}">
-                                                                {{ $cSec['label'] }}
-                                                            </p>
-                                                            @if(!empty($cSec['pages']))
-                                                                <p class="text-[9px] text-gray-400 font-medium truncate max-w-[140px]">
-                                                                    {{ implode(', ', array_slice($cSec['pages'], 0, 2)) }}
-                                                                </p>
-                                                            @endif
-                                                        </div>
-                                                    </div>
-                                                </td>
-
-                                                {{-- Kolom Harian untuk Seksi Ini --}}
-                                                @foreach($compDates as $dKey => $dh)
-                                                    @php
-                                                        $dItem = $cSec['days'][$dKey] ?? ['seconds' => 0, 'formatted' => '0d', 'delta_pct' => null, 'trend' => 'none'];
-                                                    @endphp
-                                                    <td class="py-2 px-3 text-center border-r border-gray-100 {{ $dh['is_today'] ? 'bg-amber-50/20' : '' }}">
-                                                        <div class="flex flex-col items-center justify-center gap-0.5">
-                                                            <span class="font-bold text-[11px] tabular-nums {{ $dItem['seconds'] > 0 ? 'text-gray-800' : 'text-gray-300 font-normal' }}">
-                                                                {{ $dItem['formatted'] }}
-                                                            </span>
-
-                                                            {{-- Badge DoD Delta --}}
-                                                            @if($dItem['trend'] === 'up')
-                                                                <span class="inline-flex items-center gap-0.5 text-[9px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200/60 tabular-nums">
-                                                                    <i class="fa-solid fa-arrow-trend-up text-[7.5px]"></i> +{{ $dItem['delta_pct'] }}%
-                                                                </span>
-                                                            @elseif($dItem['trend'] === 'down')
-                                                                <span class="inline-flex items-center gap-0.5 text-[9px] font-black text-rose-700 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200/60 tabular-nums">
-                                                                    <i class="fa-solid fa-arrow-trend-down text-[7.5px]"></i> {{ $dItem['delta_pct'] }}%
-                                                                </span>
-                                                            @elseif($dItem['trend'] === 'new')
-                                                                <span class="inline-flex items-center gap-0.5 text-[9px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200/60">
-                                                                    <i class="fa-solid fa-sparkles text-[7px]"></i> Baru
-                                                                </span>
-                                                            @elseif($dItem['trend'] === 'same' && $dItem['seconds'] > 0)
-                                                                <span class="text-[9px] font-bold text-gray-400">0%</span>
-                                                            @else
-                                                                <span class="text-[9px] text-gray-300">-</span>
-                                                            @endif
-                                                        </div>
-                                                    </td>
-                                                @endforeach
-
-                                                {{-- Total Periode Seksi --}}
-                                                @php
-                                                    $totMins = intdiv($cSec['total_period_seconds'], 60);
-                                                    $totSecs = $cSec['total_period_seconds'] % 60;
-                                                    $secTotFmt = ($totMins > 0 ? $totMins . 'm ' : '') . $totSecs . 'd';
-                                                @endphp
-                                                <td class="py-2 px-3 text-center bg-slate-50/50">
-                                                    <span class="font-black text-xs text-amber-900 bg-amber-100/70 px-2 py-0.5 rounded border border-amber-200/80 tabular-nums">
-                                                        {{ $secTotFmt }}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                            @endforeach
-                                        </tbody>
-                                        {{-- Footer: Total Seluruh Website per Hari --}}
-                                        <tfoot>
-                                            <tr class="bg-slate-100/90 font-black border-t-2 border-gray-300 text-xs text-gray-800">
-                                                <td class="py-3 px-4 sticky left-0 bg-slate-100 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] border-r border-gray-300">
-                                                    <div class="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-gray-700">
-                                                        <i class="fa-solid fa-calculator text-amber-600"></i>
-                                                        <span>Total Atensi Website</span>
-                                                    </div>
-                                                </td>
-                                                @foreach($compDates as $dKey => $dh)
-                                                    @php
-                                                        $totItem = $dailyTotals[$dKey] ?? ['total_seconds' => 0, 'formatted' => '0d', 'delta_pct' => null, 'trend' => 'none'];
-                                                    @endphp
-                                                    <td class="py-2.5 px-3 text-center border-r border-gray-200 {{ $dh['is_today'] ? 'bg-amber-100/60' : '' }}">
-                                                        <div class="flex flex-col items-center justify-center gap-0.5">
-                                                            <span class="text-xs font-black text-gray-900 tabular-nums">
-                                                                {{ $totItem['formatted'] }}
-                                                            </span>
-                                                            @if($totItem['trend'] === 'up')
-                                                                <span class="text-[9px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded border border-emerald-300/80 tabular-nums">
-                                                                    +{{ $totItem['delta_pct'] }}% ↗️
-                                                                </span>
-                                                            @elseif($totItem['trend'] === 'down')
-                                                                <span class="text-[9px] font-black text-rose-800 bg-rose-100 px-1.5 py-0.2 rounded border border-rose-300/80 tabular-nums">
-                                                                    {{ $totItem['delta_pct'] }}% ↘️
-                                                                </span>
-                                                            @elseif($totItem['trend'] === 'new')
-                                                                <span class="text-[9px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded border border-emerald-300/80">
-                                                                    Baru
-                                                                </span>
-                                                            @elseif($totItem['trend'] === 'same')
-                                                                <span class="text-[9px] font-bold text-gray-500">0%</span>
-                                                            @else
-                                                                <span class="text-[9px] text-gray-400">-</span>
-                                                            @endif
-                                                        </div>
-                                                    </td>
-                                                @endforeach
-
-                                                {{-- Grand Total Periode --}}
-                                                @php
-                                                    $grandTotSecs = $analytics['dwell_total_secs'] ?? 0;
-                                                    $gMins = intdiv($grandTotSecs, 60);
-                                                    $gSecs = $grandTotSecs % 60;
-                                                    $grandFmt = ($gMins > 0 ? $gMins . 'm ' : '') . $gSecs . 'd';
-                                                @endphp
-                                                <td class="py-2.5 px-3 text-center bg-slate-200/70">
-                                                    <span class="font-black text-xs text-amber-950 bg-amber-200/80 px-2.5 py-1 rounded border border-amber-300 tabular-nums">
-                                                        {{ $grandFmt }}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </div>
-                        @else
-                            <div class="py-6 px-4 rounded-xl bg-amber-50/40 border border-dashed border-amber-200 text-center">
-                                <i class="fa-solid fa-calendar-xmark text-amber-500 text-2xl mb-2"></i>
-                                <p class="text-xs font-bold text-amber-900">Belum ada data atensi seksi pada rentang tanggal ini</p>
-                                <p class="text-[10px] text-gray-400 mt-0.5">Data direkam otomatis saat pengunjung melihat seksi minimal 3 detik.</p>
-                            </div>
-                        @endif
-                    </div>
-
-                    {{-- ═══ TAB 2: RINGKASAN & PROGRES SEKSI (TAMPILAN AGREGAT) ═══ --}}
+                    {{-- ═══ TAB 1: RINGKASAN & PROGRES SEKSI (TAMPILAN AGREGAT UTAMA - RAPI SEPERTI GAMBAR 2) ═══ --}}
                     <div x-show="dwellSubTab === 'summary'" x-transition.opacity.duration.150ms>
                         @if(!empty($analytics['dwell_sections']))
                         {{-- Header Kolom Data (Lurus & Presisi) --}}
@@ -801,6 +530,184 @@
                             <p class="text-xs font-bold text-amber-900">Belum ada data atensi seksi pada periode ini</p>
                             <p class="text-[10px] text-gray-400 mt-0.5">Data direkam otomatis saat pengunjung melihat seksi minimal 3 detik.</p>
                         </div>
+                        @endif
+                    </div>
+
+                    {{-- ═══ TAB 2: PERBANDINGAN HARIAN (DAY-OVER-DAY MATRIX) ═══ --}}
+                    <div x-show="dwellSubTab === 'comparison'" x-transition.opacity.duration.150ms class="space-y-3">
+                        @php
+                            $comp         = $analytics['dwell_comparison'] ?? [];
+                            $compDates    = $comp['dates'] ?? [];
+                            $compSections = $comp['sections'] ?? [];
+                            $dailyTotals  = $comp['daily_totals'] ?? [];
+                            $isSingleDate = $comp['single_date_mode'] ?? false;
+                        @endphp
+
+                        @if(!empty($compSections))
+                            {{-- Tabel Matriks Perbandingan Hari ke Hari (Clean & Compact) --}}
+                            <div class="bg-white rounded-xl border border-gray-200/80 overflow-hidden shadow-xs">
+                                <div class="overflow-x-auto max-w-full">
+                                    <table class="w-full text-left border-collapse text-xs">
+                                        <thead>
+                                            <tr class="bg-slate-50 border-b border-gray-200 text-gray-600 text-[10.5px] uppercase tracking-wider font-bold">
+                                                {{-- Kolom Seksi (Sticky Left) --}}
+                                                <th scope="col" class="py-2.5 px-4 min-w-[200px] sticky left-0 bg-slate-50 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] border-r border-gray-200/70">
+                                                    Seksi Website
+                                                </th>
+
+                                                {{-- Kolom-kolom Tanggal --}}
+                                                @foreach($compDates as $dKey => $dh)
+                                                    <th scope="col" class="py-2.5 px-3 min-w-[110px] text-center border-r border-gray-100 {{ $dh['is_today'] ? 'bg-amber-50/70 text-amber-950 font-black' : '' }} {{ $dh['is_baseline'] ? 'bg-slate-100/80 text-slate-700' : '' }}">
+                                                        <div class="flex flex-col items-center gap-0.5">
+                                                            <span>{{ $dh['formatted'] }}</span>
+                                                            @if(!empty($dh['badge']))
+                                                                <span class="text-[8.5px] font-extrabold px-1.5 py-0.2 rounded-full uppercase tracking-tight {{ $dh['is_today'] ? 'bg-amber-500 text-white' : ($dh['is_baseline'] ? 'bg-gray-200 text-gray-700' : 'bg-slate-200 text-slate-700') }}">
+                                                                    {{ $dh['badge'] }}
+                                                                </span>
+                                                            @endif
+                                                        </div>
+                                                    </th>
+                                                @endforeach
+
+                                                {{-- Kolom Total Periode --}}
+                                                <th scope="col" class="py-2.5 px-3 min-w-[90px] text-center bg-slate-50 text-gray-700">
+                                                    Total
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100">
+                                            @foreach($compSections as $cSec)
+                                            <tr class="hover:bg-amber-50/20 transition-colors group">
+                                                {{-- Sticky Seksi Info --}}
+                                                <td class="py-2 px-4 sticky left-0 bg-white group-hover:bg-slate-50/90 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] border-r border-gray-200/70">
+                                                    <div class="flex items-center gap-2 min-w-0">
+                                                        <span class="w-6 h-6 rounded-md bg-amber-50 text-amber-600 flex items-center justify-center text-[10px] shrink-0 border border-amber-200/50">
+                                                            <i class="fa-solid fa-layer-group"></i>
+                                                        </span>
+                                                        <div class="min-w-0">
+                                                            <p class="font-bold text-gray-800 text-xs truncate" title="{{ $cSec['label'] }}">
+                                                                {{ $cSec['label'] }}
+                                                            </p>
+                                                            @if(!empty($cSec['pages']))
+                                                                <p class="text-[9px] text-gray-400 font-medium truncate max-w-[140px]">
+                                                                    {{ implode(', ', array_slice($cSec['pages'], 0, 2)) }}
+                                                                </p>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                {{-- Kolom Harian untuk Seksi Ini --}}
+                                                @foreach($compDates as $dKey => $dh)
+                                                    @php
+                                                        $dItem = $cSec['days'][$dKey] ?? ['seconds' => 0, 'formatted' => '0d', 'delta_pct' => null, 'trend' => 'none'];
+                                                    @endphp
+                                                    <td class="py-2 px-3 text-center border-r border-gray-100 {{ $dh['is_today'] ? 'bg-amber-50/20' : '' }}">
+                                                        <div class="flex flex-col items-center justify-center gap-0.5">
+                                                            @if($dItem['seconds'] > 0)
+                                                                <span class="font-bold text-[11px] text-gray-800 tabular-nums">
+                                                                    {{ $dItem['formatted'] }}
+                                                                </span>
+                                                                @if($dItem['trend'] === 'up')
+                                                                    <span class="inline-flex items-center gap-0.5 text-[8.5px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200/60 tabular-nums">
+                                                                        <i class="fa-solid fa-arrow-trend-up text-[7.5px]"></i> +{{ $dItem['delta_pct'] }}%
+                                                                    </span>
+                                                                @elseif($dItem['trend'] === 'down')
+                                                                    <span class="inline-flex items-center gap-0.5 text-[8.5px] font-black text-rose-700 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200/60 tabular-nums">
+                                                                        <i class="fa-solid fa-arrow-trend-down text-[7.5px]"></i> {{ $dItem['delta_pct'] }}%
+                                                                    </span>
+                                                                @elseif($dItem['trend'] === 'new')
+                                                                    <span class="inline-flex items-center gap-0.5 text-[8.5px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200/60">
+                                                                        <i class="fa-solid fa-sparkles text-[7px]"></i> Baru
+                                                                    </span>
+                                                                @elseif($dItem['trend'] === 'same')
+                                                                    <span class="text-[8.5px] font-bold text-gray-400">0%</span>
+                                                                @endif
+                                                            @else
+                                                                <span class="text-xs text-gray-300 font-light">-</span>
+                                                            @endif
+                                                        </div>
+                                                    </td>
+                                                @endforeach
+
+                                                {{-- Total Periode Seksi --}}
+                                                @php
+                                                    $totMins = intdiv($cSec['total_period_seconds'], 60);
+                                                    $totSecs = $cSec['total_period_seconds'] % 60;
+                                                    $secTotFmt = ($totMins > 0 ? $totMins . 'm ' : '') . $totSecs . 'd';
+                                                @endphp
+                                                <td class="py-2 px-3 text-center bg-slate-50/50">
+                                                    <span class="font-black text-xs text-amber-900 bg-amber-100/70 px-2 py-0.5 rounded border border-amber-200/80 tabular-nums">
+                                                        {{ $secTotFmt }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                        {{-- Footer: Total Seluruh Website per Hari --}}
+                                        <tfoot>
+                                            <tr class="bg-slate-100/90 font-black border-t-2 border-gray-300 text-xs text-gray-800">
+                                                <td class="py-2.5 px-4 sticky left-0 bg-slate-100 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] border-r border-gray-300">
+                                                    <div class="flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-gray-700">
+                                                        <i class="fa-solid fa-calculator text-amber-600"></i>
+                                                        <span>Total Atensi Website</span>
+                                                    </div>
+                                                </td>
+                                                @foreach($compDates as $dKey => $dh)
+                                                    @php
+                                                        $totItem = $dailyTotals[$dKey] ?? ['total_seconds' => 0, 'formatted' => '0d', 'delta_pct' => null, 'trend' => 'none'];
+                                                    @endphp
+                                                    <td class="py-2 px-3 text-center border-r border-gray-200 {{ $dh['is_today'] ? 'bg-amber-100/60' : '' }}">
+                                                        <div class="flex flex-col items-center justify-center gap-0.5">
+                                                            @if($totItem['total_seconds'] > 0)
+                                                                <span class="text-xs font-black text-gray-900 tabular-nums">
+                                                                    {{ $totItem['formatted'] }}
+                                                                </span>
+                                                                @if($totItem['trend'] === 'up')
+                                                                    <span class="text-[8.5px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded border border-emerald-300/80 tabular-nums">
+                                                                        +{{ $totItem['delta_pct'] }}% ↗️
+                                                                    </span>
+                                                                @elseif($totItem['trend'] === 'down')
+                                                                    <span class="text-[8.5px] font-black text-rose-800 bg-rose-100 px-1.5 py-0.2 rounded border border-rose-300/80 tabular-nums">
+                                                                        {{ $totItem['delta_pct'] }}% ↘️
+                                                                    </span>
+                                                                @elseif($totItem['trend'] === 'new')
+                                                                    <span class="text-[8.5px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded border border-emerald-300/80">
+                                                                        Baru
+                                                                    </span>
+                                                                @elseif($totItem['trend'] === 'same')
+                                                                    <span class="text-[8.5px] font-bold text-gray-500">0%</span>
+                                                                @endif
+                                                            @else
+                                                                <span class="text-xs text-gray-400 font-light">-</span>
+                                                            @endif
+                                                        </div>
+                                                    </td>
+                                                @endforeach
+
+                                                {{-- Grand Total Periode --}}
+                                                @php
+                                                    $grandTotSecs = $analytics['dwell_total_secs'] ?? 0;
+                                                    $gMins = intdiv($grandTotSecs, 60);
+                                                    $gSecs = $grandTotSecs % 60;
+                                                    $grandFmt = ($gMins > 0 ? $gMins . 'm ' : '') . $gSecs . 'd';
+                                                @endphp
+                                                <td class="py-2 px-3 text-center bg-slate-200/70">
+                                                    <span class="font-black text-xs text-amber-950 bg-amber-200/80 px-2 py-0.5 rounded border border-amber-300 tabular-nums">
+                                                        {{ $grandFmt }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        @else
+                            <div class="py-6 px-4 rounded-xl bg-amber-50/40 border border-dashed border-amber-200 text-center">
+                                <i class="fa-solid fa-calendar-xmark text-amber-500 text-2xl mb-2"></i>
+                                <p class="text-xs font-bold text-amber-900">Belum ada data atensi seksi pada rentang tanggal ini</p>
+                                <p class="text-[10px] text-gray-400 mt-0.5">Data direkam otomatis saat pengunjung melihat seksi minimal 3 detik.</p>
+                            </div>
                         @endif
                     </div>
                 </div>
