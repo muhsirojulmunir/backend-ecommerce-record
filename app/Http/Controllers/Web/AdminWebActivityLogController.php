@@ -536,11 +536,15 @@ class AdminWebActivityLogController extends Controller
             ->where('event', 'dwell')
             ->whereDate('created_at', '>=', $minDate)
             ->whereDate('created_at', '<=', $maxDate)
-            ->get(['properties', 'created_at', 'causer_id']);
+            ->get(['id', 'properties', 'created_at', 'causer_id']);
 
-        $dailySectionSecs  = [];
-        $dailySectionViews = [];
-        $sectionMeta       = [];
+        $dailySectionSecs    = [];
+        $dailySectionViews   = [];
+        $dailySectionViewers = [];
+        $dailyTotalViewers   = [];
+        $sectionTotalViewers = [];
+        $periodTotalViewers  = [];
+        $sectionMeta         = [];
 
         foreach ($logs as $dl) {
             $props = is_array($dl->properties) ? $dl->properties : ($dl->properties?->toArray() ?? []);
@@ -553,6 +557,16 @@ class AdminWebActivityLogController extends Controller
 
             $dateStr = $dl->created_at->format('Y-m-d');
 
+            // Identifikasi visitor key unik
+            $ip    = (string) ($props['ip'] ?? '');
+            $actor = DeviceDetector::actorInfo($dl);
+
+            if (!$actor['is_guest'] && $dl->causer_id) {
+                $viewerKey = 'u_' . $dl->causer_id;
+            } else {
+                $viewerKey = 'g_' . ($ip ?: 'guest_' . $dl->id);
+            }
+
             if (!isset($sectionMeta[$key])) {
                 $sectionMeta[$key] = [
                     'label' => $lbl,
@@ -563,8 +577,12 @@ class AdminWebActivityLogController extends Controller
                 $sectionMeta[$key]['pages'][$page] = true;
             }
 
-            $dailySectionSecs[$dateStr][$key]  = ($dailySectionSecs[$dateStr][$key] ?? 0) + $secs;
-            $dailySectionViews[$dateStr][$key] = ($dailySectionViews[$dateStr][$key] ?? 0) + 1;
+            $dailySectionSecs[$dateStr][$key]                = ($dailySectionSecs[$dateStr][$key] ?? 0) + $secs;
+            $dailySectionViews[$dateStr][$key]               = ($dailySectionViews[$dateStr][$key] ?? 0) + 1;
+            $dailySectionViewers[$dateStr][$key][$viewerKey] = true;
+            $dailyTotalViewers[$dateStr][$viewerKey]         = true;
+            $sectionTotalViewers[$key][$viewerKey]           = true;
+            $periodTotalViewers[$viewerKey]                  = true;
         }
 
         // Siapkan header tanggal terformat untuk UI
@@ -616,8 +634,9 @@ class AdminWebActivityLogController extends Controller
             $days  = [];
 
             foreach ($dates as $idx => $dStr) {
-                $curSecs  = $dailySectionSecs[$dStr][$secKey] ?? 0;
-                $curViews = $dailySectionViews[$dStr][$secKey] ?? 0;
+                $curSecs     = $dailySectionSecs[$dStr][$secKey] ?? 0;
+                $curViews    = $dailySectionViews[$dStr][$secKey] ?? 0;
+                $curVisitors = isset($dailySectionViewers[$dStr][$secKey]) ? count($dailySectionViewers[$dStr][$secKey]) : 0;
 
                 // Tentukan hari pembanding sebelumnya
                 if ($isSingleDate) {
@@ -626,9 +645,12 @@ class AdminWebActivityLogController extends Controller
                     $prevDStr = ($idx === 0) ? $baselineDate : $dates[$idx - 1];
                 }
 
-                $prevSecs = $prevDStr ? ($dailySectionSecs[$prevDStr][$secKey] ?? 0) : null;
+                $prevSecs     = $prevDStr ? ($dailySectionSecs[$prevDStr][$secKey] ?? 0) : null;
+                $prevVisitors = ($prevDStr && isset($dailySectionViewers[$prevDStr][$secKey]))
+                    ? count($dailySectionViewers[$prevDStr][$secKey])
+                    : ($prevDStr ? 0 : null);
 
-                // Hitung delta %
+                // Hitung delta % durasi
                 $deltaPct = null;
                 $trend    = 'none';
 
@@ -652,26 +674,54 @@ class AdminWebActivityLogController extends Controller
                     }
                 }
 
+                // Hitung delta % pengunjung
+                $vDeltaPct = null;
+                $vTrend    = 'none';
+
+                if ($prevVisitors !== null) {
+                    if ($prevVisitors > 0) {
+                        $vDiff = $curVisitors - $prevVisitors;
+                        $vDeltaPct = round(($vDiff / $prevVisitors) * 100, 1);
+                        if ($vDeltaPct > 0) {
+                            $vTrend = 'up';
+                        } elseif ($vDeltaPct < 0) {
+                            $vTrend = 'down';
+                        } else {
+                            $vTrend = 'same';
+                        }
+                    } elseif ($prevVisitors === 0 && $curVisitors > 0) {
+                        $vDeltaPct = 100.0;
+                        $vTrend    = 'new';
+                    } elseif ($prevVisitors === 0 && $curVisitors === 0) {
+                        $vDeltaPct = 0.0;
+                        $vTrend    = 'same';
+                    }
+                }
+
                 // Format durasi
                 $mins = intdiv($curSecs, 60);
                 $secs = $curSecs % 60;
                 $formatted = ($mins > 0 ? $mins . 'm ' : '') . $secs . 'd';
 
                 $days[$dStr] = [
-                    'seconds'   => $curSecs,
-                    'formatted' => $formatted,
-                    'views'     => $curViews,
-                    'delta_pct' => $deltaPct,
-                    'trend'     => $trend,
+                    'seconds'            => $curSecs,
+                    'formatted'          => $formatted,
+                    'views'              => $curViews,
+                    'delta_pct'          => $deltaPct,
+                    'trend'              => $trend,
+                    'visitors'           => $curVisitors,
+                    'visitors_delta_pct' => $vDeltaPct,
+                    'visitors_trend'     => $vTrend,
                 ];
             }
 
             $matrixSections[] = [
-                'key'                  => $secKey,
-                'label'                => $meta['label'],
-                'pages'                => array_keys($meta['pages']),
-                'total_period_seconds' => $totalPeriodSecs,
-                'days'                 => $days,
+                'key'                   => $secKey,
+                'label'                 => $meta['label'],
+                'pages'                 => array_keys($meta['pages']),
+                'total_period_seconds'  => $totalPeriodSecs,
+                'total_period_visitors' => isset($sectionTotalViewers[$secKey]) ? count($sectionTotalViewers[$secKey]) : 0,
+                'days'                  => $days,
             ];
         }
 
@@ -682,19 +732,23 @@ class AdminWebActivityLogController extends Controller
             foreach ($sectionMeta as $secKey => $meta) {
                 $dayTot += ($dailySectionSecs[$dStr][$secKey] ?? 0);
             }
+            $dayTotVisitors = isset($dailyTotalViewers[$dStr]) ? count($dailyTotalViewers[$dStr]) : 0;
 
             $prevDStr = ($isSingleDate && $idx === 1)
                 ? $dates[0]
                 : (($idx === 0) ? $baselineDate : $dates[$idx - 1]);
 
             $prevSecs = null;
+            $prevTotVisitors = null;
             if ($prevDStr) {
                 $prevSecs = 0;
                 foreach ($sectionMeta as $secKey => $meta) {
                     $prevSecs += ($dailySectionSecs[$prevDStr][$secKey] ?? 0);
                 }
+                $prevTotVisitors = isset($dailyTotalViewers[$prevDStr]) ? count($dailyTotalViewers[$prevDStr]) : 0;
             }
 
+            // Delta durasi total
             $deltaPct = null;
             $trend    = 'none';
 
@@ -712,61 +766,49 @@ class AdminWebActivityLogController extends Controller
                 }
             }
 
+            // Delta pengunjung total
+            $vDeltaPct = null;
+            $vTrend    = 'none';
+
+            if ($prevTotVisitors !== null) {
+                if ($prevTotVisitors > 0) {
+                    $vDiff = $dayTotVisitors - $prevTotVisitors;
+                    $vDeltaPct = round(($vDiff / $prevTotVisitors) * 100, 1);
+                    $vTrend = $vDeltaPct > 0 ? 'up' : ($vDeltaPct < 0 ? 'down' : 'same');
+                } elseif ($prevTotVisitors === 0 && $dayTotVisitors > 0) {
+                    $vDeltaPct = 100.0;
+                    $vTrend    = 'new';
+                } elseif ($prevTotVisitors === 0 && $dayTotVisitors === 0) {
+                    $vDeltaPct = 0.0;
+                    $vTrend    = 'same';
+                }
+            }
+
             $mins = intdiv($dayTot, 60);
             $secs = $dayTot % 60;
 
             $dailyTotals[$dStr] = [
-                'total_seconds' => $dayTot,
-                'formatted'     => ($mins > 0 ? $mins . 'm ' : '') . $secs . 'd',
-                'delta_pct'     => $deltaPct,
-                'trend'         => $trend,
+                'total_seconds'      => $dayTot,
+                'formatted'          => ($mins > 0 ? $mins . 'm ' : '') . $secs . 'd',
+                'delta_pct'          => $deltaPct,
+                'trend'              => $trend,
+                'total_visitors'     => $dayTotVisitors,
+                'visitors_delta_pct' => $vDeltaPct,
+                'visitors_trend'     => $vTrend,
             ];
         }
 
-        // Metrik Ringkasan: Top Performer & Top Gainer pada tanggal terbaru
-        $latestDate   = end($dates);
-        $topPerformer = null;
-        $topGainer    = null;
-
-        if ($latestDate && !empty($matrixSections)) {
-            $maxSecs = -1;
-            foreach ($matrixSections as $ms) {
-                $secDay = $ms['days'][$latestDate] ?? null;
-                if ($secDay && $secDay['seconds'] > $maxSecs && $secDay['seconds'] > 0) {
-                    $maxSecs = $secDay['seconds'];
-                    $topPerformer = [
-                        'label'     => $ms['label'],
-                        'seconds'   => $secDay['seconds'],
-                        'formatted' => $secDay['formatted'],
-                    ];
-                }
-            }
-
-            $maxDelta = 0;
-            foreach ($matrixSections as $ms) {
-                $secDay = $ms['days'][$latestDate] ?? null;
-                if ($secDay && $secDay['delta_pct'] !== null && $secDay['delta_pct'] > $maxDelta && $secDay['seconds'] > 0) {
-                    $maxDelta = $secDay['delta_pct'];
-                    $topGainer = [
-                        'label'     => $ms['label'],
-                        'delta_pct' => $secDay['delta_pct'],
-                        'formatted' => $secDay['formatted'],
-                    ];
-                }
-            }
-        }
-
+        $latestDate  = end($dates);
         $latestTotal = $dailyTotals[$latestDate] ?? null;
 
         return [
-            'dates'            => $dateHeaders,
-            'sections'         => $matrixSections,
-            'daily_totals'     => $dailyTotals,
-            'single_date_mode' => $isSingleDate,
-            'top_performer'    => $topPerformer,
-            'top_gainer'       => $topGainer,
-            'latest_total'     => $latestTotal,
-            'latest_date'      => $latestDate,
+            'dates'                 => $dateHeaders,
+            'sections'              => $matrixSections,
+            'daily_totals'          => $dailyTotals,
+            'single_date_mode'      => $isSingleDate,
+            'grand_total_visitors'  => count($periodTotalViewers),
+            'latest_total'          => $latestTotal,
+            'latest_date'           => $latestDate,
         ];
     }
 }

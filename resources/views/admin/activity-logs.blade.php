@@ -557,7 +557,7 @@
 
                                                 {{-- Kolom-kolom Tanggal --}}
                                                 @foreach($compDates as $dKey => $dh)
-                                                    <th scope="col" class="py-2.5 px-3 min-w-[110px] text-center border-r border-gray-100 {{ $dh['is_today'] ? 'bg-amber-50/70 text-amber-950 font-black' : '' }} {{ $dh['is_baseline'] ? 'bg-slate-100/80 text-slate-700' : '' }}">
+                                                    <th scope="col" class="py-2.5 px-3 min-w-[130px] text-center border-r border-gray-100 {{ $dh['is_today'] ? 'bg-amber-50/70 text-amber-950 font-black' : '' }} {{ $dh['is_baseline'] ? 'bg-slate-100/80 text-slate-700' : '' }}">
                                                         <div class="flex flex-col items-center gap-0.5">
                                                             <span>{{ $dh['formatted'] }}</span>
                                                             @if(!empty($dh['badge']))
@@ -565,13 +565,26 @@
                                                                     {{ $dh['badge'] }}
                                                                 </span>
                                                             @endif
+                                                            {{-- Sub-header label --}}
+                                                            <div class="flex items-center gap-2 mt-1 text-[8px] font-semibold text-gray-400 normal-case tracking-normal">
+                                                                <span class="flex items-center gap-0.5"><i class="fa-regular fa-clock text-[7px]"></i> Durasi</span>
+                                                                <span class="text-gray-200">|</span>
+                                                                <span class="flex items-center gap-0.5"><i class="fa-solid fa-user text-[7px]"></i> Pengunjung</span>
+                                                            </div>
                                                         </div>
                                                     </th>
                                                 @endforeach
 
                                                 {{-- Kolom Total Periode --}}
-                                                <th scope="col" class="py-2.5 px-3 min-w-[90px] text-center bg-slate-50 text-gray-700">
-                                                    Total
+                                                <th scope="col" class="py-2.5 px-3 min-w-[100px] text-center bg-slate-50 text-gray-700">
+                                                    <div class="flex flex-col items-center gap-1">
+                                                        <span>Total</span>
+                                                        <div class="flex items-center gap-2 text-[8px] font-semibold text-gray-400 normal-case tracking-normal">
+                                                            <span class="flex items-center gap-0.5"><i class="fa-regular fa-clock text-[7px]"></i> Dur.</span>
+                                                            <span class="text-gray-200">|</span>
+                                                            <span class="flex items-center gap-0.5"><i class="fa-solid fa-user text-[7px]"></i> Uniq.</span>
+                                                        </div>
+                                                    </div>
                                                 </th>
                                             </tr>
                                         </thead>
@@ -600,32 +613,62 @@
                                                 {{-- Kolom Harian untuk Seksi Ini --}}
                                                 @foreach($compDates as $dKey => $dh)
                                                     @php
-                                                        $dItem = $cSec['days'][$dKey] ?? ['seconds' => 0, 'formatted' => '0d', 'delta_pct' => null, 'trend' => 'none'];
+                                                        $dItem = $cSec['days'][$dKey] ?? ['seconds' => 0, 'formatted' => '0d', 'delta_pct' => null, 'trend' => 'none', 'visitors' => 0, 'visitors_delta_pct' => null, 'visitors_trend' => 'none'];
                                                     @endphp
                                                     <td class="py-2 px-3 text-center border-r border-gray-100 {{ $dh['is_today'] ? 'bg-amber-50/20' : '' }}">
-                                                        <div class="flex flex-col items-center justify-center gap-0.5">
-                                                            @if($dItem['seconds'] > 0)
-                                                                <span class="font-bold text-[11px] text-gray-800 tabular-nums">
-                                                                    {{ $dItem['formatted'] }}
-                                                                </span>
-                                                                @if($dItem['trend'] === 'up')
-                                                                    <span class="inline-flex items-center gap-0.5 text-[8.5px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200/60 tabular-nums">
-                                                                        <i class="fa-solid fa-arrow-trend-up text-[7.5px]"></i> +{{ $dItem['delta_pct'] }}%
+                                                        <div class="flex items-start justify-center gap-2.5">
+                                                            {{-- Kolom Durasi --}}
+                                                            <div class="flex flex-col items-center gap-0.5 min-w-[48px]">
+                                                                @if($dItem['seconds'] > 0)
+                                                                    <span class="font-bold text-[11px] text-gray-800 tabular-nums">
+                                                                        {{ $dItem['formatted'] }}
                                                                     </span>
-                                                                @elseif($dItem['trend'] === 'down')
-                                                                    <span class="inline-flex items-center gap-0.5 text-[8.5px] font-black text-rose-700 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200/60 tabular-nums">
-                                                                        <i class="fa-solid fa-arrow-trend-down text-[7.5px]"></i> {{ $dItem['delta_pct'] }}%
-                                                                    </span>
-                                                                @elseif($dItem['trend'] === 'new')
-                                                                    <span class="inline-flex items-center gap-0.5 text-[8.5px] font-black text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200/60">
-                                                                        <i class="fa-solid fa-sparkles text-[7px]"></i> Baru
-                                                                    </span>
-                                                                @elseif($dItem['trend'] === 'same')
-                                                                    <span class="text-[8.5px] font-bold text-gray-400">0%</span>
+                                                                    @if($dItem['trend'] === 'up')
+                                                                        <span class="inline-flex items-center gap-0.5 text-[8px] font-black text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-200/60 tabular-nums">
+                                                                            <i class="fa-solid fa-arrow-trend-up text-[7px]"></i> +{{ $dItem['delta_pct'] }}%
+                                                                        </span>
+                                                                    @elseif($dItem['trend'] === 'down')
+                                                                        <span class="inline-flex items-center gap-0.5 text-[8px] font-black text-rose-700 bg-rose-50 px-1 py-0.5 rounded border border-rose-200/60 tabular-nums">
+                                                                            <i class="fa-solid fa-arrow-trend-down text-[7px]"></i> {{ $dItem['delta_pct'] }}%
+                                                                        </span>
+                                                                    @elseif($dItem['trend'] === 'new')
+                                                                        <span class="inline-flex items-center gap-0.5 text-[8px] font-black text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-200/60">
+                                                                            <i class="fa-solid fa-sparkles text-[7px]"></i> Baru
+                                                                        </span>
+                                                                    @elseif($dItem['trend'] === 'same')
+                                                                        <span class="text-[8px] font-bold text-gray-400">=</span>
+                                                                    @endif
+                                                                @else
+                                                                    <span class="text-xs text-gray-300 font-light">-</span>
                                                                 @endif
-                                                            @else
-                                                                <span class="text-xs text-gray-300 font-light">-</span>
-                                                            @endif
+                                                            </div>
+                                                            {{-- Pemisah --}}
+                                                            <div class="w-px self-stretch bg-gray-100 shrink-0"></div>
+                                                            {{-- Kolom Pengunjung --}}
+                                                            <div class="flex flex-col items-center gap-0.5 min-w-[36px]">
+                                                                @if(($dItem['visitors'] ?? 0) > 0)
+                                                                    <span class="font-bold text-[11px] text-indigo-700 tabular-nums flex items-center gap-0.5">
+                                                                        <i class="fa-solid fa-user text-[8px]"></i>{{ $dItem['visitors'] }}
+                                                                    </span>
+                                                                    @if(($dItem['visitors_trend'] ?? 'none') === 'up')
+                                                                        <span class="inline-flex items-center gap-0.5 text-[8px] font-black text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded border border-emerald-200/60 tabular-nums">
+                                                                            <i class="fa-solid fa-arrow-trend-up text-[7px]"></i> +{{ $dItem['visitors_delta_pct'] }}%
+                                                                        </span>
+                                                                    @elseif(($dItem['visitors_trend'] ?? 'none') === 'down')
+                                                                        <span class="inline-flex items-center gap-0.5 text-[8px] font-black text-rose-700 bg-rose-50 px-1 py-0.5 rounded border border-rose-200/60 tabular-nums">
+                                                                            <i class="fa-solid fa-arrow-trend-down text-[7px]"></i> {{ $dItem['visitors_delta_pct'] }}%
+                                                                        </span>
+                                                                    @elseif(($dItem['visitors_trend'] ?? 'none') === 'new')
+                                                                        <span class="inline-flex items-center gap-0.5 text-[8px] font-black text-indigo-700 bg-indigo-50 px-1 py-0.5 rounded border border-indigo-200/60">
+                                                                            <i class="fa-solid fa-sparkles text-[7px]"></i> Baru
+                                                                        </span>
+                                                                    @elseif(($dItem['visitors_trend'] ?? 'none') === 'same')
+                                                                        <span class="text-[8px] font-bold text-gray-400">=</span>
+                                                                    @endif
+                                                                @else
+                                                                    <span class="text-xs text-gray-300 font-light">-</span>
+                                                                @endif
+                                                            </div>
                                                         </div>
                                                     </td>
                                                 @endforeach
@@ -635,11 +678,17 @@
                                                     $totMins = intdiv($cSec['total_period_seconds'], 60);
                                                     $totSecs = $cSec['total_period_seconds'] % 60;
                                                     $secTotFmt = ($totMins > 0 ? $totMins . 'm ' : '') . $totSecs . 'd';
+                                                    $secTotVisitors = $cSec['total_period_visitors'] ?? 0;
                                                 @endphp
                                                 <td class="py-2 px-3 text-center bg-slate-50/50">
-                                                    <span class="font-black text-xs text-amber-900 bg-amber-100/70 px-2 py-0.5 rounded border border-amber-200/80 tabular-nums">
-                                                        {{ $secTotFmt }}
-                                                    </span>
+                                                    <div class="flex flex-col items-center gap-1">
+                                                        <span class="font-black text-[10.5px] text-amber-900 bg-amber-100/70 px-2 py-0.5 rounded border border-amber-200/80 tabular-nums">
+                                                            {{ $secTotFmt }}
+                                                        </span>
+                                                        <span class="font-bold text-[10.5px] text-indigo-700 flex items-center gap-0.5">
+                                                            <i class="fa-solid fa-user text-[8px]"></i>{{ $secTotVisitors }}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                             </tr>
                                             @endforeach
@@ -655,47 +704,83 @@
                                                 </td>
                                                 @foreach($compDates as $dKey => $dh)
                                                     @php
-                                                        $totItem = $dailyTotals[$dKey] ?? ['total_seconds' => 0, 'formatted' => '0d', 'delta_pct' => null, 'trend' => 'none'];
+                                                        $totItem = $dailyTotals[$dKey] ?? ['total_seconds' => 0, 'formatted' => '0d', 'delta_pct' => null, 'trend' => 'none', 'total_visitors' => 0, 'visitors_delta_pct' => null, 'visitors_trend' => 'none'];
                                                     @endphp
                                                     <td class="py-2 px-3 text-center border-r border-gray-200 {{ $dh['is_today'] ? 'bg-amber-100/60' : '' }}">
-                                                        <div class="flex flex-col items-center justify-center gap-0.5">
-                                                            @if($totItem['total_seconds'] > 0)
-                                                                <span class="text-xs font-black text-gray-900 tabular-nums">
-                                                                    {{ $totItem['formatted'] }}
-                                                                </span>
-                                                                @if($totItem['trend'] === 'up')
-                                                                    <span class="text-[8.5px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded border border-emerald-300/80 tabular-nums">
-                                                                        +{{ $totItem['delta_pct'] }}% ↗️
+                                                        <div class="flex items-start justify-center gap-2.5">
+                                                            {{-- Durasi Total --}}
+                                                            <div class="flex flex-col items-center gap-0.5 min-w-[48px]">
+                                                                @if($totItem['total_seconds'] > 0)
+                                                                    <span class="text-[11px] font-black text-gray-900 tabular-nums">
+                                                                        {{ $totItem['formatted'] }}
                                                                     </span>
-                                                                @elseif($totItem['trend'] === 'down')
-                                                                    <span class="text-[8.5px] font-black text-rose-800 bg-rose-100 px-1.5 py-0.2 rounded border border-rose-300/80 tabular-nums">
-                                                                        {{ $totItem['delta_pct'] }}% ↘️
-                                                                    </span>
-                                                                @elseif($totItem['trend'] === 'new')
-                                                                    <span class="text-[8.5px] font-black text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded border border-emerald-300/80">
-                                                                        Baru
-                                                                    </span>
-                                                                @elseif($totItem['trend'] === 'same')
-                                                                    <span class="text-[8.5px] font-bold text-gray-500">0%</span>
+                                                                    @if($totItem['trend'] === 'up')
+                                                                        <span class="inline-flex items-center gap-0.5 text-[8px] font-black text-emerald-800 bg-emerald-100 px-1 py-0.5 rounded border border-emerald-300/80 tabular-nums">
+                                                                            <i class="fa-solid fa-arrow-trend-up text-[7px]"></i> +{{ $totItem['delta_pct'] }}%
+                                                                        </span>
+                                                                    @elseif($totItem['trend'] === 'down')
+                                                                        <span class="inline-flex items-center gap-0.5 text-[8px] font-black text-rose-800 bg-rose-100 px-1 py-0.5 rounded border border-rose-300/80 tabular-nums">
+                                                                            <i class="fa-solid fa-arrow-trend-down text-[7px]"></i> {{ $totItem['delta_pct'] }}%
+                                                                        </span>
+                                                                    @elseif($totItem['trend'] === 'new')
+                                                                        <span class="inline-flex items-center gap-0.5 text-[8px] font-black text-emerald-800 bg-emerald-100 px-1 py-0.5 rounded border border-emerald-300/80">
+                                                                            Baru
+                                                                        </span>
+                                                                    @elseif($totItem['trend'] === 'same')
+                                                                        <span class="text-[8px] font-bold text-gray-500">=</span>
+                                                                    @endif
+                                                                @else
+                                                                    <span class="text-xs text-gray-400 font-light">-</span>
                                                                 @endif
-                                                            @else
-                                                                <span class="text-xs text-gray-400 font-light">-</span>
-                                                            @endif
+                                                            </div>
+                                                            {{-- Pemisah --}}
+                                                            <div class="w-px self-stretch bg-gray-200/80 shrink-0"></div>
+                                                            {{-- Pengunjung Total --}}
+                                                            <div class="flex flex-col items-center gap-0.5 min-w-[36px]">
+                                                                @if(($totItem['total_visitors'] ?? 0) > 0)
+                                                                    <span class="font-black text-[11px] text-indigo-700 tabular-nums flex items-center gap-0.5">
+                                                                        <i class="fa-solid fa-user text-[8px]"></i>{{ $totItem['total_visitors'] }}
+                                                                    </span>
+                                                                    @if(($totItem['visitors_trend'] ?? 'none') === 'up')
+                                                                        <span class="inline-flex items-center gap-0.5 text-[8px] font-black text-emerald-800 bg-emerald-100 px-1 py-0.5 rounded border border-emerald-300/80 tabular-nums">
+                                                                            <i class="fa-solid fa-arrow-trend-up text-[7px]"></i> +{{ $totItem['visitors_delta_pct'] }}%
+                                                                        </span>
+                                                                    @elseif(($totItem['visitors_trend'] ?? 'none') === 'down')
+                                                                        <span class="inline-flex items-center gap-0.5 text-[8px] font-black text-rose-800 bg-rose-100 px-1 py-0.5 rounded border border-rose-300/80 tabular-nums">
+                                                                            <i class="fa-solid fa-arrow-trend-down text-[7px]"></i> {{ $totItem['visitors_delta_pct'] }}%
+                                                                        </span>
+                                                                    @elseif(($totItem['visitors_trend'] ?? 'none') === 'new')
+                                                                        <span class="inline-flex items-center gap-0.5 text-[8px] font-black text-indigo-700 bg-indigo-50 px-1 py-0.5 rounded border border-indigo-200/60">
+                                                                            Baru
+                                                                        </span>
+                                                                    @elseif(($totItem['visitors_trend'] ?? 'none') === 'same')
+                                                                        <span class="text-[8px] font-bold text-indigo-400">=</span>
+                                                                    @endif
+                                                                @else
+                                                                    <span class="text-xs text-gray-400 font-light">-</span>
+                                                                @endif
+                                                            </div>
                                                         </div>
                                                     </td>
                                                 @endforeach
 
                                                 {{-- Grand Total Periode --}}
                                                 @php
-                                                    $grandTotSecs = $analytics['dwell_total_secs'] ?? 0;
-                                                    $gMins = intdiv($grandTotSecs, 60);
-                                                    $gSecs = $grandTotSecs % 60;
-                                                    $grandFmt = ($gMins > 0 ? $gMins . 'm ' : '') . $gSecs . 'd';
+                                                    $grandTotSecs     = $analytics['dwell_total_secs'] ?? 0;
+                                                    $gMins            = intdiv($grandTotSecs, 60);
+                                                    $gSecs            = $grandTotSecs % 60;
+                                                    $grandFmt         = ($gMins > 0 ? $gMins . 'm ' : '') . $gSecs . 'd';
+                                                    $grandTotVisitors = $comp['grand_total_visitors'] ?? 0;
                                                 @endphp
                                                 <td class="py-2 px-3 text-center bg-slate-200/70">
-                                                    <span class="font-black text-xs text-amber-950 bg-amber-200/80 px-2 py-0.5 rounded border border-amber-300 tabular-nums">
-                                                        {{ $grandFmt }}
-                                                    </span>
+                                                    <div class="flex flex-col items-center gap-1">
+                                                        <span class="font-black text-[10.5px] text-amber-950 bg-amber-200/80 px-2 py-0.5 rounded border border-amber-300 tabular-nums">
+                                                            {{ $grandFmt }}
+                                                        </span>
+                                                        <span class="font-black text-[10.5px] text-indigo-700 flex items-center gap-0.5">
+                                                            <i class="fa-solid fa-user text-[8px]"></i>{{ $grandTotVisitors }}
+                                                        </span>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         </tfoot>
