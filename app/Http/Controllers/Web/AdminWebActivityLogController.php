@@ -557,15 +557,11 @@ class AdminWebActivityLogController extends Controller
 
             $dateStr = $dl->created_at->format('Y-m-d');
 
-            // Identifikasi visitor key unik
-            $ip    = (string) ($props['ip'] ?? '');
-            $actor = DeviceDetector::actorInfo($dl);
-
-            if (!$actor['is_guest'] && $dl->causer_id) {
-                $viewerKey = 'u_' . $dl->causer_id;
-            } else {
-                $viewerKey = 'g_' . ($ip ?: 'guest_' . $dl->id);
-            }
+            // Identifikasi visitor key unik (tanpa eager-load relasi causer)
+            $ip        = (string) ($props['ip'] ?? '');
+            $viewerKey = $dl->causer_id
+                ? 'u_' . $dl->causer_id
+                : 'g_' . ($ip ?: 'guest_' . $dl->id);
 
             if (!isset($sectionMeta[$key])) {
                 $sectionMeta[$key] = [
