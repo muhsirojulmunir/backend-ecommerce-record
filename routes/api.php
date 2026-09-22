@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\Customer\CustomerBannerController;
 use App\Http\Controllers\Api\Customer\CustomerCategoryController;
 use App\Http\Controllers\Api\Customer\ShippingController;
 use App\Http\Controllers\Api\Customer\CustomerOrderController;
+use App\Http\Controllers\Api\DuitkuCallbackController;
 
 /*
 |--------------------------------------------------------------------------
@@ -42,6 +43,9 @@ Route::get('shipping/provinces', [ShippingController::class, 'provinces']);
 Route::get('shipping/cities', [ShippingController::class, 'cities']);
 Route::post('shipping/cost', [ShippingController::class, 'calculateCost']);
 
+// ─── Duitku Webhook (Public — dipanggil oleh server Duitku) ───────────────────
+Route::post('duitku/callback', [DuitkuCallbackController::class, 'handle']);
+
 
 // ==========================================
 // 2. CUSTOMER AUTHENTICATION & PORTAL API
@@ -59,6 +63,9 @@ Route::prefix('customer')->group(function () {
         Route::get('orders', [CustomerOrderController::class, 'index']);
         Route::get('orders/{id}', [CustomerOrderController::class, 'show']);
         Route::post('orders/{id}/cancel', [CustomerOrderController::class, 'requestReturn']);
+
+        // Duitku — Ambil metode pembayaran yang tersedia
+        Route::get('payment-methods', [CustomerOrderController::class, 'paymentMethods']);
     });
 });
 

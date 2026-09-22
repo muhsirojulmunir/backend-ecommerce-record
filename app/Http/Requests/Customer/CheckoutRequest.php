@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Customer;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class CheckoutRequest extends FormRequest
 {
@@ -25,6 +26,25 @@ class CheckoutRequest extends FormRequest
             'courier' => 'required|string|max:50',
             'payment_method' => 'required|string|max:50',
             'notes' => 'nullable|string',
+        ];
+    }
+
+    public function after(): array
+    {
+        return [
+            function (Validator $validator) {
+                $method             = strtoupper($this->input('payment_method', ''));
+                $activeMethods      = array_map('strtoupper', config('duitku.active_methods', ['MANUAL_BCA', 'COD']));
+                $maintenanceMethods = array_map('strtoupper', config('duitku.maintenance_methods', []));
+
+                // Blokir jika metode ini sedang dalam maintenance
+                if (in_array($method, $maintenanceMethods, true) && ! in_array($method, $activeMethods, true)) {
+                    $validator->errors()->add(
+                        'payment_method',
+                        'Metode pembayaran ini sedang dalam pemeliharaan. Silakan pilih metode lain yang tersedia.'
+                    );
+                }
+            },
         ];
     }
 
