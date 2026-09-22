@@ -461,6 +461,312 @@ class AdminWebActivityLogController extends Controller
             'top_searches'      => $topSearches,
             'dwell_sections'    => $dwellSections,
             'dwell_total_secs'  => $totalDwellSecs,
+            'dwell_comparison'  => $this->buildDwellComparison($dwellPeriod, $dwellFrom, $dwellTo, $request),
+        ];
+    }
+
+    /**
+     * Hitung perbandingan atensi seksi website hari ke hari (Day-over-Day Dwell Comparison).
+     */
+    private function buildDwellComparison(?string $dwellPeriod, ?string $dwellFrom, ?string $dwellTo, ?Request $request = null): array
+    {
+        $dayNames   = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+        $monthNames = [1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'Mei', 6 => 'Jun', 7 => 'Jul', 8 => 'Agu', 9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des'];
+
+        $today = Carbon::today();
+        $isSingleDate = false;
+        $dates = [];
+        $baselineDate = null;
+
+        // 1. Tentukan tanggal-tanggal yang akan dikomparasikan
+        if (filled($dwellFrom) && filled($dwellTo) && $dwellFrom === $dwellTo) {
+            $isSingleDate = true;
+            $selDate      = Carbon::parse($dwellFrom);
+            $baselineDate = $selDate->copy()->subDay()->toDateString();
+            $dates        = [$baselineDate, $selDate->toDateString()];
+        } elseif (filled($dwellFrom) && !filled($dwellTo)) {
+            $isSingleDate = true;
+            $selDate      = Carbon::parse($dwellFrom);
+            $baselineDate = $selDate->copy()->subDay()->toDateString();
+            $dates        = [$baselineDate, $selDate->toDateString()];
+        } elseif (!filled($dwellFrom) && filled($dwellTo)) {
+            $isSingleDate = true;
+            $selDate      = Carbon::parse($dwellTo);
+            $baselineDate = $selDate->copy()->subDay()->toDateString();
+            $dates        = [$baselineDate, $selDate->toDateString()];
+        } elseif (filled($dwellFrom) && filled($dwellTo)) {
+            $start = Carbon::parse($dwellFrom)->startOfDay();
+            $end   = Carbon::parse($dwellTo)->startOfDay();
+            if ($start->gt($end)) {
+                [$start, $end] = [$end, $start];
+            }
+            $diffDays = $start->diffInDays($end);
+            if ($diffDays === 0) {
+                $isSingleDate = true;
+                $baselineDate = $start->copy()->subDay()->toDateString();
+                $dates        = [$baselineDate, $start->toDateString()];
+            } else {
+                if ($diffDays > 14) {
+                    $start = $end->copy()->subDays(13);
+                }
+                $baselineDate = $start->copy()->subDay()->toDateString();
+                $cursor = $start->copy();
+                while ($cursor->lte($end)) {
+                    $dates[] = $cursor->toDateString();
+                    $cursor->addDay();
+                }
+            }
+        } elseif ($dwellPeriod === 'today') {
+            $isSingleDate = true;
+            $baselineDate = $today->copy()->subDay()->toDateString();
+            $dates        = [$baselineDate, $today->toDateString()];
+        } else {
+            // Default (7d, 30d, all): Tampilkan 7 hari terakhir s/d hari ini
+            $baselineDate = $today->copy()->subDays(7)->toDateString();
+            for ($i = 6; $i >= 0; $i--) {
+                $dates[] = $today->copy()->subDays($i)->toDateString();
+            }
+        }
+
+        // Query log evaluasi_web dari baselineDate s/d tanggal terakhir
+        $minDate = $baselineDate;
+        $maxDate = end($dates);
+
+        $logs = Activity::where('log_name', 'evaluasi_web')
+            ->where('event', 'dwell')
+            ->whereDate('created_at', '>=', $minDate)
+            ->whereDate('created_at', '<=', $maxDate)
+            ->get(['properties', 'created_at', 'causer_id']);
+
+        $dailySectionSecs  = [];
+        $dailySectionViews = [];
+        $sectionMeta       = [];
+
+        foreach ($logs as $dl) {
+            $props = is_array($dl->properties) ? $dl->properties : ($dl->properties?->toArray() ?? []);
+            $key   = (string) ($props['section'] ?? $props['section_id'] ?? '');
+            $lbl   = (string) ($props['label']   ?? $props['section_label'] ?? $key);
+            $secs  = (int)    ($props['seconds'] ?? $props['duration_seconds'] ?? 0);
+            $page  = (string) ($props['page']    ?? $props['page_url'] ?? $props['page_name'] ?? '');
+
+            if ($key === '' || $secs <= 0) continue;
+
+            $dateStr = $dl->created_at->format('Y-m-d');
+
+            if (!isset($sectionMeta[$key])) {
+                $sectionMeta[$key] = [
+                    'label' => $lbl,
+                    'pages' => [],
+                ];
+            }
+            if ($page !== '') {
+                $sectionMeta[$key]['pages'][$page] = true;
+            }
+
+            $dailySectionSecs[$dateStr][$key]  = ($dailySectionSecs[$dateStr][$key] ?? 0) + $secs;
+            $dailySectionViews[$dateStr][$key] = ($dailySectionViews[$dateStr][$key] ?? 0) + 1;
+        }
+
+        // Siapkan header tanggal terformat untuk UI
+        $dateHeaders = [];
+        foreach ($dates as $idx => $dStr) {
+            $cDate   = Carbon::parse($dStr);
+            $dwIdx   = $cDate->dayOfWeek; // 0=Sunday
+            $mIdx    = $cDate->month;
+            $dayName = $dayNames[$dwIdx] ?? '';
+            $monName = $monthNames[$mIdx] ?? '';
+
+            $isToday = ($dStr === $today->toDateString());
+            $isYesterday = ($dStr === $today->copy()->subDay()->toDateString());
+
+            $label = "{$dayName}, {$cDate->day} {$monName}";
+            $sub   = $isToday ? 'Hari Ini' : ($isYesterday ? 'Kemarin' : '');
+
+            if ($isSingleDate && $idx === 0) {
+                $sub = 'Acuan (H-1)';
+            } elseif ($isSingleDate && $idx === 1) {
+                $sub = 'Hari Dipilih';
+            }
+
+            $dateHeaders[$dStr] = [
+                'date'        => $dStr,
+                'day_name'    => $dayName,
+                'formatted'   => $label,
+                'badge'       => $sub,
+                'is_today'    => $isToday,
+                'is_baseline' => ($isSingleDate && $idx === 0),
+            ];
+        }
+
+        // Urutkan seksi berdasarkan total detik sepanjang periode
+        $sectionTotalSecs = [];
+        foreach (array_keys($sectionMeta) as $secKey) {
+            $tot = 0;
+            foreach ($dates as $dStr) {
+                $tot += ($dailySectionSecs[$dStr][$secKey] ?? 0);
+            }
+            $sectionTotalSecs[$secKey] = $tot;
+        }
+        arsort($sectionTotalSecs);
+
+        // Bangun data matriks seksi
+        $matrixSections = [];
+        foreach ($sectionTotalSecs as $secKey => $totalPeriodSecs) {
+            $meta  = $sectionMeta[$secKey];
+            $days  = [];
+
+            foreach ($dates as $idx => $dStr) {
+                $curSecs  = $dailySectionSecs[$dStr][$secKey] ?? 0;
+                $curViews = $dailySectionViews[$dStr][$secKey] ?? 0;
+
+                // Tentukan hari pembanding sebelumnya
+                if ($isSingleDate) {
+                    $prevDStr = ($idx === 1) ? $dates[0] : null;
+                } else {
+                    $prevDStr = ($idx === 0) ? $baselineDate : $dates[$idx - 1];
+                }
+
+                $prevSecs = $prevDStr ? ($dailySectionSecs[$prevDStr][$secKey] ?? 0) : null;
+
+                // Hitung delta %
+                $deltaPct = null;
+                $trend    = 'none';
+
+                if ($prevSecs !== null) {
+                    if ($prevSecs > 0) {
+                        $diff = $curSecs - $prevSecs;
+                        $deltaPct = round(($diff / $prevSecs) * 100, 1);
+                        if ($deltaPct > 0) {
+                            $trend = 'up';
+                        } elseif ($deltaPct < 0) {
+                            $trend = 'down';
+                        } else {
+                            $trend = 'same';
+                        }
+                    } elseif ($prevSecs === 0 && $curSecs > 0) {
+                        $deltaPct = 100.0;
+                        $trend    = 'new';
+                    } elseif ($prevSecs === 0 && $curSecs === 0) {
+                        $deltaPct = 0.0;
+                        $trend    = 'same';
+                    }
+                }
+
+                // Format durasi
+                $mins = intdiv($curSecs, 60);
+                $secs = $curSecs % 60;
+                $formatted = ($mins > 0 ? $mins . 'm ' : '') . $secs . 'd';
+
+                $days[$dStr] = [
+                    'seconds'   => $curSecs,
+                    'formatted' => $formatted,
+                    'views'     => $curViews,
+                    'delta_pct' => $deltaPct,
+                    'trend'     => $trend,
+                ];
+            }
+
+            $matrixSections[] = [
+                'key'                  => $secKey,
+                'label'                => $meta['label'],
+                'pages'                => array_keys($meta['pages']),
+                'total_period_seconds' => $totalPeriodSecs,
+                'days'                 => $days,
+            ];
+        }
+
+        // Hitung total web per hari
+        $dailyTotals = [];
+        foreach ($dates as $idx => $dStr) {
+            $dayTot = 0;
+            foreach ($sectionMeta as $secKey => $meta) {
+                $dayTot += ($dailySectionSecs[$dStr][$secKey] ?? 0);
+            }
+
+            $prevDStr = ($isSingleDate && $idx === 1)
+                ? $dates[0]
+                : (($idx === 0) ? $baselineDate : $dates[$idx - 1]);
+
+            $prevSecs = null;
+            if ($prevDStr) {
+                $prevSecs = 0;
+                foreach ($sectionMeta as $secKey => $meta) {
+                    $prevSecs += ($dailySectionSecs[$prevDStr][$secKey] ?? 0);
+                }
+            }
+
+            $deltaPct = null;
+            $trend    = 'none';
+
+            if ($prevSecs !== null) {
+                if ($prevSecs > 0) {
+                    $diff = $dayTot - $prevSecs;
+                    $deltaPct = round(($diff / $prevSecs) * 100, 1);
+                    $trend = $deltaPct > 0 ? 'up' : ($deltaPct < 0 ? 'down' : 'same');
+                } elseif ($prevSecs === 0 && $dayTot > 0) {
+                    $deltaPct = 100.0;
+                    $trend    = 'new';
+                } elseif ($prevSecs === 0 && $dayTot === 0) {
+                    $deltaPct = 0.0;
+                    $trend    = 'same';
+                }
+            }
+
+            $mins = intdiv($dayTot, 60);
+            $secs = $dayTot % 60;
+
+            $dailyTotals[$dStr] = [
+                'total_seconds' => $dayTot,
+                'formatted'     => ($mins > 0 ? $mins . 'm ' : '') . $secs . 'd',
+                'delta_pct'     => $deltaPct,
+                'trend'         => $trend,
+            ];
+        }
+
+        // Metrik Ringkasan: Top Performer & Top Gainer pada tanggal terbaru
+        $latestDate   = end($dates);
+        $topPerformer = null;
+        $topGainer    = null;
+
+        if ($latestDate && !empty($matrixSections)) {
+            $maxSecs = -1;
+            foreach ($matrixSections as $ms) {
+                $secDay = $ms['days'][$latestDate] ?? null;
+                if ($secDay && $secDay['seconds'] > $maxSecs && $secDay['seconds'] > 0) {
+                    $maxSecs = $secDay['seconds'];
+                    $topPerformer = [
+                        'label'     => $ms['label'],
+                        'seconds'   => $secDay['seconds'],
+                        'formatted' => $secDay['formatted'],
+                    ];
+                }
+            }
+
+            $maxDelta = 0;
+            foreach ($matrixSections as $ms) {
+                $secDay = $ms['days'][$latestDate] ?? null;
+                if ($secDay && $secDay['delta_pct'] !== null && $secDay['delta_pct'] > $maxDelta && $secDay['seconds'] > 0) {
+                    $maxDelta = $secDay['delta_pct'];
+                    $topGainer = [
+                        'label'     => $ms['label'],
+                        'delta_pct' => $secDay['delta_pct'],
+                        'formatted' => $secDay['formatted'],
+                    ];
+                }
+            }
+        }
+
+        $latestTotal = $dailyTotals[$latestDate] ?? null;
+
+        return [
+            'dates'            => $dateHeaders,
+            'sections'         => $matrixSections,
+            'daily_totals'     => $dailyTotals,
+            'single_date_mode' => $isSingleDate,
+            'top_performer'    => $topPerformer,
+            'top_gainer'       => $topGainer,
+            'latest_total'     => $latestTotal,
+            'latest_date'      => $latestDate,
         ];
     }
 }
