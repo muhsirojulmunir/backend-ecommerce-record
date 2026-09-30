@@ -38,12 +38,13 @@ return [
     |
     */
     'maintenance_methods' => [
-        'BC', 'M2', 'VA', 'I1', 'B1', 'BT', 'A1', 'AG', 'NC', 'SA', 'QR', 'FT', 'IR',
+        // Kosong = semua metode Duitku aktif (untuk sandbox)
+        // Tambahkan kode metode di sini untuk menonaktifkannya di production, misal: 'BC', 'M2'
     ],
 
     /*
     | Metode yang aktif dan dapat digunakan oleh pelanggan.
     | Ubah nilai ini saat gateway sudah siap produksi.
     */
-    'active_methods' => ['MANUAL_BCA', 'COD'],
+    'active_methods' => ['MANUAL_BCA', 'COD', 'BC', 'M2', 'VA', 'I1', 'B1', 'BT', 'A1', 'AG', 'NC', 'SA', 'QR', 'FT', 'IR'],
 ];
