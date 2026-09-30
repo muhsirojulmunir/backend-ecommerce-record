@@ -40,7 +40,10 @@ class DuitkuCallbackController extends Controller
         }
 
         // 2. Cari order berdasarkan order_number
-        $order = Order::where('order_number', $merchantOrderId)->first();
+        $baseOrderNumber = preg_replace('/-\d+$/', '', $merchantOrderId);
+        $order = Order::where('order_number', $merchantOrderId)
+            ->orWhere('order_number', $baseOrderNumber)
+            ->first();
 
         if (! $order) {
             Log::warning("Duitku callback: order tidak ditemukan [{$merchantOrderId}]");
