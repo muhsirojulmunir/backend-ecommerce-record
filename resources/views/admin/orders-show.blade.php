@@ -364,6 +364,17 @@
                                 <span class="text-rose-600">−Rp {{ number_format($diskon, 0, ',', '.') }}</span>
                             </div>
                         @endif
+                        @if(($order->voucher_discount ?? 0) > 0)
+                            <div class="flex justify-between text-gray-600">
+                                <span>
+                                    Potongan Voucher
+                                    @if($order->voucher)
+                                        <span class="block text-[10px] text-emerald-600 font-mono font-bold">{{ $order->voucher->code }}</span>
+                                    @endif
+                                </span>
+                                <span class="text-emerald-600 font-semibold">&#8722;Rp {{ number_format($order->voucher_discount, 0, ',', '.') }}</span>
+                            </div>
+                        @endif
 
                         <div class="flex justify-between font-black text-sm text-slate-900 border-t border-gray-200 pt-2">
                             <span>Dibayar Pembeli</span>

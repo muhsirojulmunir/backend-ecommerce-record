@@ -44,6 +44,8 @@ class Order extends Model
         'referral_commission',
         'invoice_number',
         'invoice_issued_at',
+        'voucher_id',
+        'voucher_discount',
     ];
 
     protected function casts(): array
@@ -60,6 +62,7 @@ class Order extends Model
             'referral_commission' => 'decimal:2',
             'invoice_issued_at' => 'datetime',
             'payment_proof_uploaded_at' => 'datetime',
+            'voucher_discount' => 'decimal:2',
         ];
     }
 
@@ -123,6 +126,15 @@ class Order extends Model
 
             if ($baruBatal) {
                 $layanan->saatDibatalkan($order);
+
+                if ($order->voucher_id) {
+                    \App\Models\Voucher::where('id', $order->voucher_id)->update([
+                        'is_used'  => false,
+                        'used_by'  => null,
+                        'used_at'  => null,
+                        'order_id' => null,
+                    ]);
+                }
             }
         });
     }
@@ -169,6 +181,11 @@ class Order extends Model
     public function returnRequest(): HasOne
     {
         return $this->hasOne(OrderReturn::class);
+    }
+
+    public function voucher(): BelongsTo
+    {
+        return $this->belongsTo(Voucher::class);
     }
 
     /**

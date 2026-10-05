@@ -25,6 +25,7 @@ class CheckoutRequest extends FormRequest
             'shipping_cost' => 'required|numeric|min:0',
             'courier' => 'required|string|max:50',
             'payment_method' => 'required|string|max:50',
+            'voucher_code'   => 'nullable|string|max:50',
             'notes' => 'nullable|string',
         ];
     }

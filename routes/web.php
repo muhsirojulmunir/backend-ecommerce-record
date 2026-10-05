@@ -21,6 +21,7 @@ use App\Http\Controllers\Web\AdminWebRoleController;
 use App\Http\Controllers\Web\AdminWebPermissionController;
 use App\Http\Controllers\Web\AdminWebSettingController;
 use App\Http\Controllers\Web\AdminWebActivityLogController;
+use App\Http\Controllers\Web\AdminWebVoucherController;
 
 // Halaman Utama Langsung Tampilkan Form Login (Instant, Tanpa Delay Redirect)
 Route::get('/', function () {
@@ -124,6 +125,14 @@ Route::prefix('admin')->group(function () {
             Route::patch('/{productId}/toggle', [AdminWebDiscountController::class, 'toggle'])->name('admin.discounts.toggle');
             Route::delete('/{productId}', [AdminWebDiscountController::class, 'destroy'])->name('admin.discounts.destroy');
             Route::post('/bulk', [AdminWebDiscountController::class, 'bulkUpdate'])->name('admin.discounts.bulk');
+        });
+
+        // Voucher
+        Route::prefix('vouchers')->middleware('can:manage discounts')->group(function () {
+            Route::get('/', [AdminWebVoucherController::class, 'index'])->name('admin.vouchers');
+            Route::post('/generate', [AdminWebVoucherController::class, 'generate'])->name('admin.vouchers.generate');
+            Route::get('/print', [AdminWebVoucherController::class, 'print'])->name('admin.vouchers.print');
+            Route::delete('/destroy', [AdminWebVoucherController::class, 'destroy'])->name('admin.vouchers.destroy');
         });
 
         // Orders (Kelola Pesanan)

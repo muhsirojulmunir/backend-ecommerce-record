@@ -88,9 +88,19 @@ class OrderService
                 ];
             }
 
-            // 3. Hitung grand total
+            // 3. Hitung voucher & grand total
+            $voucherModel    = null;
+            $voucherDiscount = 0;
+            if (!empty($data['voucher_code'])) {
+                $voucherModel = \App\Models\Voucher::where('code', strtoupper(trim($data['voucher_code'])))->first();
+                if (!$voucherModel || $voucherModel->is_used || ($voucherModel->expires_at && $voucherModel->expires_at->isPast())) {
+                    throw new \Exception('Kode voucher tidak valid, sudah kadaluarsa, atau sudah pernah digunakan.');
+                }
+                $voucherDiscount = min((float) $voucherModel->amount, (float) $totalPrice);
+            }
+
             $shippingCost  = $data['shipping_cost'] ?? 0;
-            $grandTotal    = $totalPrice + $shippingCost;
+            $grandTotal    = max(0, $totalPrice - $voucherDiscount + $shippingCost);
             $paymentMethod = $data['payment_method'] ?? 'COD';
 
             // 4. Buat Order dengan status unpaid
@@ -100,6 +110,8 @@ class OrderService
                 'total_price'      => $totalPrice,
                 'shipping_cost'    => $shippingCost,
                 'grand_total'      => $grandTotal,
+                'voucher_id'       => $voucherModel?->id,
+                'voucher_discount' => $voucherDiscount,
                 'status'           => 'pending',
                 'shipping_address' => $data['shipping_address'],
                 'courier'          => $data['courier'] ?? null,
@@ -115,6 +127,10 @@ class OrderService
             ];
 
             $order = $this->orderRepository->create($orderData);
+
+            if ($voucherModel) {
+                $voucherModel->markAsUsed($userId, $order->id);
+            }
 
             // 5. Jika bukan COD atau MANUAL_BCA → buat transaksi Duitku
             $skipDuitku = in_array(strtoupper($paymentMethod), ['COD', 'MANUAL_BCA'], true);

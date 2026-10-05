@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\Customer\CustomerBannerController;
 use App\Http\Controllers\Api\Customer\CustomerCategoryController;
 use App\Http\Controllers\Api\Customer\ShippingController;
 use App\Http\Controllers\Api\Customer\CustomerOrderController;
+use App\Http\Controllers\Api\Customer\CustomerVoucherController;
 use App\Http\Controllers\Api\DuitkuCallbackController;
 
 /*
@@ -63,6 +64,9 @@ Route::prefix('customer')->group(function () {
         Route::get('orders', [CustomerOrderController::class, 'index']);
         Route::get('orders/{id}', [CustomerOrderController::class, 'show']);
         Route::post('orders/{id}/cancel', [CustomerOrderController::class, 'requestReturn']);
+
+        // Vouchers
+        Route::post('vouchers/check', [CustomerVoucherController::class, 'check']);
 
         // Duitku — Ambil metode pembayaran yang tersedia
         Route::get('payment-methods', [CustomerOrderController::class, 'paymentMethods']);
