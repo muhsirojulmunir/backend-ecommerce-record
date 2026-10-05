@@ -98,8 +98,8 @@
                             <span>Kelola Diskon</span>
                         </a>
 
-                        <a href="{{ route('admin.vouchers') }}"
-                            class="flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-150 gap-3 {{ request()->routeIs('admin.vouchers*') ? 'bg-orange-600 text-white shadow-md shadow-orange-900/40' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
+                        <a href="{{ Route::has('admin.vouchers') ? route('admin.vouchers') : url('/admin/vouchers') }}"
+                            class="flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-150 gap-3 {{ request()->is('admin/vouchers*') ? 'bg-orange-600 text-white shadow-md shadow-orange-900/40' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
                             <i class="fa-solid fa-ticket w-5 text-center text-base"></i>
                             <span>Kelola Voucher</span>
                         </a>

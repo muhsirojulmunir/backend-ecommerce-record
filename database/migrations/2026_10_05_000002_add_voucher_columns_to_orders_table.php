@@ -9,16 +9,25 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            $table->foreignId('voucher_id')->nullable()->after('referral_commission')->constrained('vouchers')->nullOnDelete();
-            $table->unsignedBigInteger('voucher_discount')->default(0)->after('voucher_id')->comment('Nominal potongan voucher dalam Rupiah');
+            if (!Schema::hasColumn('orders', 'voucher_id')) {
+                $table->unsignedBigInteger('voucher_id')->nullable()->after('referral_commission')->index();
+            }
+            if (!Schema::hasColumn('orders', 'voucher_discount')) {
+                $table->unsignedBigInteger('voucher_discount')->default(0)->after('voucher_id')->comment('Nominal potongan voucher dalam Rupiah');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('voucher_id');
-            $table->dropColumn('voucher_discount');
+            if (Schema::hasColumn('orders', 'voucher_id')) {
+                $table->dropIndex(['voucher_id']);
+                $table->dropColumn('voucher_id');
+            }
+            if (Schema::hasColumn('orders', 'voucher_discount')) {
+                $table->dropColumn('voucher_discount');
+            }
         });
     }
 };
