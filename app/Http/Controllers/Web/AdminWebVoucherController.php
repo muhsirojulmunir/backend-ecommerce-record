@@ -15,12 +15,15 @@ class AdminWebVoucherController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Voucher::with(['usedByUser', 'creator']);
+        $query = Voucher::with(['usedByUser', 'creator', 'reservedByUser', 'order']);
 
         // Filter status
         if ($request->filled('status')) {
             match ($request->status) {
-                'available' => $query->available(),
+                'available' => $query->where('is_used', false)->whereNull('used_by')->where(function ($q) {
+                    $q->whereNull('expires_at')->orWhere('expires_at', '>=', now());
+                }),
+                'claimed'   => $query->where('is_used', false)->whereNotNull('used_by'),
                 'used'      => $query->used(),
                 'expired'   => $query->expired(),
                 default     => null,
@@ -42,7 +45,10 @@ class AdminWebVoucherController extends Controller
         // Statistik
         $stats = [
             'total'     => Voucher::count(),
-            'available' => Voucher::available()->count(),
+            'available' => Voucher::where('is_used', false)->whereNull('used_by')->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>=', now());
+            })->count(),
+            'claimed'   => Voucher::where('is_used', false)->whereNotNull('used_by')->count(),
             'used'      => Voucher::used()->count(),
             'expired'   => Voucher::expired()->count(),
         ];

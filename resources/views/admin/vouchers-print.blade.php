@@ -1,14 +1,23 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cetak Voucher - {{ $vouchers->first()?->batch_label ?? 'Voucher' }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@700;800&display=swap"
+        rel="stylesheet">
     <style>
         /* ─── Reset ─── */
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -31,8 +40,17 @@
             justify-content: space-between;
             box-shadow: 0 4px 20px rgba(79, 70, 229, 0.3);
         }
-        .print-controls h2 { font-size: 14px; font-weight: 800; }
-        .print-controls p { font-size: 11px; opacity: 0.8; }
+
+        .print-controls h2 {
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .print-controls p {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
         .print-controls button {
             background: white;
             color: #4f46e5;
@@ -45,9 +63,15 @@
             transition: all 0.2s;
             font-family: inherit;
         }
-        .print-controls button:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
 
-        .page-wrapper { padding-top: 80px; }
+        .print-controls button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .page-wrapper {
+            padding-top: 80px;
+        }
 
         /* ─── F4 Paper Layout ───
          * Ukuran F4: 215mm × 330mm
@@ -60,7 +84,7 @@
             margin: 20px auto;
             background: white;
             padding: 8mm;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
             border-radius: 8px;
         }
 
@@ -155,13 +179,21 @@
 
         /* ─── Print Styles ─── */
         @media print {
-            .print-controls { display: none !important; }
-            .page-wrapper { padding-top: 0; }
+            .print-controls {
+                display: none !important;
+            }
 
-            body { background: white; }
+            .page-wrapper {
+                padding-top: 0;
+            }
+
+            body {
+                background: white;
+            }
 
             @page {
-                size: 215mm 330mm; /* F4 */
+                size: 215mm 330mm;
+                /* F4 */
                 margin: 0;
             }
 
@@ -191,18 +223,20 @@
 
         /* ─── Preview spacing ─── */
         @media screen {
-            .voucher-page + .voucher-page {
+            .voucher-page+.voucher-page {
                 margin-top: 20px;
             }
         }
     </style>
 </head>
+
 <body>
     {{-- Print Controls --}}
     <div class="print-controls">
         <div>
             <h2>🎫 Preview Cetak Voucher</h2>
-            <p>{{ $vouchers->count() }} voucher • {{ $vouchers->first()?->batch_label ?? '-' }} • Kertas F4 (215 × 330 mm)</p>
+            <p>{{ $vouchers->count() }} voucher • {{ $vouchers->first()?->batch_label ?? '-' }} • Kertas F4 (215 × 330
+                mm)</p>
         </div>
         <button onclick="window.print()">🖨️ Cetak Sekarang</button>
     </div>
@@ -241,4 +275,5 @@
         @endforeach
     </div>
 </body>
+
 </html>

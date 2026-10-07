@@ -32,7 +32,7 @@
     @endif
 
     {{-- ── Statistik Cards ── --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div class="flex items-center gap-3 mb-2">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-md">
@@ -53,6 +53,15 @@
         </div>
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div class="flex items-center gap-3 mb-2">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-gamepad text-white text-sm"></i>
+                </div>
+                <p class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Klaim Game</p>
+            </div>
+            <p class="text-2xl font-extrabold text-indigo-600">{{ number_format($stats['claimed'] ?? 0) }}</p>
+        </div>
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <div class="flex items-center gap-3 mb-2">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-md">
                     <i class="fa-solid fa-receipt text-white text-sm"></i>
                 </div>
@@ -60,7 +69,7 @@
             </div>
             <p class="text-2xl font-extrabold text-amber-600">{{ number_format($stats['used']) }}</p>
         </div>
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 col-span-2 lg:col-span-1">
             <div class="flex items-center gap-3 mb-2">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center shadow-md">
                     <i class="fa-solid fa-clock text-white text-sm"></i>
@@ -164,7 +173,8 @@
                 <select name="status" class="px-4 py-2.5 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
                     <option value="">Semua Status</option>
                     <option value="available" {{ request('status') === 'available' ? 'selected' : '' }}>Tersedia</option>
-                    <option value="used" {{ request('status') === 'used' ? 'selected' : '' }}>Terpakai</option>
+                    <option value="claimed" {{ request('status') === 'claimed' ? 'selected' : '' }}>Diklaim User (Game)</option>
+                    <option value="used" {{ request('status') === 'used' ? 'selected' : '' }}>Terpakai (Checkout)</option>
                     <option value="expired" {{ request('status') === 'expired' ? 'selected' : '' }}>Kadaluarsa</option>
                 </select>
             </div>
@@ -258,15 +268,23 @@
                             {{-- Status --}}
                             <td class="px-5 py-3.5">
                                 @if($v->is_used)
-                                    <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-amber-200">
-                                        <i class="fa-solid fa-circle-check text-[8px]"></i> Terpakai
+                                    <span class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-emerald-200">
+                                        <i class="fa-solid fa-circle-check text-[9px]"></i> Terpakai
+                                    </span>
+                                @elseif($v->used_by && $v->usedByUser)
+                                    <span class="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-indigo-200" title="Disimpan oleh user dari game">
+                                        <i class="fa-solid fa-gamepad text-[9px]"></i> Diklaim (Game)
+                                    </span>
+                                @elseif($v->reserved_for && $v->reserved_until && $v->reserved_until->isFuture())
+                                    <span class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-amber-200" title="Sedang dimainkan user">
+                                        <i class="fa-solid fa-stopwatch text-[9px]"></i> Sesi Game
                                     </span>
                                 @elseif($v->is_expired)
-                                    <span class="inline-flex items-center gap-1 bg-red-50 text-red-600 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-red-200">
-                                        <i class="fa-solid fa-clock text-[8px]"></i> Kadaluarsa
+                                    <span class="inline-flex items-center gap-1.5 bg-red-50 text-red-600 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-red-200">
+                                        <i class="fa-solid fa-clock text-[9px]"></i> Kadaluarsa
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-emerald-200">
+                                    <span class="inline-flex items-center gap-1.5 bg-teal-50 text-teal-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-teal-200">
                                         <i class="fa-solid fa-circle text-[8px]"></i> Tersedia
                                     </span>
                                 @endif
@@ -277,12 +295,36 @@
                                 {{ $v->expires_at ? $v->expires_at->format('d M Y') : '—' }}
                             </td>
 
-                            {{-- Dipakai Oleh --}}
+                            {{-- Dipakai Oleh / Pemilik --}}
                             <td class="px-5 py-3.5">
                                 @if($v->is_used && $v->usedByUser)
                                     <div class="text-xs">
-                                        <p class="font-semibold text-gray-700">{{ $v->usedByUser->name }}</p>
-                                        <p class="text-[10px] text-gray-400">{{ $v->used_at?->format('d M Y H:i') }}</p>
+                                        <p class="font-bold text-gray-800 flex items-center gap-1">
+                                            <i class="fa-solid fa-user-check text-emerald-500 text-[10px]"></i>
+                                            {{ $v->usedByUser->name }}
+                                        </p>
+                                        <p class="text-[10px] text-gray-400 mt-0.5">
+                                            @if($v->order)
+                                                Pesanan #{{ $v->order->order_number ?? $v->order->id }} • 
+                                            @endif
+                                            {{ $v->used_at?->format('d M Y H:i') }}
+                                        </p>
+                                    </div>
+                                @elseif($v->used_by && $v->usedByUser)
+                                    <div class="text-xs">
+                                        <p class="font-bold text-indigo-700 flex items-center gap-1">
+                                            <i class="fa-solid fa-gift text-indigo-500 text-[10px]"></i>
+                                            {{ $v->usedByUser->name }}
+                                        </p>
+                                        <p class="text-[10px] text-indigo-500 mt-0.5 font-medium">Tersimpan di akun (belum checkout)</p>
+                                    </div>
+                                @elseif($v->reserved_for && $v->reservedByUser && $v->reserved_until && $v->reserved_until->isFuture())
+                                    <div class="text-xs">
+                                        <p class="font-bold text-amber-700 flex items-center gap-1">
+                                            <i class="fa-solid fa-stopwatch text-amber-500 text-[10px]"></i>
+                                            {{ $v->reservedByUser->name }}
+                                        </p>
+                                        <p class="text-[10px] text-amber-500 mt-0.5">Reservasi aktif ({{ $v->reserved_until->diffForHumans() }})</p>
                                     </div>
                                 @else
                                     <span class="text-xs text-gray-300">—</span>

@@ -18,15 +18,18 @@ class Voucher extends Model
         'expires_at',
         'batch_label',
         'created_by',
+        'reserved_for',
+        'reserved_until',
     ];
 
     protected function casts(): array
     {
         return [
-            'amount'     => 'integer',
-            'is_used'    => 'boolean',
-            'used_at'    => 'datetime',
-            'expires_at' => 'datetime',
+            'amount'         => 'integer',
+            'is_used'        => 'boolean',
+            'used_at'        => 'datetime',
+            'expires_at'     => 'datetime',
+            'reserved_until' => 'datetime',
         ];
     }
 
@@ -47,6 +50,11 @@ class Voucher extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function reservedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reserved_for');
+    }
+
     // ─── Scopes ─────────────────────────────────────────────────────────────
 
     /**
@@ -58,6 +66,26 @@ class Voucher extends Model
             ->where(function ($q) {
                 $q->whereNull('expires_at')
                   ->orWhere('expires_at', '>=', now());
+            });
+    }
+
+    /**
+     * Voucher tersedia untuk game: belum digunakan, tidak kadaluarsa,
+     * dan belum direservasi (atau reservasinya sudah expired).
+     */
+    public function scopeAvailableForGame($query, int $amount)
+    {
+        return $query->where('is_used', false)
+            ->where('amount', $amount)
+            ->whereNull('used_by')
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                  ->orWhere('expires_at', '>=', now());
+            })
+            ->where(function ($q) {
+                // Belum direservasi, ATAU reservasinya sudah kedaluwarsa
+                $q->whereNull('reserved_for')
+                  ->orWhere('reserved_until', '<', now());
             });
     }
 
@@ -121,10 +149,47 @@ class Voucher extends Model
     public function markAsUsed(int $userId, int $orderId): void
     {
         $this->update([
-            'is_used'  => true,
-            'used_by'  => $userId,
-            'used_at'  => now(),
-            'order_id' => $orderId,
+            'is_used'        => true,
+            'used_by'        => $userId,
+            'used_at'        => now(),
+            'order_id'       => $orderId,
+            'reserved_for'   => null,
+            'reserved_until' => null,
+        ]);
+    }
+
+    /**
+     * Reservasi sementara voucher untuk pemain (5 menit).
+     */
+    public function reserveFor(int $userId): void
+    {
+        $this->update([
+            'reserved_for'   => $userId,
+            'reserved_until' => now()->addMinutes(5),
+        ]);
+    }
+
+    /**
+     * Lepaskan reservasi (voucher hangus / tidak diklaim).
+     */
+    public function releaseReservation(): void
+    {
+        $this->update([
+            'reserved_for'   => null,
+            'reserved_until' => null,
+        ]);
+    }
+
+    /**
+     * Klaim permanen voucher untuk user (setelah klik Simpan di game).
+     * Voucher dipegang user tapi belum `is_used` (belum dipakai checkout).
+     */
+    public function claimByUser(int $userId): void
+    {
+        $this->update([
+            'used_by'        => $userId,
+            'reserved_for'   => null,
+            'reserved_until' => null,
         ]);
     }
 }

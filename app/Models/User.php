@@ -26,6 +26,7 @@ class User extends Authenticatable
         'avatar',
         'password',
         'is_blocked',
+        'last_game_at',
     ];
 
     protected $hidden = [
@@ -41,6 +42,7 @@ class User extends Authenticatable
             'is_blocked'        => 'boolean',
             'rpay_balance'      => 'decimal:2',
             'referral_issued_at' => 'datetime',
+            'last_game_at'      => 'date',
         ];
     }
 
