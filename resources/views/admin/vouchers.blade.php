@@ -110,8 +110,19 @@
                     <label class="block text-xs font-bold text-gray-600 mb-1.5">
                         <i class="fa-solid fa-money-bill text-emerald-500 mr-1"></i>Nominal (Rp)
                     </label>
-                    <input type="number" name="amount" value="{{ old('amount', 50000) }}" min="1000" step="1000" required
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none focus:border-transparent transition @error('amount') border-red-400 @enderror">
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-2.5 text-xs font-extrabold text-gray-400">Rp</span>
+                        <input type="text"
+                               x-ref="displayAmountInput"
+                               :value="displayAmount"
+                               @input="formatAmount($event.target.value)"
+                               value="{{ old('amount') ? number_format((int)old('amount'), 0, ',', '.') : '50.000' }}"
+                               placeholder="10.000"
+                               required
+                               autocomplete="off"
+                               class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none focus:border-transparent transition @error('amount') border-red-400 @enderror">
+                    </div>
+                    <input type="hidden" name="amount" id="voucher_raw_amount" :value="rawAmount" value="{{ old('amount', 50000) }}">
                     @error('amount')
                         <p class="text-red-500 text-[10px] mt-1">{{ $message }}</p>
                     @enderror
@@ -458,6 +469,19 @@ function voucherManager() {
     return {
         selectedVouchers: [],
         allVoucherIds: {{ Js::from($vouchers->pluck('id')->values()->all()) }},
+        rawAmount: '{{ old('amount', 50000) }}',
+        displayAmount: '',
+        init() {
+            this.formatAmount(this.rawAmount);
+        },
+        formatAmount(val) {
+            let clean = String(val || '').replace(/\D/g, '');
+            this.rawAmount = clean;
+            this.displayAmount = clean !== '' ? Number(clean).toLocaleString('id-ID') : '';
+            if (this.$refs.displayAmountInput) {
+                this.$refs.displayAmountInput.value = this.displayAmount;
+            }
+        },
         get isAllSelected() {
             return this.allVoucherIds.length > 0 && this.selectedVouchers.length === this.allVoucherIds.length;
         },

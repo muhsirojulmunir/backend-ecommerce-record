@@ -96,6 +96,11 @@ class AdminWebVoucherController extends Controller
      */
     public function generate(Request $request)
     {
+        // Sanitasi amount jika ada format titik/ribuan
+        if ($request->has('amount')) {
+            $cleaned = preg_replace('/\D/', '', (string) $request->input('amount'));
+            $request->merge(['amount' => $cleaned !== '' ? (int) $cleaned : null]);
+        }
         $validated = $request->validate([
             'quantity'    => 'required|integer|min:1|max:500',
             'amount'      => 'required|integer|min:1000',

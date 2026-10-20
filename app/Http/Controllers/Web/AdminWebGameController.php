@@ -53,6 +53,19 @@ class AdminWebGameController extends Controller
         $game = GameSetting::where('game_code', $gameCode)->firstOrFail();
 
         if ($gameCode === 'stopwatch') {
+            // Sanitasi nominal tiers dari titik/pemisah ribuan jika ada
+            if ($request->has('tiers')) {
+                $tiers = $request->input('tiers');
+                if (is_array($tiers)) {
+                    foreach ($tiers as $k => $tierData) {
+                        if (isset($tierData['amount'])) {
+                            $clean = preg_replace('/\D/', '', (string) $tierData['amount']);
+                            $tiers[$k]['amount'] = $clean !== '' ? (int) $clean : null;
+                        }
+                    }
+                    $request->merge(['tiers' => $tiers]);
+                }
+            }
             $validated = $request->validate([
                 'name'                  => 'required|string|max:100',
                 'is_active'             => 'nullable|boolean',

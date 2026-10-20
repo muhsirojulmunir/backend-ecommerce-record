@@ -186,12 +186,33 @@
                                 <span class="text-xs font-black text-amber-800 font-mono">10.00s Target</span>
                             </div>
 
-                            <div>
+                            <div x-data="{
+                                raw: '{{ old('tiers.perfect.amount', $tiers['perfect']['amount'] ?? 50000) }}',
+                                display: '',
+                                init() { this.format(this.raw); },
+                                format(v) {
+                                    let clean = String(v || '').replace(/\D/g, '');
+                                    this.raw = clean;
+                                    this.display = clean !== '' ? Number(clean).toLocaleString('id-ID') : '';
+                                    if (this.$refs.input) this.$refs.input.value = this.display;
+                                }
+                            }">
                                 <label class="block text-xs font-bold text-gray-700 mb-1">
                                     Nominal Hadiah Voucher (Rp)
                                 </label>
-                                <input type="number" name="tiers[perfect][amount]" value="{{ old('tiers.perfect.amount', $tiers['perfect']['amount'] ?? 50000) }}" step="1000" min="1000" required
-                                    class="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl text-sm font-bold text-amber-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                <div class="relative">
+                                    <span class="absolute left-3.5 top-2 text-xs font-bold text-amber-700">Rp</span>
+                                    <input type="text"
+                                           x-ref="input"
+                                           :value="display"
+                                           @input="format($event.target.value)"
+                                           value="{{ old('tiers.perfect.amount', $tiers['perfect']['amount'] ?? 50000) ? number_format((int)old('tiers.perfect.amount', $tiers['perfect']['amount'] ?? 50000), 0, ',', '.') : '50.000' }}"
+                                           placeholder="50.000"
+                                           required
+                                           autocomplete="off"
+                                           class="w-full pl-10 pr-4 py-2 bg-white border border-amber-300 rounded-xl text-sm font-bold text-amber-900 focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                                </div>
+                                <input type="hidden" name="tiers[perfect][amount]" :value="raw" value="{{ old('tiers.perfect.amount', $tiers['perfect']['amount'] ?? 50000) }}">
                             </div>
 
                             <div class="grid grid-cols-2 gap-3">
@@ -218,12 +239,33 @@
                                 <span class="text-xs font-black text-indigo-800 font-mono">Hampir 10s</span>
                             </div>
 
-                            <div>
+                            <div x-data="{
+                                raw: '{{ old('tiers.near.amount', $tiers['near']['amount'] ?? 30000) }}',
+                                display: '',
+                                init() { this.format(this.raw); },
+                                format(v) {
+                                    let clean = String(v || '').replace(/\D/g, '');
+                                    this.raw = clean;
+                                    this.display = clean !== '' ? Number(clean).toLocaleString('id-ID') : '';
+                                    if (this.$refs.input) this.$refs.input.value = this.display;
+                                }
+                            }">
                                 <label class="block text-xs font-bold text-gray-700 mb-1">
                                     Nominal Hadiah Voucher (Rp)
                                 </label>
-                                <input type="number" name="tiers[near][amount]" value="{{ old('tiers.near.amount', $tiers['near']['amount'] ?? 30000) }}" step="1000" min="1000" required
-                                    class="w-full px-4 py-2 bg-white border border-indigo-300 rounded-xl text-sm font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                <div class="relative">
+                                    <span class="absolute left-3.5 top-2 text-xs font-bold text-indigo-700">Rp</span>
+                                    <input type="text"
+                                           x-ref="input"
+                                           :value="display"
+                                           @input="format($event.target.value)"
+                                           value="{{ old('tiers.near.amount', $tiers['near']['amount'] ?? 30000) ? number_format((int)old('tiers.near.amount', $tiers['near']['amount'] ?? 30000), 0, ',', '.') : '30.000' }}"
+                                           placeholder="30.000"
+                                           required
+                                           autocomplete="off"
+                                           class="w-full pl-10 pr-4 py-2 bg-white border border-indigo-300 rounded-xl text-sm font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                </div>
+                                <input type="hidden" name="tiers[near][amount]" :value="raw" value="{{ old('tiers.near.amount', $tiers['near']['amount'] ?? 30000) }}">
                             </div>
 
                             <div class="grid grid-cols-2 gap-3">
@@ -250,12 +292,33 @@
                                 <span class="text-xs font-black text-emerald-800 font-mono">Semua Hasil Lain</span>
                             </div>
 
-                            <div>
+                            <div x-data="{
+                                raw: '{{ old('tiers.good.amount', $tiers['good']['amount'] ?? 10000) }}',
+                                display: '',
+                                init() { this.format(this.raw); },
+                                format(v) {
+                                    let clean = String(v || '').replace(/\D/g, '');
+                                    this.raw = clean;
+                                    this.display = clean !== '' ? Number(clean).toLocaleString('id-ID') : '';
+                                    if (this.$refs.input) this.$refs.input.value = this.display;
+                                }
+                            }">
                                 <label class="block text-xs font-bold text-gray-700 mb-1">
                                     Nominal Hadiah Voucher (Rp)
                                 </label>
-                                <input type="number" name="tiers[good][amount]" value="{{ old('tiers.good.amount', $tiers['good']['amount'] ?? 10000) }}" step="1000" min="0" required
-                                    class="w-full px-4 py-2 bg-white border border-emerald-300 rounded-xl text-sm font-bold text-emerald-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                <div class="relative">
+                                    <span class="absolute left-3.5 top-2 text-xs font-bold text-emerald-700">Rp</span>
+                                    <input type="text"
+                                           x-ref="input"
+                                           :value="display"
+                                           @input="format($event.target.value)"
+                                           value="{{ old('tiers.good.amount', $tiers['good']['amount'] ?? 10000) ? number_format((int)old('tiers.good.amount', $tiers['good']['amount'] ?? 10000), 0, ',', '.') : '10.000' }}"
+                                           placeholder="10.000"
+                                           required
+                                           autocomplete="off"
+                                           class="w-full pl-10 pr-4 py-2 bg-white border border-emerald-300 rounded-xl text-sm font-bold text-emerald-900 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                                </div>
+                                <input type="hidden" name="tiers[good][amount]" :value="raw" value="{{ old('tiers.good.amount', $tiers['good']['amount'] ?? 10000) }}">
                             </div>
 
                             <div class="pt-3">
