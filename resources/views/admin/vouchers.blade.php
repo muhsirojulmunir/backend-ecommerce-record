@@ -92,7 +92,7 @@
 
         <form action="{{ route('admin.vouchers.generate') }}" method="POST" class="p-6">
             @csrf
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
                 {{-- Jumlah --}}
                 <div>
                     <label class="block text-xs font-bold text-gray-600 mb-1.5">
@@ -139,6 +139,21 @@
                     <input type="text" name="batch_label" value="{{ old('batch_label') }}" placeholder="Auto-generate jika kosong" maxlength="100"
                         class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none focus:border-transparent transition placeholder-gray-300">
                 </div>
+
+                {{-- Target Kategori --}}
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1.5">
+                        <i class="fa-solid fa-layer-group text-blue-500 mr-1"></i>Target Kategori
+                    </label>
+                    <select name="category_id" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none focus:border-transparent transition">
+                        <option value="">Semua Kategori (Universal)</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>
+                                {{ $cat->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
 
             <div class="mt-5 flex items-center gap-3">
@@ -179,6 +194,16 @@
                 </select>
             </div>
 
+            <div>
+                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Kategori</label>
+                <select name="category_id" class="px-4 py-2.5 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition max-w-[180px]">
+                    <option value="">Semua Kategori</option>
+                    <option value="all" {{ request('category_id') === 'all' ? 'selected' : '' }}>Universal (Semua)</option>
+                    @foreach($categories as $cat)
+                        <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                    @endforeach
+                </select>
+            </div>
             <div>
                 <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Batch</label>
                 <select name="batch" class="px-4 py-2.5 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition max-w-[200px]">
@@ -231,6 +256,7 @@
                     <tr class="bg-gray-50/80 border-b border-gray-100">
                         <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Kode</th>
                         <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Nominal</th>
+                        <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Kategori</th>
                         <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Batch</th>
                         <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Status</th>
                         <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Kadaluarsa</th>
@@ -251,6 +277,21 @@
                             {{-- Nominal --}}
                             <td class="px-5 py-3.5">
                                 <span class="font-bold text-emerald-600 text-sm">{{ $v->formatted_amount }}</span>
+                            </td>
+
+                            {{-- Kategori --}}
+                            <td class="px-5 py-3.5">
+                                @if($v->category)
+                                    <span class="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 font-bold text-xs px-2.5 py-1 rounded-lg">
+                                        <i class="fa-solid fa-layer-group text-[10px]"></i>
+                                        {{ $v->category->name }}
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1.5 bg-gray-100 border border-gray-200 text-gray-600 font-medium text-xs px-2.5 py-1 rounded-lg">
+                                        <i class="fa-solid fa-globe text-[10px]"></i>
+                                        Semua Kategori
+                                    </span>
+                                @endif
                             </td>
 
                             {{-- Batch --}}

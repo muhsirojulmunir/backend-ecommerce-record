@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Voucher;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,7 @@ class AdminWebVoucherController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Voucher::with(['usedByUser', 'creator', 'reservedByUser', 'order']);
+        $query = Voucher::with(['usedByUser', 'creator', 'reservedByUser', 'order', 'category']);
 
         // Filter status
         if ($request->filled('status')) {
@@ -30,6 +31,15 @@ class AdminWebVoucherController extends Controller
             };
         }
 
+
+        // Filter kategori
+        if ($request->filled('category_id')) {
+            if ($request->category_id === 'all') {
+                $query->whereNull('category_id');
+            } else {
+                $query->where('category_id', $request->category_id);
+            }
+        }
         // Filter batch
         if ($request->filled('batch')) {
             $query->where('batch_label', $request->batch);
@@ -60,7 +70,8 @@ class AdminWebVoucherController extends Controller
             ->sort()
             ->values();
 
-        return view('admin.vouchers', compact('vouchers', 'stats', 'batches'));
+        $categories = Category::active()->ordered()->get();
+        return view('admin.vouchers', compact('vouchers', 'stats', 'batches', 'categories'));
     }
 
     /**
@@ -73,6 +84,7 @@ class AdminWebVoucherController extends Controller
             'amount'     => 'required|integer|min:1000',
             'expires_at' => 'nullable|date|after:today',
             'batch_label' => 'nullable|string|max:100',
+            'category_id' => 'nullable|exists:categories,id',
         ], [
             'quantity.required' => 'Jumlah voucher wajib diisi.',
             'quantity.max'      => 'Maksimal 500 voucher per batch.',
@@ -95,6 +107,7 @@ class AdminWebVoucherController extends Controller
                     'code'        => Voucher::generateUniqueCode(),
                     'amount'      => $validated['amount'],
                     'expires_at'  => $expiresAt,
+                    'category_id' => $validated['category_id'] ?? null,
                     'batch_label' => $batchLabel,
                     'created_by'  => Auth::id(),
                 ]);
