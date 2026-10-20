@@ -22,6 +22,7 @@ use App\Http\Controllers\Web\AdminWebPermissionController;
 use App\Http\Controllers\Web\AdminWebSettingController;
 use App\Http\Controllers\Web\AdminWebActivityLogController;
 use App\Http\Controllers\Web\AdminWebVoucherController;
+use App\Http\Controllers\Web\AdminWebGameController;
 
 // Halaman Utama Langsung Tampilkan Form Login (Instant, Tanpa Delay Redirect)
 Route::get('/', function () {
