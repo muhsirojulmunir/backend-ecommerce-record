@@ -8,6 +8,7 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class AdminWebVoucherController extends Controller
 {
@@ -16,7 +17,21 @@ class AdminWebVoucherController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Voucher::with(['usedByUser', 'creator', 'reservedByUser', 'order', 'category']);
+        $query = Voucher::with(['usedByUser', 'creator', 'reservedByUser', 'order']);
+
+        // Eager load category jika kolom tersedia di database
+        if (Schema::hasColumn('vouchers', 'category_id')) {
+            $query->with('category');
+
+            // Filter kategori
+            if ($request->filled('category_id')) {
+                if ($request->category_id === 'all') {
+                    $query->whereNull('category_id');
+                } else {
+                    $query->where('category_id', $request->category_id);
+                }
+            }
+        }
 
         // Filter status
         if ($request->filled('status')) {
@@ -31,15 +46,6 @@ class AdminWebVoucherController extends Controller
             };
         }
 
-
-        // Filter kategori
-        if ($request->filled('category_id')) {
-            if ($request->category_id === 'all') {
-                $query->whereNull('category_id');
-            } else {
-                $query->where('category_id', $request->category_id);
-            }
-        }
         // Filter batch
         if ($request->filled('batch')) {
             $query->where('batch_label', $request->batch);
@@ -70,7 +76,18 @@ class AdminWebVoucherController extends Controller
             ->sort()
             ->values();
 
-        $categories = Category::active()->ordered()->get();
+        // Ambil kategori secara aman
+        $categoryQuery = Category::query();
+        if (Schema::hasColumn('categories', 'is_active')) {
+            $categoryQuery->where('is_active', true);
+        }
+        if (Schema::hasColumn('categories', 'sort_order')) {
+            $categoryQuery->orderBy('sort_order');
+        } else {
+            $categoryQuery->orderBy('name');
+        }
+        $categories = $categoryQuery->get();
+
         return view('admin.vouchers', compact('vouchers', 'stats', 'batches', 'categories'));
     }
 
@@ -81,8 +98,8 @@ class AdminWebVoucherController extends Controller
     {
         $validated = $request->validate([
             'quantity'    => 'required|integer|min:1|max:500',
-            'amount'     => 'required|integer|min:1000',
-            'expires_at' => 'nullable|date|after:today',
+            'amount'      => 'required|integer|min:1000',
+            'expires_at'  => 'nullable|date|after:today',
             'batch_label' => 'nullable|string|max:100',
             'category_id' => 'nullable|exists:categories,id',
         ], [
@@ -100,17 +117,24 @@ class AdminWebVoucherController extends Controller
         $batchLabel = $validated['batch_label']
             ?: 'Batch ' . now()->format('d M Y H:i');
 
+        $hasCategoryCol = Schema::hasColumn('vouchers', 'category_id');
+
         $codes = [];
-        DB::transaction(function () use ($validated, $expiresAt, $batchLabel, &$codes) {
+        DB::transaction(function () use ($validated, $expiresAt, $batchLabel, $hasCategoryCol, $request, &$codes) {
             for ($i = 0; $i < $validated['quantity']; $i++) {
-                $voucher = Voucher::create([
+                $voucherData = [
                     'code'        => Voucher::generateUniqueCode(),
                     'amount'      => $validated['amount'],
                     'expires_at'  => $expiresAt,
-                    'category_id' => $validated['category_id'] ?? null,
                     'batch_label' => $batchLabel,
                     'created_by'  => Auth::id(),
-                ]);
+                ];
+
+                if ($hasCategoryCol && $request->filled('category_id')) {
+                    $voucherData['category_id'] = $request->category_id;
+                }
+
+                $voucher = Voucher::create($voucherData);
                 $codes[] = $voucher->code;
             }
         });
@@ -152,24 +176,29 @@ class AdminWebVoucherController extends Controller
     public function destroy(Request $request)
     {
         $validated = $request->validate([
-            'voucher_ids'  => 'nullable|array',
+            'voucher_ids'   => 'nullable|array',
             'voucher_ids.*' => 'integer|exists:vouchers,id',
-            'batch_label'  => 'nullable|string',
+            'batch_label'   => 'nullable|string',
         ]);
 
-        $query = Voucher::where('is_used', false);
-
         if (!empty($validated['voucher_ids'])) {
-            $query->whereIn('id', $validated['voucher_ids']);
-        } elseif (!empty($validated['batch_label'])) {
-            $query->where('batch_label', $validated['batch_label']);
-        } else {
-            return back()->with('error', 'Tidak ada voucher yang dipilih.');
+            $count = Voucher::whereIn('id', $validated['voucher_ids'])
+                ->where('is_used', false)
+                ->delete();
+
+            return back()->with('success', $count . ' voucher berhasil dihapus.');
         }
 
-        $count = $query->count();
-        $query->delete();
+        if (!empty($validated['batch_label'])) {
+            $count = Voucher::where('batch_label', $validated['batch_label'])
+                ->where('is_used', false)
+                ->delete();
 
-        return back()->with('success', $count . ' voucher berhasil dihapus.');
+            return redirect()
+                ->route('admin.vouchers')
+                ->with('success', $count . ' voucher pada batch "' . $validated['batch_label'] . '" berhasil dihapus.');
+        }
+
+        return back()->with('error', 'Pilih voucher atau batch yang ingin dihapus.');
     }
 }

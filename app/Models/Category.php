@@ -58,4 +58,20 @@ class Category extends Model
     {
         return $this->image ? asset('storage/' . $this->image) : null;
     }
+
+    /**
+     * Scope: only active categories.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope: ordered by sort_order.
+     */
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('sort_order');
+    }
 }
