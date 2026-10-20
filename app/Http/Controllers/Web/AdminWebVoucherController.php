@@ -182,17 +182,13 @@ class AdminWebVoucherController extends Controller
         ]);
 
         if (!empty($validated['voucher_ids'])) {
-            $count = Voucher::whereIn('id', $validated['voucher_ids'])
-                ->where('is_used', false)
-                ->delete();
+            $count = Voucher::whereIn('id', $validated['voucher_ids'])->delete();
 
             return back()->with('success', $count . ' voucher berhasil dihapus.');
         }
 
         if (!empty($validated['batch_label'])) {
-            $count = Voucher::where('batch_label', $validated['batch_label'])
-                ->where('is_used', false)
-                ->delete();
+            $count = Voucher::where('batch_label', $validated['batch_label'])->delete();
 
             return redirect()
                 ->route('admin.vouchers')

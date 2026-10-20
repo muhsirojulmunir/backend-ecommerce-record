@@ -254,6 +254,13 @@
             <table class="w-full text-sm text-left">
                 <thead>
                     <tr class="bg-gray-50/80 border-b border-gray-100">
+                        <th class="w-12 px-4 py-3.5 text-center">
+                            <input type="checkbox"
+                                   @click="toggleSelectAll()"
+                                   :checked="isAllSelected"
+                                   class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
+                                   title="Centang Semua Voucher di Halaman Ini">
+                        </th>
                         <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Kode</th>
                         <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Nominal</th>
                         <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Kategori</th>
@@ -266,7 +273,15 @@
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                     @forelse($vouchers as $v)
-                        <tr class="hover:bg-gray-50/50 transition">
+                        <tr class="hover:bg-gray-50/50 transition" :class="{ 'bg-indigo-50/40': selectedVouchers.includes({{ $v->id }}) }">
+                            {{-- Checkbox --}}
+                            <td class="w-12 px-4 py-3.5 text-center" @click.stop>
+                                <input type="checkbox"
+                                       :value="{{ $v->id }}"
+                                       x-model.number="selectedVouchers"
+                                       class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
+                            </td>
+
                             {{-- Kode --}}
                             <td class="px-5 py-3.5">
                                 <span class="inline-flex items-center gap-1.5 bg-gray-900 text-white font-mono font-extrabold text-sm px-3 py-1.5 rounded-lg tracking-[0.3em] select-all">
@@ -379,7 +394,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-5 py-12 text-center">
+                            <td colspan="9" class="px-5 py-12 text-center">
                                 <div class="flex flex-col items-center gap-3 text-gray-300">
                                     <i class="fa-solid fa-ticket text-4xl"></i>
                                     <p class="text-sm font-semibold">Belum ada voucher</p>
@@ -399,12 +414,60 @@
             </div>
         @endif
     </div>
+
+    {{-- ── Floating Bulk Action Bar ── --}}
+    <div x-cloak
+         x-show="selectedVouchers.length > 0"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 translate-y-4"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 translate-y-4"
+         class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-3.5 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center gap-5">
+        <div class="flex items-center gap-2.5">
+            <span class="w-7 h-7 rounded-full bg-indigo-500 text-white font-extrabold text-xs flex items-center justify-center" x-text="selectedVouchers.length"></span>
+            <span class="text-xs font-semibold text-slate-200">Voucher dipilih</span>
+        </div>
+
+        <div class="h-5 w-px bg-slate-700"></div>
+
+        <form action="{{ route('admin.vouchers.destroy') }}" method="POST"
+              @submit="return confirm('Yakin ingin menghapus ' + selectedVouchers.length + ' voucher terpilih secara permanen?')">
+            @csrf
+            @method('DELETE')
+            <template x-for="id in selectedVouchers" :key="id">
+                <input type="hidden" name="voucher_ids[]" :value="id">
+            </template>
+            <button type="submit"
+                    class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-2 px-4 rounded-xl transition shadow-sm flex items-center gap-1.5 cursor-pointer">
+                <i class="fa-solid fa-trash-can text-xs"></i>
+                Hapus Voucher Terpilih
+            </button>
+        </form>
+
+        <button type="button" @click="selectedVouchers = []"
+                class="text-xs font-bold text-slate-400 hover:text-white transition cursor-pointer">
+            Batal
+        </button>
+    </div>
 </div>
 
 <script>
 function voucherManager() {
     return {
-        // placeholder untuk fitur interaktif di masa depan
+        selectedVouchers: [],
+        allVoucherIds: {{ Js::from($vouchers->pluck('id')->values()->all()) }},
+        get isAllSelected() {
+            return this.allVoucherIds.length > 0 && this.selectedVouchers.length === this.allVoucherIds.length;
+        },
+        toggleSelectAll() {
+            if (this.isAllSelected) {
+                this.selectedVouchers = [];
+            } else {
+                this.selectedVouchers = [...this.allVoucherIds];
+            }
+        }
     };
 }
 </script>

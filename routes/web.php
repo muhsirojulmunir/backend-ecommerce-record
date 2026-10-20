@@ -136,6 +136,13 @@ Route::prefix('admin')->group(function () {
             Route::delete('/destroy', [AdminWebVoucherController::class, 'destroy'])->name('admin.vouchers.destroy');
         });
 
+        // Games (Kelola Game Voucher)
+        Route::prefix('games')->middleware('can:manage discounts')->group(function () {
+            Route::get('/', [AdminWebGameController::class, 'index'])->name('admin.games');
+            Route::put('/{gameCode}', [AdminWebGameController::class, 'update'])->name('admin.games.update');
+            Route::patch('/{gameCode}/toggle', [AdminWebGameController::class, 'toggle'])->name('admin.games.toggle');
+        });
+
         // Orders (Kelola Pesanan)
         Route::prefix('orders')->middleware('can:manage orders')->group(function () {
             Route::get('/', [AdminWebOrderController::class, 'index'])->name('admin.orders');
