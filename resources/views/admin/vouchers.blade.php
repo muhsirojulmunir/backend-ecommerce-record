@@ -6,327 +6,345 @@
 @section('content')
 <div class="space-y-6" x-data="voucherManager()">
 
-    {{-- Flash --}}
+    {{-- Flash Alerts --}}
     @if(session('success'))
-        <div class="flash-alert flex items-center justify-between bg-green-50 border border-green-200 text-green-800 text-sm px-5 py-3.5 rounded-2xl shadow-sm transition-all duration-500 overflow-hidden">
+        <div class="flash-alert flex items-center justify-between bg-emerald-50 border border-emerald-200 text-emerald-900 text-sm px-5 py-3.5 rounded-xl shadow-xs transition-all duration-300">
             <div class="flex items-center gap-3">
-                <i class="fa-solid fa-circle-check text-green-500"></i>
-                <span>{{ session('success') }}</span>
+                <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
+                <span class="font-medium">{{ session('success') }}</span>
             </div>
-            <button type="button" onclick="this.closest('.flash-alert').remove()" class="text-green-600 hover:text-green-800 transition p-1">
+            <button type="button" onclick="this.closest('.flash-alert').remove()" class="text-emerald-600 hover:text-emerald-800 transition p-1">
                 <i class="fa-solid fa-xmark text-sm"></i>
             </button>
         </div>
     @endif
 
     @if(session('error'))
-        <div class="flash-alert flex items-center justify-between bg-red-50 border border-red-200 text-red-800 text-sm px-5 py-3.5 rounded-2xl shadow-sm">
+        <div class="flash-alert flex items-center justify-between bg-rose-50 border border-rose-200 text-rose-900 text-sm px-5 py-3.5 rounded-xl shadow-xs">
             <div class="flex items-center gap-3">
-                <i class="fa-solid fa-circle-xmark text-red-500"></i>
-                <span>{{ session('error') }}</span>
+                <i class="fa-solid fa-circle-xmark text-rose-600 text-base"></i>
+                <span class="font-medium">{{ session('error') }}</span>
             </div>
-            <button type="button" onclick="this.closest('.flash-alert').remove()" class="text-red-600 hover:text-red-800 transition p-1">
+            <button type="button" onclick="this.closest('.flash-alert').remove()" class="text-rose-600 hover:text-rose-800 transition p-1">
                 <i class="fa-solid fa-xmark text-sm"></i>
             </button>
         </div>
     @endif
 
-    {{-- ── Statistik Cards ── --}}
-    <div class="grid grid-cols-2 lg:grid-cols-6 gap-4">
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <div class="flex items-center gap-3 mb-2">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center shadow-md">
-                    <i class="fa-solid fa-ticket text-white text-sm"></i>
+    {{-- ── 1. STATISTIK CARDS (Theme: Navy & Orange) ── --}}
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+        {{-- Total --}}
+        <div class="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Voucher</span>
+                <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700">
+                    <i class="fa-solid fa-ticket text-sm"></i>
                 </div>
-                <p class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Total</p>
             </div>
-            <p class="text-2xl font-extrabold text-gray-900">{{ number_format($stats['total']) }}</p>
+            <p class="text-2xl font-black text-slate-900">{{ number_format($stats['total']) }}</p>
         </div>
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <div class="flex items-center gap-3 mb-2">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-600 flex items-center justify-center shadow-md">
-                    <i class="fa-solid fa-bullhorn text-white text-sm"></i>
+
+        {{-- Promo Massal (RECORD) --}}
+        <div class="bg-white rounded-xl border border-orange-200 p-4 shadow-xs bg-gradient-to-br from-white to-orange-50/40">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-orange-700">Promo Massal</span>
+                <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600">
+                    <i class="fa-solid fa-bullhorn text-sm"></i>
                 </div>
-                <p class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Promo Massal</p>
             </div>
-            <p class="text-2xl font-extrabold text-fuchsia-600">{{ number_format($stats['promo'] ?? 0) }}</p>
+            <p class="text-2xl font-black text-orange-600">{{ number_format($stats['promo'] ?? 0) }}</p>
         </div>
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <div class="flex items-center gap-3 mb-2">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-md">
-                    <i class="fa-solid fa-check-circle text-white text-sm"></i>
+
+        {{-- Tersedia --}}
+        <div class="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Tersedia</span>
+                <div class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                    <i class="fa-solid fa-circle-check text-sm"></i>
                 </div>
-                <p class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Tersedia</p>
             </div>
-            <p class="text-2xl font-extrabold text-emerald-600">{{ number_format($stats['available']) }}</p>
+            <p class="text-2xl font-black text-emerald-600">{{ number_format($stats['available']) }}</p>
         </div>
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <div class="flex items-center gap-3 mb-2">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-md">
-                    <i class="fa-solid fa-gamepad text-white text-sm"></i>
+
+        {{-- Klaim Game --}}
+        <div class="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Klaim Game</span>
+                <div class="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center text-sky-600">
+                    <i class="fa-solid fa-gamepad text-sm"></i>
                 </div>
-                <p class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Klaim Game</p>
             </div>
-            <p class="text-2xl font-extrabold text-indigo-600">{{ number_format($stats['claimed'] ?? 0) }}</p>
+            <p class="text-2xl font-black text-sky-700">{{ number_format($stats['claimed'] ?? 0) }}</p>
         </div>
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <div class="flex items-center gap-3 mb-2">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-md">
-                    <i class="fa-solid fa-receipt text-white text-sm"></i>
+
+        {{-- Terpakai --}}
+        <div class="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Terpakai</span>
+                <div class="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
+                    <i class="fa-solid fa-receipt text-sm"></i>
                 </div>
-                <p class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Terpakai</p>
             </div>
-            <p class="text-2xl font-extrabold text-amber-600">{{ number_format($stats['used']) }}</p>
+            <p class="text-2xl font-black text-amber-600">{{ number_format($stats['used']) }}</p>
         </div>
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 col-span-2 lg:col-span-1">
-            <div class="flex items-center gap-3 mb-2">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center shadow-md">
-                    <i class="fa-solid fa-clock text-white text-sm"></i>
+
+        {{-- Kadaluarsa --}}
+        <div class="bg-white rounded-xl border border-slate-200/80 p-4 shadow-xs">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500">Kadaluarsa</span>
+                <div class="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-600">
+                    <i class="fa-solid fa-clock text-sm"></i>
                 </div>
-                <p class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Kadaluarsa</p>
             </div>
-            <p class="text-2xl font-extrabold text-red-500">{{ number_format($stats['expired']) }}</p>
+            <p class="text-2xl font-black text-rose-600">{{ number_format($stats['expired']) }}</p>
         </div>
     </div>
 
-    {{-- ── Form Pembuatan Voucher (Tabs) ── --}}
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 px-6 py-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h3 class="text-white font-black text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
-                        Buat Voucher Baru
-                    </h3>
-                    <p class="text-slate-300 text-xs mt-0.5">Pilih tipe voucher yang ingin dibuat untuk toko Anda.</p>
-                </div>
+    {{-- ── 2. FORM PEMBUATAN VOUCHER (Clean Navy & Orange Accent) ── --}}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        {{-- Header Bar Navy --}}
+        <div class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h3 class="text-white font-bold text-sm flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+                    <span>Buat Voucher Belanja</span>
+                </h3>
+                <p class="text-slate-400 text-xs mt-0.5">Atur kode promo toko atau buat kupon acak secara terstruktur.</p>
+            </div>
 
-                {{-- Tabs Pemilihan Tipe Form --}}
-                <div class="inline-flex p-1 bg-white/10 backdrop-blur-md rounded-xl border border-white/15">
-                    <button type="button" @click="formTab = 'promo'"
-                        :class="formTab === 'promo' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'"
-                        class="px-4 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-2 cursor-pointer">
-                        <i class="fa-solid fa-shield-halved text-fuchsia-600"></i>
-                        Voucher Promo (RECORD)
-                    </button>
-                    <button type="button" @click="formTab = 'batch'"
-                        :class="formTab === 'batch' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-300 hover:text-white'"
-                        class="px-4 py-1.5 rounded-lg text-xs font-black transition flex items-center gap-2 cursor-pointer">
-                        <i class="fa-solid fa-ticket text-indigo-500"></i>
-                        Generate Kupon Batch Acak
-                    </button>
-                </div>
+            {{-- Segmented Tabs --}}
+            <div class="inline-flex p-1 bg-slate-950/80 rounded-lg border border-slate-800">
+                <button type="button" @click="formTab = 'promo'"
+                    :class="formTab === 'promo' ? 'bg-orange-500 text-white shadow-xs font-bold' : 'text-slate-400 hover:text-white font-medium'"
+                    class="px-4 py-1.5 rounded-md text-xs transition flex items-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-shield-halved text-xs"></i>
+                    <span>Voucher Promo (RECORD)</span>
+                </button>
+                <button type="button" @click="formTab = 'batch'"
+                    :class="formTab === 'batch' ? 'bg-orange-500 text-white shadow-xs font-bold' : 'text-slate-400 hover:text-white font-medium'"
+                    class="px-4 py-1.5 rounded-md text-xs transition flex items-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-ticket text-xs"></i>
+                    <span>Generate Kupon Batch Acak</span>
+                </button>
             </div>
         </div>
 
-        {{-- ── FORM 1: Voucher Promo Massal (RECORD) ── --}}
-        <form x-show="formTab === 'promo'" action="{{ route('admin.vouchers.promo.store') }}" method="POST" class="p-6">
-            @csrf
+        {{-- ── TAB 1: FORM VOUCHER PROMO (RECORD) ── --}}
+        <div x-show="formTab === 'promo'" class="p-6">
+            <form action="{{ route('admin.vouchers.promo.store') }}" method="POST">
+                @csrf
 
-            {{-- Info Alert Proteksi --}}
-            <div class="mb-5 bg-fuchsia-50/70 border border-fuchsia-200 text-fuchsia-950 text-xs p-4 rounded-xl flex items-start gap-3">
-                <i class="fa-solid fa-shield-halved text-fuchsia-600 text-base mt-0.5"></i>
-                <div class="space-y-1">
-                    <p class="font-bold">Proteksi Anti-Kecurangan Aktif Otomatis:</p>
-                    <p class="text-fuchsia-800 leading-relaxed">
-                        Voucher Promo Massal (seperti <strong>RECORD</strong>) dapat dipakai bersama oleh banyak pelanggan, namun sistem otomatis mengunci batas maksimal <strong>1x penggunaan per Akun</strong> dan <strong>1x penggunaan per Perangkat fisik (Device Fingerprint)</strong>.
+                {{-- Anti-Fraud Security Notice --}}
+                <div class="mb-5 bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 shrink-0 mt-0.5">
+                        <i class="fa-solid fa-shield-halved text-sm"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-800">Proteksi Anti-Kecurangan (Anti-Fraud Device Lock) Aktif Otomatis:</p>
+                        <p class="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                            Kode promo ini dapat digunakan oleh banyak pelanggan berbeda, namun sistem secara ketat membatasi maksimal <strong>1x penggunaan per Akun</strong> dan <strong>1x penggunaan per Perangkat Fisik (Device Fingerprint)</strong>. Pengguna yang membuat banyak akun di HP/Laptop yang sama akan otomatis terblokir.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {{-- Kode Promo --}}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                            Kode Voucher Promo <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="text" name="code" value="{{ old('code', 'RECORD') }}" required maxlength="20"
+                            placeholder="Contoh: RECORD"
+                            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm font-mono font-bold uppercase tracking-wider text-slate-900 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition @error('code') border-rose-400 @enderror">
+                        @error('code')
+                            <p class="text-rose-600 text-[11px] mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- Nominal Diskon --}}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                            Nominal Potongan <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative flex rounded-lg">
+                            <span class="inline-flex items-center px-3 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-xs font-bold text-slate-600">Rp</span>
+                            <input type="text"
+                                   x-ref="displayPromoAmountInput"
+                                   :value="displayPromoAmount"
+                                   @input="formatPromoAmount($event.target.value)"
+                                   value="{{ old('amount') ? number_format((int)old('amount'), 0, ',', '.') : '50.000' }}"
+                                   placeholder="50.000"
+                                   required
+                                   autocomplete="off"
+                                   class="w-full px-3 py-2.5 border border-slate-300 rounded-r-lg text-sm font-semibold text-slate-900 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition @error('amount') border-rose-400 @enderror">
+                        </div>
+                        <input type="hidden" name="amount" :value="rawPromoAmount" value="{{ old('amount', 50000) }}">
+                        @error('amount')
+                            <p class="text-rose-600 text-[11px] mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- Kuota Pemakaian --}}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                            Batas Total Kuota <span class="text-slate-400 font-normal">(opsional)</span>
+                        </label>
+                        <input type="number" name="total_quota" value="{{ old('total_quota') }}" min="1" placeholder="Kosongkan jika unlimited"
+                            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition">
+                        <p class="text-[10px] text-slate-400 mt-1">Contoh: 100 orang pertama</p>
+                    </div>
+
+                    {{-- Kadaluarsa --}}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                            Masa Berlaku <span class="text-slate-400 font-normal">(opsional)</span>
+                        </label>
+                        <input type="date" name="expires_at" value="{{ old('expires_at') }}"
+                            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition @error('expires_at') border-rose-400 @enderror">
+                        @error('expires_at')
+                            <p class="text-rose-600 text-[11px] mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- Target Kategori --}}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                            Kategori Produk
+                        </label>
+                        <select name="category_id" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition">
+                            <option value="">Semua Kategori (Universal)</option>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>
+                                    {{ $cat->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <div class="text-xs text-slate-500 flex items-center gap-1.5">
+                        <i class="fa-solid fa-lock text-slate-400 text-xs"></i>
+                        <span>Aturan terkunci otomatis: <strong>1x per Akun</strong> & <strong>1x per Perangkat</strong>.</span>
+                    </div>
+
+                    <button type="submit"
+                        class="bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white text-xs font-bold py-2.5 px-6 rounded-lg transition shadow-xs flex items-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-floppy-disk text-xs"></i>
+                        Simpan Voucher Promo
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        {{-- ── TAB 2: FORM GENERATE BATCH ACAK ── --}}
+        <div x-show="formTab === 'batch'" class="p-6">
+            <form action="{{ route('admin.vouchers.generate') }}" method="POST">
+                @csrf
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {{-- Jumlah --}}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                            Jumlah Kupon <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="number" name="quantity" value="{{ old('quantity', 10) }}" min="1" max="500" required
+                            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition @error('quantity') border-rose-400 @enderror">
+                        @error('quantity')
+                            <p class="text-rose-600 text-[11px] mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- Nominal --}}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                            Nominal (Rp) <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative flex rounded-lg">
+                            <span class="inline-flex items-center px-3 bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-xs font-bold text-slate-600">Rp</span>
+                            <input type="text"
+                                   x-ref="displayAmountInput"
+                                   :value="displayAmount"
+                                   @input="formatAmount($event.target.value)"
+                                   value="{{ old('amount') ? number_format((int)old('amount'), 0, ',', '.') : '50.000' }}"
+                                   placeholder="50.000"
+                                   required
+                                   autocomplete="off"
+                                   class="w-full px-3 py-2.5 border border-slate-300 rounded-r-lg text-sm font-semibold text-slate-900 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition @error('amount') border-rose-400 @enderror">
+                        </div>
+                        <input type="hidden" name="amount" id="voucher_raw_amount" :value="rawAmount" value="{{ old('amount', 50000) }}">
+                        @error('amount')
+                            <p class="text-rose-600 text-[11px] mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- Kadaluarsa --}}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                            Kadaluarsa <span class="text-slate-400 font-normal">(opsional)</span>
+                        </label>
+                        <input type="date" name="expires_at" value="{{ old('expires_at') }}"
+                            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition @error('expires_at') border-rose-400 @enderror">
+                        @error('expires_at')
+                            <p class="text-rose-600 text-[11px] mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- Label Batch --}}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                            Label Batch <span class="text-slate-400 font-normal">(opsional)</span>
+                        </label>
+                        <input type="text" name="batch_label" value="{{ old('batch_label') }}" placeholder="Auto-generate jika kosong" maxlength="100"
+                            class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition placeholder-slate-400">
+                    </div>
+
+                    {{-- Target Kategori --}}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                            Target Kategori
+                        </label>
+                        <select name="category_id" class="w-full px-3.5 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-900 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition">
+                            <option value="">Semua Kategori (Universal)</option>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>
+                                    {{ $cat->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
+                    <p class="text-xs text-slate-400">
+                        <i class="fa-solid fa-circle-info mr-1 text-slate-400"></i>
+                        Kupon acak 4 karakter sekali pakai untuk cetak fisik F4 atau reward game stopwatch.
                     </p>
+
+                    <button type="submit"
+                        class="bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white text-xs font-bold py-2.5 px-6 rounded-lg transition shadow-xs flex items-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-ticket text-xs text-orange-400"></i>
+                        Generate Kupon Batch
+                    </button>
                 </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
-                {{-- Kode Voucher --}}
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1.5">
-                        <i class="fa-solid fa-font text-fuchsia-600 mr-1"></i>Kode Voucher
-                    </label>
-                    <input type="text" name="code" value="{{ old('code', 'RECORD') }}" required maxlength="20"
-                        placeholder="Contoh: RECORD"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-mono font-bold uppercase tracking-wider focus:ring-2 focus:ring-fuchsia-500 focus:outline-none focus:border-transparent transition @error('code') border-red-400 @enderror">
-                    @error('code')
-                        <p class="text-red-500 text-[10px] mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                {{-- Nominal Diskon --}}
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1.5">
-                        <i class="fa-solid fa-money-bill text-emerald-500 mr-1"></i>Nominal Potongan (Rp)
-                    </label>
-                    <div class="relative">
-                        <span class="absolute left-3.5 top-2.5 text-xs font-extrabold text-gray-400">Rp</span>
-                        <input type="text"
-                               x-ref="displayPromoAmountInput"
-                               :value="displayPromoAmount"
-                               @input="formatPromoAmount($event.target.value)"
-                               value="{{ old('amount') ? number_format((int)old('amount'), 0, ',', '.') : '50.000' }}"
-                               placeholder="50.000"
-                               required
-                               autocomplete="off"
-                               class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-fuchsia-500 focus:outline-none focus:border-transparent transition @error('amount') border-red-400 @enderror">
-                    </div>
-                    <input type="hidden" name="amount" :value="rawPromoAmount" value="{{ old('amount', 50000) }}">
-                    @error('amount')
-                        <p class="text-red-500 text-[10px] mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                {{-- Kuota Pemakaian --}}
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1.5">
-                        <i class="fa-solid fa-users text-indigo-500 mr-1"></i>Batas Kuota Total
-                        <span class="text-gray-400 font-normal">(opsional)</span>
-                    </label>
-                    <input type="number" name="total_quota" value="{{ old('total_quota') }}" min="1" placeholder="Kosongkan jika unlimited"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-fuchsia-500 focus:outline-none focus:border-transparent transition">
-                    <p class="text-[10px] text-gray-400 mt-1">Contoh: 100 orang pertama</p>
-                </div>
-
-                {{-- Kadaluarsa --}}
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1.5">
-                        <i class="fa-solid fa-calendar-xmark text-amber-500 mr-1"></i>Masa Berlaku
-                        <span class="text-gray-400 font-normal">(opsional)</span>
-                    </label>
-                    <input type="date" name="expires_at" value="{{ old('expires_at') }}"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-fuchsia-500 focus:outline-none focus:border-transparent transition @error('expires_at') border-red-400 @enderror">
-                    @error('expires_at')
-                        <p class="text-red-500 text-[10px] mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                {{-- Target Kategori --}}
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 mb-1.5">
-                        <i class="fa-solid fa-layer-group text-blue-500 mr-1"></i>Kategori Produk
-                    </label>
-                    <select name="category_id" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-fuchsia-500 focus:outline-none focus:border-transparent transition">
-                        <option value="">Semua Kategori (Universal)</option>
-                        @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>
-                                {{ $cat->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-
-            <div class="mt-5 flex items-center gap-3">
-                <button type="submit"
-                    class="bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-700 hover:to-purple-700 text-white text-sm font-bold py-2.5 px-6 rounded-xl transition shadow-md shadow-fuchsia-200 flex items-center gap-2 cursor-pointer">
-                    <i class="fa-solid fa-shield-halved"></i>
-                    Simpan Voucher Promo
-                </button>
-            </div>
-        </form>
-
-        {{-- ── FORM 2: Generate Kupon Batch Acak ── --}}
-        <form x-show="formTab === 'batch'" action="{{ route('admin.vouchers.generate') }}" method="POST" class="p-6">
-            @csrf
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
-                {{-- Jumlah --}}
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1.5">
-                        <i class="fa-solid fa-hashtag text-indigo-500 mr-1"></i>Jumlah Voucher
-                    </label>
-                    <input type="number" name="quantity" value="{{ old('quantity', 10) }}" min="1" max="500" required
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none focus:border-transparent transition @error('quantity') border-red-400 @enderror">
-                    @error('quantity')
-                        <p class="text-red-500 text-[10px] mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                {{-- Nominal --}}
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1.5">
-                        <i class="fa-solid fa-money-bill text-emerald-500 mr-1"></i>Nominal (Rp)
-                    </label>
-                    <div class="relative">
-                        <span class="absolute left-3.5 top-2.5 text-xs font-extrabold text-gray-400">Rp</span>
-                        <input type="text"
-                               x-ref="displayAmountInput"
-                               :value="displayAmount"
-                               @input="formatAmount($event.target.value)"
-                               value="{{ old('amount') ? number_format((int)old('amount'), 0, ',', '.') : '50.000' }}"
-                               placeholder="10.000"
-                               required
-                               autocomplete="off"
-                               class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-indigo-500 focus:outline-none focus:border-transparent transition @error('amount') border-red-400 @enderror">
-                    </div>
-                    <input type="hidden" name="amount" id="voucher_raw_amount" :value="rawAmount" value="{{ old('amount', 50000) }}">
-                    @error('amount')
-                        <p class="text-red-500 text-[10px] mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                {{-- Kadaluarsa --}}
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1.5">
-                        <i class="fa-solid fa-calendar-xmark text-amber-500 mr-1"></i>Kadaluarsa
-                        <span class="text-gray-400 font-normal">(opsional)</span>
-                    </label>
-                    <input type="date" name="expires_at" value="{{ old('expires_at') }}"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none focus:border-transparent transition @error('expires_at') border-red-400 @enderror">
-                    @error('expires_at')
-                        <p class="text-red-500 text-[10px] mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                {{-- Label Batch --}}
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1.5">
-                        <i class="fa-solid fa-tag text-purple-500 mr-1"></i>Label Batch
-                        <span class="text-gray-400 font-normal">(opsional)</span>
-                    </label>
-                    <input type="text" name="batch_label" value="{{ old('batch_label') }}" placeholder="Auto-generate jika kosong" maxlength="100"
-                        class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none focus:border-transparent transition placeholder-gray-300">
-                </div>
-
-                {{-- Target Kategori --}}
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1.5">
-                        <i class="fa-solid fa-layer-group text-blue-500 mr-1"></i>Target Kategori
-                    </label>
-                    <select name="category_id" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none focus:border-transparent transition">
-                        <option value="">Semua Kategori (Universal)</option>
-                        @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }}>
-                                {{ $cat->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-
-            <div class="mt-5 flex items-center gap-3">
-                <button type="submit"
-                    class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white text-sm font-bold py-2.5 px-6 rounded-xl transition shadow-md shadow-indigo-200 flex items-center gap-2 cursor-pointer">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i>
-                    Generate Kupon Batch
-                </button>
-                <p class="text-[10px] text-gray-400">
-                    <i class="fa-solid fa-circle-info mr-0.5"></i>
-                    Maksimal 500 voucher per batch. Kode acak 4 karakter sekali pakai (untuk print atau reward game).
-                </p>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 
-    {{-- ── Filter & Pencarian ── --}}
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+    {{-- ── 3. FILTER & PENCARIAN ── --}}
+    <div class="bg-white rounded-xl border border-slate-200/80 shadow-xs p-4">
         <form action="{{ route('admin.vouchers') }}" method="GET" class="flex flex-wrap items-end gap-3">
             <div class="flex-1 min-w-[200px]">
-                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Cari Kode</label>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Cari Kode</label>
                 <div class="relative">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400 text-xs"></i>
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari kode..."
-                        class="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition uppercase">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Ketik kode voucher..."
+                        class="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition uppercase font-mono">
                 </div>
             </div>
 
             <div>
-                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Tipe</label>
-                <select name="type" class="px-4 py-2.5 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tipe</label>
+                <select name="type" class="px-3 py-2 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition bg-white">
                     <option value="">Semua Tipe</option>
                     <option value="promo" {{ request('type') === 'promo' ? 'selected' : '' }}>Promo Massal (RECORD)</option>
                     <option value="single" {{ request('type') === 'single' ? 'selected' : '' }}>Kupon Acak (Single-Use)</option>
@@ -334,8 +352,8 @@
             </div>
 
             <div>
-                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Status</label>
-                <select name="status" class="px-4 py-2.5 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Status</label>
+                <select name="status" class="px-3 py-2 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition bg-white">
                     <option value="">Semua Status</option>
                     <option value="available" {{ request('status') === 'available' ? 'selected' : '' }}>Tersedia / Aktif</option>
                     <option value="claimed" {{ request('status') === 'claimed' ? 'selected' : '' }}>Diklaim User (Game)</option>
@@ -345,8 +363,8 @@
             </div>
 
             <div>
-                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Kategori</label>
-                <select name="category_id" class="px-4 py-2.5 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition max-w-[180px]">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Kategori</label>
+                <select name="category_id" class="px-3 py-2 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition bg-white max-w-[170px]">
                     <option value="">Semua Kategori</option>
                     <option value="all" {{ request('category_id') === 'all' ? 'selected' : '' }}>Universal (Semua)</option>
                     @foreach($categories as $cat)
@@ -356,8 +374,8 @@
             </div>
 
             <div>
-                <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Batch</label>
-                <select name="batch" class="px-4 py-2.5 border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none transition max-w-[200px]">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Batch</label>
+                <select name="batch" class="px-3 py-2 border border-slate-200 rounded-lg text-xs focus:ring-1 focus:ring-orange-500 focus:border-orange-500 transition bg-white max-w-[190px]">
                     <option value="">Semua Batch</option>
                     @foreach($batches as $batch)
                         <option value="{{ $batch }}" {{ request('batch') === $batch ? 'selected' : '' }}>{{ $batch }}</option>
@@ -366,23 +384,25 @@
             </div>
 
             <div class="flex items-end gap-2">
-                <button type="submit" class="bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition shadow-sm cursor-pointer">
-                    <i class="fa-solid fa-filter mr-1"></i>Filter
+                <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2 px-4 rounded-lg transition shadow-xs cursor-pointer flex items-center gap-1.5">
+                    <i class="fa-solid fa-filter text-[10px]"></i>
+                    <span>Filter</span>
                 </button>
-                <a href="{{ route('admin.vouchers') }}" class="bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold py-2.5 px-5 rounded-xl transition">
-                    <i class="fa-solid fa-rotate mr-1"></i>Reset
+                <a href="{{ route('admin.vouchers') }}" class="bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold py-2 px-3 rounded-lg transition flex items-center gap-1">
+                    <i class="fa-solid fa-rotate text-[10px]"></i>
+                    <span>Reset</span>
                 </a>
             </div>
         </form>
     </div>
 
-    {{-- ── Aksi Batch ── --}}
+    {{-- ── 4. AKSI BATCH (CETAK / HAPUS) ── --}}
     @if(request('batch'))
-        <div class="flex items-center gap-3 flex-wrap">
+        <div class="flex items-center gap-2.5 flex-wrap">
             <a href="{{ route('admin.vouchers.print', ['batch' => request('batch')]) }}" target="_blank"
-                class="bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition shadow-md shadow-teal-200 flex items-center gap-2">
-                <i class="fa-solid fa-print"></i>
-                Cetak Batch Ini (F4)
+                class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2 px-4 rounded-lg transition shadow-xs flex items-center gap-2">
+                <i class="fa-solid fa-print text-orange-400"></i>
+                <span>Cetak Batch Ini (F4)</span>
             </a>
 
             <form action="{{ route('admin.vouchers.destroy') }}" method="POST"
@@ -391,197 +411,194 @@
                 @method('DELETE')
                 <input type="hidden" name="batch_label" value="{{ request('batch') }}">
                 <button type="submit"
-                    class="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold py-2.5 px-5 rounded-xl transition border border-red-200 flex items-center gap-2 cursor-pointer">
-                    <i class="fa-solid fa-trash"></i>
-                    Hapus Batch (Belum Terpakai)
+                    class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold py-2 px-4 rounded-lg transition border border-rose-200 flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-trash-can text-xs"></i>
+                    <span>Hapus Batch Belum Terpakai</span>
                 </button>
             </form>
         </div>
     @endif
 
-    {{-- ── Tabel Voucher ── --}}
-    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    {{-- ── 5. TABEL VOUCHER (Clean Table Style) ── --}}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left">
+            <table class="w-full text-xs text-left">
                 <thead>
-                    <tr class="bg-gray-50/80 border-b border-gray-100">
-                        <th class="w-12 px-4 py-3.5 text-center">
+                    <tr class="bg-slate-50/90 text-slate-500 uppercase border-b border-slate-200 text-[10px] tracking-wider font-extrabold">
+                        <th class="w-10 px-4 py-3 text-center">
                             <input type="checkbox"
                                    @click="toggleSelectAll()"
                                    :checked="isAllSelected"
-                                   class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer"
-                                   title="Centang Semua Voucher di Halaman Ini">
+                                   class="w-3.5 h-3.5 text-orange-600 rounded border-slate-300 focus:ring-orange-500 cursor-pointer">
                         </th>
-                        <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Kode</th>
-                        <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Nominal</th>
-                        <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Kategori</th>
-                        <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Batch / Label</th>
-                        <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Status / Kuota</th>
-                        <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Kadaluarsa</th>
-                        <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Dipakai Oleh / Log</th>
-                        <th class="px-5 py-3.5 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Dibuat</th>
+                        <th class="px-4 py-3">Kode Voucher</th>
+                        <th class="px-4 py-3">Nominal Diskon</th>
+                        <th class="px-4 py-3">Kategori</th>
+                        <th class="px-4 py-3">Batch / Label</th>
+                        <th class="px-4 py-3">Status / Kuota</th>
+                        <th class="px-4 py-3">Masa Berlaku</th>
+                        <th class="px-4 py-3">Dipakai Oleh / Log Perangkat</th>
+                        <th class="px-4 py-3">Dibuat</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="divide-y divide-slate-100">
                     @forelse($vouchers as $v)
-                        <tr class="hover:bg-gray-50/50 transition" :class="{ 'bg-indigo-50/40': selectedVouchers.includes({{ $v->id }}) }">
+                        <tr class="hover:bg-slate-50/70 transition" :class="{ 'bg-orange-50/30': selectedVouchers.includes({{ $v->id }}) }">
                             {{-- Checkbox --}}
-                            <td class="w-12 px-4 py-3.5 text-center" @click.stop>
+                            <td class="w-10 px-4 py-3.5 text-center" @click.stop>
                                 <input type="checkbox"
                                        :value="{{ $v->id }}"
                                        x-model.number="selectedVouchers"
-                                       class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
+                                       class="w-3.5 h-3.5 text-orange-600 rounded border-slate-300 focus:ring-orange-500 cursor-pointer">
                             </td>
 
                             {{-- Kode --}}
-                            <td class="px-5 py-3.5">
-                                <div class="flex flex-col gap-1.5 items-start">
-                                    <span class="inline-flex items-center gap-1.5 bg-gray-900 text-white font-mono font-extrabold text-sm px-3 py-1.5 rounded-lg tracking-[0.2em] select-all shadow-sm">
+                            <td class="px-4 py-3.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="inline-flex items-center bg-slate-900 text-white font-mono font-bold text-xs px-2.5 py-1 rounded-md tracking-wider select-all shadow-2xs">
                                         {{ $v->code }}
                                     </span>
                                     @if($v->isPromo())
-                                        <span class="inline-flex items-center gap-1 bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 font-extrabold text-[9px] px-2 py-0.5 rounded-md uppercase tracking-wider">
-                                            <i class="fa-solid fa-shield-halved text-[8px]"></i> Promo Massal
+                                        <span class="inline-flex items-center gap-1 bg-orange-100 text-orange-800 border border-orange-200 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded">
+                                            <i class="fa-solid fa-shield-halved text-[8px]"></i> Promo
                                         </span>
                                     @endif
                                 </div>
                             </td>
 
                             {{-- Nominal --}}
-                            <td class="px-5 py-3.5">
-                                <span class="font-bold text-emerald-600 text-sm">{{ $v->formatted_amount }}</span>
+                            <td class="px-4 py-3.5">
+                                <span class="font-extrabold text-slate-900 text-xs">{{ $v->formatted_amount }}</span>
                             </td>
 
                             {{-- Kategori --}}
-                            <td class="px-5 py-3.5">
+                            <td class="px-4 py-3.5">
                                 @if($v->category)
-                                    <span class="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 font-bold text-xs px-2.5 py-1 rounded-lg">
-                                        <i class="fa-solid fa-layer-group text-[10px]"></i>
+                                    <span class="inline-flex items-center gap-1 text-slate-700 font-semibold text-[11px] bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                        <i class="fa-solid fa-layer-group text-[9px] text-slate-500"></i>
                                         {{ $v->category->name }}
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center gap-1.5 bg-gray-100 border border-gray-200 text-gray-600 font-medium text-xs px-2.5 py-1 rounded-lg">
-                                        <i class="fa-solid fa-globe text-[10px]"></i>
-                                        Semua Kategori
-                                    </span>
+                                    <span class="text-slate-500 text-[11px]">Semua Produk</span>
                                 @endif
                             </td>
 
                             {{-- Batch --}}
-                            <td class="px-5 py-3.5">
+                            <td class="px-4 py-3.5">
                                 @if($v->batch_label)
                                     <a href="{{ route('admin.vouchers', ['batch' => $v->batch_label]) }}"
-                                        class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold hover:underline transition">
+                                        class="text-xs text-slate-700 hover:text-orange-600 font-medium hover:underline transition">
                                         {{ \Illuminate\Support\Str::limit($v->batch_label, 20) }}
                                     </a>
                                 @else
-                                    <span class="text-xs text-gray-300">—</span>
+                                    <span class="text-slate-300">—</span>
                                 @endif
                             </td>
 
                             {{-- Status / Kuota --}}
-                            <td class="px-5 py-3.5">
+                            <td class="px-4 py-3.5">
                                 @if($v->isPromo())
                                     @if($v->is_expired)
-                                        <span class="inline-flex items-center gap-1.5 bg-red-50 text-red-600 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-red-200">
+                                        <span class="inline-flex items-center gap-1 bg-rose-50 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded border border-rose-200">
                                             <i class="fa-solid fa-clock text-[9px]"></i> Kadaluarsa
                                         </span>
                                     @elseif($v->total_quota !== null && $v->used_count >= $v->total_quota)
-                                        <span class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-amber-200">
+                                        <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-200">
                                             <i class="fa-solid fa-ban text-[9px]"></i> Kuota Habis
                                         </span>
                                     @else
-                                        <span class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-emerald-200">
-                                            <i class="fa-solid fa-circle-check text-[9px]"></i> Promo Aktif
+                                        <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200">
+                                            <i class="fa-solid fa-circle-check text-[9px]"></i> Aktif
                                         </span>
                                     @endif
-                                    <p class="text-[10px] text-gray-500 font-medium mt-1">
-                                        Kuota: <strong class="text-gray-800">{{ $v->used_count }} / {{ $v->total_quota ? number_format($v->total_quota) : '∞' }}</strong>
+                                    <p class="text-[10px] text-slate-500 font-medium mt-1">
+                                        Kuota: <strong class="text-slate-900">{{ $v->used_count }} / {{ $v->total_quota ? number_format($v->total_quota) : '∞' }}</strong>
                                     </p>
                                 @elseif($v->is_used)
-                                    <span class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-emerald-200">
+                                    <span class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200">
                                         <i class="fa-solid fa-circle-check text-[9px]"></i> Terpakai
                                     </span>
                                 @elseif($v->used_by && $v->usedByUser)
-                                    <span class="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-indigo-200" title="Disimpan oleh user dari game">
-                                        <i class="fa-solid fa-gamepad text-[9px]"></i> Diklaim (Game)
+                                    <span class="inline-flex items-center gap-1 bg-sky-50 text-sky-700 text-[10px] font-bold px-2 py-0.5 rounded border border-sky-200" title="Disimpan oleh user dari game">
+                                        <i class="fa-solid fa-gamepad text-[9px]"></i> Klaim Game
                                     </span>
                                 @elseif($v->reserved_for && $v->reserved_until && $v->reserved_until->isFuture())
-                                    <span class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-amber-200" title="Sedang dimainkan user">
+                                    <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-200" title="Sedang dimainkan user">
                                         <i class="fa-solid fa-stopwatch text-[9px]"></i> Sesi Game
                                     </span>
                                 @elseif($v->is_expired)
-                                    <span class="inline-flex items-center gap-1.5 bg-red-50 text-red-600 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-red-200">
+                                    <span class="inline-flex items-center gap-1 bg-rose-50 text-rose-700 text-[10px] font-bold px-2 py-0.5 rounded border border-rose-200">
                                         <i class="fa-solid fa-clock text-[9px]"></i> Kadaluarsa
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center gap-1.5 bg-teal-50 text-teal-700 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-teal-200">
-                                        <i class="fa-solid fa-circle text-[8px]"></i> Tersedia
+                                    <span class="inline-flex items-center gap-1 bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded border border-slate-200">
+                                        <i class="fa-solid fa-circle text-[7px] text-emerald-500"></i> Tersedia
                                     </span>
                                 @endif
                             </td>
 
                             {{-- Kadaluarsa --}}
-                            <td class="px-5 py-3.5 text-xs text-gray-500">
-                                {{ $v->expires_at ? $v->expires_at->format('d M Y') : '—' }}
+                            <td class="px-4 py-3.5 text-slate-600">
+                                {{ $v->expires_at ? $v->expires_at->format('d/m/Y') : '—' }}
                             </td>
 
-                            {{-- Dipakai Oleh / Riwayat Log --}}
-                            <td class="px-5 py-3.5">
+                            {{-- Dipakai Oleh / Log Perangkat --}}
+                            <td class="px-4 py-3.5">
                                 @if($v->isPromo())
                                     <div class="flex items-center gap-2">
                                         <button type="button" @click="openUsagesModal({{ $v->id }})"
-                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer">
-                                            <i class="fa-solid fa-clock-rotate-left text-xs text-indigo-600"></i>
+                                            class="inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-orange-50 text-slate-700 hover:text-orange-700 border border-slate-200 hover:border-orange-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer">
+                                            <i class="fa-solid fa-clock-rotate-left text-xs text-orange-500"></i>
                                             <span>Riwayat ({{ $v->used_count }})</span>
                                         </button>
+                                        <span class="text-[10px] text-slate-400">1x Device</span>
                                     </div>
                                 @elseif($v->is_used && $v->usedByUser)
-                                    <div class="text-xs">
-                                        <p class="font-bold text-gray-800 flex items-center gap-1">
-                                            <i class="fa-solid fa-user-check text-emerald-500 text-[10px]"></i>
+                                    <div>
+                                        <p class="font-bold text-slate-900 flex items-center gap-1">
+                                            <i class="fa-solid fa-user-check text-emerald-600 text-[10px]"></i>
                                             {{ $v->usedByUser->name }}
                                         </p>
-                                        <p class="text-[10px] text-gray-400 mt-0.5">
+                                        <p class="text-[10px] text-slate-400 mt-0.5">
                                             @if($v->order)
-                                                Pesanan #{{ $v->order->order_number ?? $v->order->id }} • 
+                                                Order #{{ $v->order->order_number ?? $v->order->id }} • 
                                             @endif
-                                            {{ $v->used_at?->format('d M Y H:i') }}
+                                            {{ $v->used_at?->format('d/m/Y H:i') }}
                                         </p>
                                     </div>
                                 @elseif($v->used_by && $v->usedByUser)
-                                    <div class="text-xs">
-                                        <p class="font-bold text-indigo-700 flex items-center gap-1">
-                                            <i class="fa-solid fa-gift text-indigo-500 text-[10px]"></i>
+                                    <div>
+                                        <p class="font-bold text-sky-800 flex items-center gap-1">
+                                            <i class="fa-solid fa-user text-sky-600 text-[10px]"></i>
                                             {{ $v->usedByUser->name }}
                                         </p>
-                                        <p class="text-[10px] text-indigo-500 mt-0.5 font-medium">Tersimpan di akun (belum checkout)</p>
+                                        <p class="text-[10px] text-sky-600 mt-0.5 font-medium">Tersimpan di akun</p>
                                     </div>
                                 @elseif($v->reserved_for && $v->reservedByUser && $v->reserved_until && $v->reserved_until->isFuture())
-                                    <div class="text-xs">
-                                        <p class="font-bold text-amber-700 flex items-center gap-1">
-                                            <i class="fa-solid fa-stopwatch text-amber-500 text-[10px]"></i>
+                                    <div>
+                                        <p class="font-bold text-amber-800 flex items-center gap-1">
+                                            <i class="fa-solid fa-stopwatch text-amber-600 text-[10px]"></i>
                                             {{ $v->reservedByUser->name }}
                                         </p>
-                                        <p class="text-[10px] text-amber-500 mt-0.5">Reservasi aktif ({{ $v->reserved_until->diffForHumans() }})</p>
+                                        <p class="text-[10px] text-amber-600 mt-0.5">Sesi aktif ({{ $v->reserved_until->diffForHumans() }})</p>
                                     </div>
                                 @else
-                                    <span class="text-xs text-gray-300">—</span>
+                                    <span class="text-slate-300">—</span>
                                 @endif
                             </td>
 
                             {{-- Dibuat --}}
-                            <td class="px-5 py-3.5 text-xs text-gray-500">
-                                {{ $v->created_at->format('d M Y') }}
+                            <td class="px-4 py-3.5 text-slate-500">
+                                {{ $v->created_at->format('d/m/Y') }}
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="px-5 py-12 text-center">
-                                <div class="flex flex-col items-center gap-3 text-gray-300">
-                                    <i class="fa-solid fa-ticket text-4xl"></i>
-                                    <p class="text-sm font-semibold">Belum ada voucher</p>
-                                    <p class="text-xs">Buat voucher pertama Anda pada form di atas.</p>
+                            <td colspan="9" class="px-4 py-12 text-center">
+                                <div class="flex flex-col items-center gap-2 text-slate-400">
+                                    <i class="fa-solid fa-ticket text-3xl text-slate-300"></i>
+                                    <p class="text-xs font-bold text-slate-600">Belum ada voucher</p>
+                                    <p class="text-[11px] text-slate-400">Buat voucher promo atau kupon pertama Anda pada form di atas.</p>
                                 </div>
                             </td>
                         </tr>
@@ -592,101 +609,102 @@
 
         {{-- Paginasi --}}
         @if($vouchers->hasPages())
-            <div class="px-5 py-4 border-t border-gray-100">
+            <div class="px-4 py-3 border-t border-slate-100 bg-slate-50/50">
                 {{ $vouchers->links() }}
             </div>
         @endif
     </div>
 
-    {{-- ── Modal Riwayat Pemakaian Voucher Promo ── --}}
+    {{-- ── 6. MODAL RIWAYAT PEMAKAIAN VOUCHER (Clean Navy & Orange) ── --}}
     <div x-cloak x-show="showUsagesModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <div x-show="showUsagesModal"
-                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter="ease-out duration-200"
                  x-transition:enter-start="opacity-0"
                  x-transition:enter-end="opacity-100"
-                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave="ease-in duration-150"
                  x-transition:leave-start="opacity-100"
                  x-transition:leave-end="opacity-0"
-                 class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+                 class="fixed inset-0 bg-slate-950/70 backdrop-blur-xs transition-opacity"
                  @click="showUsagesModal = false"></div>
 
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
             <div x-show="showUsagesModal"
-                 x-transition:enter="ease-out duration-300"
-                 x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                 x-transition:enter="ease-out duration-200"
+                 x-transition:enter-start="opacity-0 translate-y-3 sm:translate-y-0 sm:scale-95"
                  x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave="ease-in duration-150"
                  x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                 class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full border border-gray-100">
+                 x-transition:leave-end="opacity-0 translate-y-3 sm:translate-y-0 sm:scale-95"
+                 class="inline-block align-bottom bg-white rounded-xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full border border-slate-200">
                 
                 {{-- Modal Header --}}
-                <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 px-6 py-4 flex items-center justify-between text-white">
+                <div class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between text-white">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/20">
-                            <i class="fa-solid fa-shield-halved text-fuchsia-400"></i>
+                        <div class="w-9 h-9 rounded-lg bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-orange-400">
+                            <i class="fa-solid fa-shield-halved text-sm"></i>
                         </div>
                         <div>
-                            <h3 class="font-black text-base flex items-center gap-2">
-                                Riwayat Pemakaian: <span class="text-amber-400 font-mono tracking-wider font-extrabold" x-text="currentVoucher.code"></span>
+                            <h3 class="font-bold text-sm flex items-center gap-2">
+                                <span>Log Pemakaian Voucher:</span>
+                                <span class="text-orange-400 font-mono font-black tracking-wider text-base" x-text="currentVoucher.code"></span>
                             </h3>
-                            <p class="text-xs text-slate-300 mt-0.5">
+                            <p class="text-xs text-slate-400 mt-0.5">
                                 Aturan: 1x Perangkat & 1x Akun • Terpakai: <span class="font-bold text-white" x-text="currentVoucher.quota_label"></span>
                             </p>
                         </div>
                     </div>
-                    <button type="button" @click="showUsagesModal = false" class="text-slate-400 hover:text-white transition p-1.5 rounded-lg hover:bg-white/10 cursor-pointer">
+                    <button type="button" @click="showUsagesModal = false" class="text-slate-400 hover:text-white transition p-1.5 rounded-lg hover:bg-slate-800 cursor-pointer">
                         <i class="fa-solid fa-xmark text-lg"></i>
                     </button>
                 </div>
 
                 {{-- Modal Body --}}
                 <div class="p-6">
-                    <div x-show="loadingUsages" class="py-12 text-center text-gray-400">
-                        <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-500 mb-3"></i>
-                        <p class="text-xs font-semibold">Memuat log pemakaian perangkat...</p>
+                    <div x-show="loadingUsages" class="py-12 text-center text-slate-400">
+                        <i class="fa-solid fa-circle-notch fa-spin text-2xl text-orange-500 mb-2.5"></i>
+                        <p class="text-xs font-semibold text-slate-600">Memuat log pemakaian perangkat...</p>
                     </div>
 
-                    <div x-show="!loadingUsages && currentUsages.length === 0" class="py-12 text-center text-gray-400">
-                        <i class="fa-solid fa-clipboard-list text-4xl text-gray-200 mb-3"></i>
-                        <p class="text-sm font-bold text-gray-600">Belum Ada Pemakaian</p>
-                        <p class="text-xs text-gray-400 mt-1">Voucher ini belum pernah digunakan checkout oleh pelanggan mana pun.</p>
+                    <div x-show="!loadingUsages && currentUsages.length === 0" class="py-12 text-center text-slate-400">
+                        <i class="fa-solid fa-clipboard-list text-3xl text-slate-300 mb-2"></i>
+                        <p class="text-xs font-bold text-slate-700">Belum Ada Pemakaian</p>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Voucher ini belum pernah digunakan checkout oleh pelanggan mana pun.</p>
                     </div>
 
-                    <div x-show="!loadingUsages && currentUsages.length > 0" class="overflow-x-auto max-h-[420px] rounded-xl border border-gray-100">
+                    <div x-show="!loadingUsages && currentUsages.length > 0" class="overflow-x-auto max-h-[400px] rounded-lg border border-slate-200">
                         <table class="w-full text-xs text-left">
-                            <thead class="bg-gray-50/90 text-gray-500 uppercase text-[10px] font-extrabold sticky top-0 border-b border-gray-100">
+                            <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold sticky top-0 border-b border-slate-200">
                                 <tr>
-                                    <th class="px-4 py-3">No. Order</th>
-                                    <th class="px-4 py-3">Pelanggan</th>
-                                    <th class="px-4 py-3">Perangkat (Device)</th>
-                                    <th class="px-4 py-3">Device Fingerprint</th>
-                                    <th class="px-4 py-3">IP & Waktu</th>
-                                    <th class="px-4 py-3 text-right">Potongan</th>
+                                    <th class="px-3.5 py-2.5">No. Order</th>
+                                    <th class="px-3.5 py-2.5">Pelanggan</th>
+                                    <th class="px-3.5 py-2.5">Perangkat (Device)</th>
+                                    <th class="px-3.5 py-2.5">Device Fingerprint</th>
+                                    <th class="px-3.5 py-2.5">IP & Waktu</th>
+                                    <th class="px-3.5 py-2.5 text-right">Potongan</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100">
+                            <tbody class="divide-y divide-slate-100">
                                 <template x-for="item in currentUsages" :key="item.id">
-                                    <tr class="hover:bg-indigo-50/30 transition">
-                                        <td class="px-4 py-3 font-mono font-bold text-indigo-600" x-text="item.order_number"></td>
-                                        <td class="px-4 py-3">
-                                            <p class="font-bold text-gray-800" x-text="item.user_name"></p>
-                                            <p class="text-[10px] text-gray-400" x-text="item.user_email"></p>
+                                    <tr class="hover:bg-slate-50 transition">
+                                        <td class="px-3.5 py-2.5 font-mono font-bold text-slate-900" x-text="item.order_number"></td>
+                                        <td class="px-3.5 py-2.5">
+                                            <p class="font-bold text-slate-900" x-text="item.user_name"></p>
+                                            <p class="text-[10px] text-slate-400" x-text="item.user_email"></p>
                                         </td>
-                                        <td class="px-4 py-3">
-                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-medium text-[11px] border border-slate-200">
-                                                <i class="fa-solid fa-laptop text-[10px] text-indigo-500"></i>
+                                        <td class="px-3.5 py-2.5">
+                                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-medium text-[11px] border border-slate-200">
+                                                <i class="fa-solid fa-laptop text-[10px] text-orange-600"></i>
                                                 <span x-text="item.device_label"></span>
                                             </span>
                                         </td>
-                                        <td class="px-4 py-3 font-mono text-[10px] text-gray-400 truncate max-w-[120px]" :title="item.device_id" x-text="item.device_id ? item.device_id.substring(0, 16) + '...' : '—'"></td>
-                                        <td class="px-4 py-3">
-                                            <p class="font-mono text-gray-600 font-semibold" x-text="item.ip_address"></p>
-                                            <p class="text-[10px] text-gray-400" x-text="item.created_at_human"></p>
+                                        <td class="px-3.5 py-2.5 font-mono text-[10px] text-slate-400 truncate max-w-[120px]" :title="item.device_id" x-text="item.device_id ? item.device_id.substring(0, 16) + '...' : '—'"></td>
+                                        <td class="px-3.5 py-2.5">
+                                            <p class="font-mono text-slate-700 font-medium" x-text="item.ip_address"></p>
+                                            <p class="text-[10px] text-slate-400" x-text="item.created_at_human"></p>
                                         </td>
-                                        <td class="px-4 py-3 text-right font-bold text-emerald-600" x-text="item.formatted_amount"></td>
+                                        <td class="px-3.5 py-2.5 text-right font-extrabold text-emerald-600" x-text="item.formatted_amount"></td>
                                     </tr>
                                 </template>
                             </tbody>
@@ -695,8 +713,8 @@
                 </div>
 
                 {{-- Modal Footer --}}
-                <div class="bg-gray-50 px-6 py-3.5 flex justify-end">
-                    <button type="button" @click="showUsagesModal = false" class="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-xl transition cursor-pointer">
+                <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex justify-end">
+                    <button type="button" @click="showUsagesModal = false" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition cursor-pointer">
                         Tutup
                     </button>
                 </div>
@@ -704,34 +722,34 @@
         </div>
     </div>
 
-    {{-- ── Floating Bulk Action Bar ── --}}
+    {{-- ── 7. FLOATING BULK ACTION BAR ── --}}
     <div x-cloak
          x-show="selectedVouchers.length > 0"
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0 translate-y-4"
+         x-transition:enter="transition ease-out duration-150"
+         x-transition:enter-start="opacity-0 translate-y-3"
          x-transition:enter-end="opacity-100 translate-y-0"
-         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave="transition ease-in duration-100"
          x-transition:leave-start="opacity-100 translate-y-0"
-         x-transition:leave-end="opacity-0 translate-y-4"
-         class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-6 py-3.5 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center gap-5">
-        <div class="flex items-center gap-2.5">
-            <span class="w-7 h-7 rounded-full bg-indigo-500 text-white font-extrabold text-xs flex items-center justify-center" x-text="selectedVouchers.length"></span>
-            <span class="text-xs font-semibold text-slate-200">Voucher dipilih</span>
+         x-transition:leave-end="opacity-0 translate-y-3"
+         class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-xl border border-slate-700 flex items-center gap-4">
+        <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-md bg-orange-500 text-white font-extrabold text-xs flex items-center justify-center" x-text="selectedVouchers.length"></span>
+            <span class="text-xs font-medium text-slate-300">Voucher dipilih</span>
         </div>
 
-        <div class="h-5 w-px bg-slate-700"></div>
+        <div class="h-4 w-px bg-slate-700"></div>
 
         <form action="{{ route('admin.vouchers.destroy') }}" method="POST"
-              @submit="return confirm('Yakin ingin menghapus ' + selectedVouchers.length + ' voucher terpilih secara permanen?')">
+              @submit="return confirm('Yakin ingin menghapus ' + selectedVouchers.length + ' voucher terpilih?')">
             @csrf
             @method('DELETE')
             <template x-for="id in selectedVouchers" :key="id">
                 <input type="hidden" name="voucher_ids[]" :value="id">
             </template>
             <button type="submit"
-                    class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-2 px-4 rounded-xl transition shadow-sm flex items-center gap-1.5 cursor-pointer">
+                    class="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold py-1.5 px-3.5 rounded-lg transition shadow-xs flex items-center gap-1.5 cursor-pointer">
                 <i class="fa-solid fa-trash-can text-xs"></i>
-                Hapus Voucher Terpilih
+                Hapus Terpilih
             </button>
         </form>
 
