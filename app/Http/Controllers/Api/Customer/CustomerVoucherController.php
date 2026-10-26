@@ -12,7 +12,8 @@ class CustomerVoucherController extends Controller
     public function check(Request $request): JsonResponse
     {
         $request->validate([
-            'code' => 'required|string|max:50',
+            'code'      => 'required|string|max:50',
+            'device_id' => 'nullable|string|max:64',
         ]);
 
         $code = strtoupper(trim($request->input('code')));
@@ -25,17 +26,15 @@ class CustomerVoucherController extends Controller
             ], 404);
         }
 
-        if ($voucher->is_used) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Kode voucher sudah pernah digunakan.',
-            ], 422);
-        }
+        $userId   = auth('sanctum')->id() ?? auth()->id() ?? $request->user()?->id;
+        $deviceId = $request->input('device_id') ?? $request->header('X-Device-Id');
 
-        if ($voucher->expires_at && $voucher->expires_at->isPast()) {
+        $validation = $voucher->validateForUsage($userId, $deviceId);
+
+        if (! $validation['valid']) {
             return response()->json([
                 'success' => false,
-                'message' => 'Kode voucher sudah kadaluarsa pada ' . $voucher->expires_at->format('d/m/Y H:i') . '.',
+                'message' => $validation['message'],
             ], 422);
         }
 
@@ -45,6 +44,7 @@ class CustomerVoucherController extends Controller
                 'code'             => $voucher->code,
                 'amount'           => $voucher->amount,
                 'formatted_amount' => $voucher->formatted_amount,
+                'type'             => $voucher->type ?? 'single',
                 'expires_at'       => $voucher->expires_at?->format('Y-m-d H:i:s'),
             ],
             'message' => 'Voucher valid.',

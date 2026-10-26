@@ -132,6 +132,8 @@ Route::prefix('admin')->group(function () {
         Route::prefix('vouchers')->middleware('can:manage discounts')->group(function () {
             Route::get('/', [AdminWebVoucherController::class, 'index'])->name('admin.vouchers');
             Route::post('/generate', [AdminWebVoucherController::class, 'generate'])->name('admin.vouchers.generate');
+            Route::post('/promo', [AdminWebVoucherController::class, 'storePromo'])->name('admin.vouchers.promo.store');
+            Route::get('/{voucher}/usages', [AdminWebVoucherController::class, 'usages'])->name('admin.vouchers.usages');
             Route::get('/print', [AdminWebVoucherController::class, 'print'])->name('admin.vouchers.print');
             Route::delete('/destroy', [AdminWebVoucherController::class, 'destroy'])->name('admin.vouchers.destroy');
         });

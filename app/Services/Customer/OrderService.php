@@ -91,11 +91,19 @@ class OrderService
             // 3. Hitung voucher & grand total
             $voucherModel    = null;
             $voucherDiscount = 0;
+            $deviceId        = $data['device_id'] ?? request()->header('X-Device-Id');
+
             if (!empty($data['voucher_code'])) {
                 $voucherModel = \App\Models\Voucher::where('code', strtoupper(trim($data['voucher_code'])))->first();
-                if (!$voucherModel || $voucherModel->is_used || ($voucherModel->expires_at && $voucherModel->expires_at->isPast())) {
-                    throw new \Exception('Kode voucher tidak valid, sudah kadaluarsa, atau sudah pernah digunakan.');
+                if (!$voucherModel) {
+                    throw new \Exception('Kode voucher tidak ditemukan.');
                 }
+
+                $validation = $voucherModel->validateForUsage($userId, $deviceId);
+                if (!$validation['valid']) {
+                    throw new \Exception($validation['message']);
+                }
+
                 $voucherDiscount = min((float) $voucherModel->amount, (float) $totalPrice);
             }
 
@@ -129,7 +137,24 @@ class OrderService
             $order = $this->orderRepository->create($orderData);
 
             if ($voucherModel) {
-                $voucherModel->markAsUsed($userId, $order->id);
+                if ($voucherModel->isPromo()) {
+                    $userAgent   = request()->userAgent() ?? ($data['user_agent'] ?? null);
+                    $ipAddress   = request()->ip() ?? ($data['ip_address'] ?? null);
+                    $deviceInfo  = \App\Support\DeviceDetector::detect($userAgent);
+                    $deviceLabel = $deviceInfo['formatted'] ?? 'Perangkat Browser';
+
+                    $voucherModel->recordPromoUsage(
+                        userId: $userId,
+                        orderId: $order->id,
+                        deviceId: $deviceId,
+                        deviceLabel: $deviceLabel,
+                        ipAddress: $ipAddress,
+                        userAgent: $userAgent,
+                        discountAmount: (int) $voucherDiscount
+                    );
+                } else {
+                    $voucherModel->markAsUsed($userId, $order->id);
+                }
             }
 
             // 5. Jika bukan COD atau MANUAL_BCA → buat transaksi Duitku

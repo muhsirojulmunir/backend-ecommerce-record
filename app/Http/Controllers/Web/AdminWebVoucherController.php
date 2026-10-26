@@ -17,7 +17,13 @@ class AdminWebVoucherController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Voucher::with(['usedByUser', 'creator', 'reservedByUser', 'order']);
+        $query = Voucher::with(['usedByUser', 'creator', 'reservedByUser', 'order'])
+            ->withCount('usages');
+
+        // Filter tipe (single / promo)
+        if ($request->filled('type')) {
+            $query->where('type', $request->type);
+        }
 
         // Eager load category jika kolom tersedia di database
         if (Schema::hasColumn('vouchers', 'category_id')) {
@@ -61,6 +67,7 @@ class AdminWebVoucherController extends Controller
         // Statistik
         $stats = [
             'total'     => Voucher::count(),
+            'promo'     => Voucher::where('type', 'promo')->count(),
             'available' => Voucher::where('is_used', false)->whereNull('used_by')->where(function ($q) {
                 $q->whereNull('expires_at')->orWhere('expires_at', '>=', now());
             })->count(),
@@ -92,7 +99,7 @@ class AdminWebVoucherController extends Controller
     }
 
     /**
-     * Generate voucher secara massal.
+     * Generate voucher acak secara massal.
      */
     public function generate(Request $request)
     {
@@ -129,6 +136,7 @@ class AdminWebVoucherController extends Controller
             for ($i = 0; $i < $validated['quantity']; $i++) {
                 $voucherData = [
                     'code'        => Voucher::generateUniqueCode(),
+                    'type'        => 'single',
                     'amount'      => $validated['amount'],
                     'expires_at'  => $expiresAt,
                     'batch_label' => $batchLabel,
@@ -147,6 +155,108 @@ class AdminWebVoucherController extends Controller
         return redirect()
             ->route('admin.vouchers', ['batch' => $batchLabel])
             ->with('success', count($codes) . ' voucher berhasil di-generate dengan batch "' . $batchLabel . '".');
+    }
+
+    /**
+     * Buat voucher promo khusus / bersama (seperti kode "RECORD").
+     */
+    public function storePromo(Request $request)
+    {
+        // Sanitasi amount & total_quota
+        if ($request->has('amount')) {
+            $cleaned = preg_replace('/\D/', '', (string) $request->input('amount'));
+            $request->merge(['amount' => $cleaned !== '' ? (int) $cleaned : null]);
+        }
+        if ($request->has('total_quota') && $request->filled('total_quota')) {
+            $cleanedQuota = preg_replace('/\D/', '', (string) $request->input('total_quota'));
+            $request->merge(['total_quota' => $cleanedQuota !== '' ? (int) $cleanedQuota : null]);
+        }
+
+        $validated = $request->validate([
+            'code'        => 'required|string|max:20|unique:vouchers,code',
+            'amount'      => 'required|integer|min:1000',
+            'total_quota' => 'nullable|integer|min:1',
+            'expires_at'  => 'nullable|date|after:today',
+            'category_id' => 'nullable|exists:categories,id',
+        ], [
+            'code.required'      => 'Kode voucher promo wajib diisi.',
+            'code.unique'        => 'Kode voucher tersebut sudah digunakan. Silakan gunakan kode lain.',
+            'amount.required'    => 'Nominal diskon wajib diisi.',
+            'amount.min'         => 'Nominal minimal Rp 1.000.',
+            'expires_at.after'   => 'Tanggal kadaluarsa harus setelah hari ini.',
+        ]);
+
+        $code = strtoupper(trim($validated['code']));
+        $expiresAt = $validated['expires_at']
+            ? \Carbon\Carbon::parse($validated['expires_at'])->endOfDay()
+            : null;
+
+        $hasCategoryCol = Schema::hasColumn('vouchers', 'category_id');
+
+        $voucherData = [
+            'code'             => $code,
+            'type'             => 'promo',
+            'amount'           => $validated['amount'],
+            'total_quota'      => $validated['total_quota'] ?? null,
+            'used_count'       => 0,
+            'limit_per_user'   => 1,
+            'limit_per_device' => 1,
+            'expires_at'       => $expiresAt,
+            'batch_label'      => 'PROMO ' . $code,
+            'created_by'       => Auth::id(),
+            'is_used'          => false,
+        ];
+
+        if ($hasCategoryCol && $request->filled('category_id')) {
+            $voucherData['category_id'] = $request->category_id;
+        }
+
+        Voucher::create($voucherData);
+
+        return redirect()
+            ->route('admin.vouchers')
+            ->with('success', 'Voucher Promo "' . $code . '" berhasil dibuat dengan aturan 1x per Akun & 1x per Perangkat!');
+    }
+
+    /**
+     * Ambil data riwayat pemakaian voucher (JSON untuk modal).
+     */
+    public function usages(Voucher $voucher)
+    {
+        $usages = $voucher->usages()
+            ->with(['user', 'order'])
+            ->latest()
+            ->get()
+            ->map(function ($u) {
+                return [
+                    'id'               => $u->id,
+                    'order_id'         => $u->order_id,
+                    'order_number'     => $u->order?->order_number ?? ('#' . $u->order_id),
+                    'user_id'          => $u->user_id,
+                    'user_name'        => $u->user?->name ?? 'Pengguna Dihapus',
+                    'user_email'       => $u->user?->email ?? '—',
+                    'device_id'        => $u->device_id,
+                    'device_label'     => $u->device_label ?: 'Browser / Perangkat',
+                    'ip_address'       => $u->ip_address ?: '—',
+                    'discount_amount'  => $u->discount_amount,
+                    'formatted_amount' => 'Rp ' . number_format($u->discount_amount, 0, ',', '.'),
+                    'created_at_human' => $u->created_at?->translatedFormat('d M Y, H:i') ?? '—',
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'voucher' => [
+                'id'               => $voucher->id,
+                'code'             => $voucher->code,
+                'amount'           => $voucher->amount,
+                'formatted_amount' => $voucher->formatted_amount,
+                'used_count'       => $voucher->used_count,
+                'total_quota'      => $voucher->total_quota,
+                'quota_label'      => $voucher->total_quota ? ($voucher->used_count . ' / ' . $voucher->total_quota) : ($voucher->used_count . ' / Tanpa Batas'),
+            ],
+            'usages'  => $usages,
+        ]);
     }
 
     /**
